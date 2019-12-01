@@ -1,6 +1,8 @@
 import ast
+from pathlib import Path
+# from __main__ import lib_dir, example_dir
 
-with open('parse_test.py', 'r') as f:
+with open(example_dir / 'simple_program.py', 'r') as f:
     testfile = f.read()
     nodes = ast.parse(testfile).body
 
