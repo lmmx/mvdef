@@ -1,20 +1,13 @@
-import ast
 from pathlib import Path
+from sys import path as pathvar
+from src.ast import ast_parse
 
-def init(var_init):
-    """
-    Passing parameters into the demo to get directory of demo file (without sys.path).
-    """
-    assert "example_dir" in var_init, "Provide the location of the examples directory"
-    example_dir = var_init['example_dir']
-    init_parse(example_dir)
+def parse_example(program_path):
+    parsed = ast_parse(program_path, return_report=True)
+    return parsed
 
-def init_parse(example_dir):
-    with open(example_dir / "simple_program.py", "r") as f:
-        eg_file = f.read()
-        nodes = ast.parse(eg_file).body
-
-    imports = [n for n in nodes if type(n) == ast.Import]
-    funcdefs = [n for n in nodes if type(n) == ast.FunctionDef]
-
-    move_list = ["show_line"]
+print("Demo initialised")
+assert pathvar[0] == 'mvdef'
+example_dir = Path(pathvar[1]) / 'mvdef' / 'example'
+assert example_dir.exists() and example_dir.is_dir()
+init_parse(example_dir / "simple_program.py")
