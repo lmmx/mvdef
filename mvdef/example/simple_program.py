@@ -1,6 +1,12 @@
 import numpy as np
-from numpy import arange
+from numpy import arange, pi
+
 import matplotlib.pyplot as plt
+
+from skimage.measure import (
+    find_contours,
+    centroid as ctrd,
+)
 
 
 def show_line(n=None, suppress_display=False):
@@ -21,7 +27,7 @@ def print_some_pi(n=None, suppress_print=False):
         n = 2
     assert type(n) in (int, np.typeDict["int"]), f"n must be an integer, {n} is not"
     message = "hello world"
-    output = f"{message}, {n} pi = {n * np.pi}"
+    output = f"{message}, {n} pi = {n * pi}"
     if suppress_print:
         return output
     print(output)

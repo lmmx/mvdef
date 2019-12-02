@@ -25,4 +25,8 @@ mvdefs = ["show_line"]
 
 # Step 1: declare src and dst .py file paths and back up the files
 src_p, dst_p = (example_dir / f"{n}.py" for n in ["simple_program", "new_file"])
-parse_example(src_p, dst_p, move_list=mvdefs, report=True, nochange=True)
+src_parsed, dst_parsed = parse_example(
+    src_p, dst_p, move_list=mvdefs, report=True, nochange=True
+)
+if dst_parsed is None:
+    dst_parsed = "(Dst will take all src_parsed imports and funcdefs)"
