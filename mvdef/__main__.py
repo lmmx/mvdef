@@ -1,44 +1,26 @@
-import sys
+from sys import path as syspath
 from sys import argv
-import ast
 from pathlib import Path
-import argparse
+from argparse import ArgumentParser
 
-sys.path.insert(0, "mvdef")
+# Put the absolute path to the module directory on the system PATH:
+syspath.insert(0, str(Path(__file__).parent))
 
-import src
-import example
-from src.demo import run_demo
-from example.test.test_demo_program import test_report
+from src.demo import main as run_demo
 
-parser = argparse.ArgumentParser(
-    description="Move function definitions and associated import statements"
-    + " from one file to another within a library."
+parser = ArgumentParser(
+    description="Move function definitions and associated import"
+    + " statements from one file to another within a library."
 )
 parser.add_argument("--demo", action="store_true")
 
-if argv[0].endswith("__main__.py"):
-    argv = [a for a in argv if a != argv[0]]
+if __name__ == "__main__":
+    if argv[0].endswith("__main__.py"):
+        argv = [a for a in argv if a != argv[0]]
 arg_l = parser.parse_args(argv)
 
 if "demo" in arg_l:
     if arg_l.demo:
-        print("Demo will run")
-        try:
-            test_report()
-        except AssertionError as e:
-            raise RuntimeError("The tests do not pass for the example file")
-        # assert test_example() is None, "The tests do not pass for the example file"
-        src_parsed, dst_parsed = run_demo()
-
-        # src_imports, src_funcdefs = src_parsed
-        src_ret = src_parsed
-        if type(dst_parsed) is str:
-            print(dst_parsed)
-        else:
-            dst_imports, dst_funcdefs = dst_parsed
-        try:
-            test_report()
-        except AssertionError as e:
-            print(f"!!! Sorry, the demo broke the example:")
-            print(e)
+        dry_run = True
+        report = True
+        run_demo(mvdefs=["show_line"], dry_run=dry_run, report=report)
