@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import arange, pi
-
 import matplotlib.pyplot as plt
 
 

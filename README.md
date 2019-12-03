@@ -90,11 +90,11 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
      - This subset is determined by cross-referencing the names of the `defs` (from previous step)
        against the `mv_list` (list of functions to move, such as `["fn1", "fn2", "fn3"]`),
        in the dedicated function `src.ast`⠶`get_def_names`, then returned by `src.ast`⠶
-       `parse_mv_funcs` as a list, assigned to `mvdef_names` in `src.ast.ast_parse`.
+       `parse_mv_funcs` as a list, assigned to `mvdefs` in `src.ast.ast_parse`.
    - [x] `nonmvdefs`: subset of all function definitions **not** to be moved (not in `mvdefs`)
      - This subset is determined by negative cross-ref. to names of the `defs` against the
        `mv_list` (such as `["fn4", "fn5", "fn6"]`), again using `src.ast`⠶`get_def_names`,
-       then returned by `src.ast.parse_mv_funcs` as a list, assigned to `nonmvdef_names`
+       then returned by `src.ast.parse_mv_funcs` as a list, assigned to `nonmvdefs`
        in `src.ast.ast_parse`.
    - [ ] `mvdef_imports`: Import statements used by the functions in `mvdefs`
    - [ ] `nonmv_imports`: Import statements used by the functions in `nonmvdefs`

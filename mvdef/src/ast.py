@@ -112,8 +112,8 @@ def get_def_names(func_list, funcdefs, import_annos, report=True, edit=False):
             fd_name_entry["n_i"] = n_i
             fd_name_entry["line"] = mv_imp_refs.get(k).get("line")
             fd_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
-        if report:
-            print(f"The names in {m} are: {fd_names}")
+        # if report:
+        #    print(f"The names in {m} are: {fd_names}")
         if edit:
             # Go do the file editing
             pass
@@ -157,14 +157,14 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     imp_annos = annotate_imports(imports, report=report)
     mvdef_names = get_def_names(mv_list, funcdefs, imp_annos, report, edit)
     if report:
-        print("In summary, mvdef names are:")
+        print("mvdef names:")
         pprint_def_names(mvdef_names)
     # -------------------------------------------------------------------------#
     # Next obtain nonmvdef_names
     nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
     nonmvdef_names = get_def_names(nomv_list, funcdefs, imp_annos, report, edit)
     if report:
-        print("In summary, non-mvdef names are:")
+        print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
     return mvdef_names, nonmvdef_names
 
@@ -205,16 +205,35 @@ def ast_parse(py_file, mv_list=[], report=False, edit=False, backup=True):
         defs = [n for n in nodes if type(n) == ast.FunctionDef]
         # return imports, funcdefs
 
-        if mv_list != []:
-            mvdef_names, nonmvdef_names = parse_mv_funcs(
-                mv_list, defs, imports, report, edit
-            )
-        else:
-            imp_name_lines, imp_name_dicts = annotate_imports(imports, report=report)
-            # No files are to be moved from py_file, i.e. they are moving into py_file
-            mvdef = []
+        if mv_list == [] and report:
+            # The mv_list is empty if it was not passed in at all, i.e. this indicates
+            # no files are to be moved from py_file, i.e. they are moving into py_file
             # extant is True so non_mvdef is just all funcdefs for the file
-            nonmvdef = [f.name for f in funcdefs]
-            if report:
-                print(f"No functions to move from {py_file}")
+            print(f"⇒ No functions to move from {py_file}")
+        elif mv_list != [] and report:
+            print(f"⇒ Functions moving from {py_file}: {mv_list}")
+        elif report:
+            print(f"⇒ No functions moving from {py_file} (presumably going to it)")
+
+        mvdefs, nonmvdefs = parse_mv_funcs(mv_list, defs, imports, report, edit)
+        for fd in mvdefs:
+            fd_info = mvdefs.get(fd)
+            print(f"fd_info: {fd_info}")
+            for name in fd_info:
+                print(f"name: {name}")
+                fdn_info = fd_info.get(name)
+                fdn_n = fdn_info.get("n")
+                fdn_ni = fdn_info.get("n_i")
+                print(f"fdn_info: {fdn_info}")
+                print(f"imports[n={fdn_n}]: {imports[fdn_n]}")
+                if len(imports[fdn_n].names) > 1:
+                    tupname = imports[fdn_n].names[fdn_ni]
+                    print(f"imports[n={fdn_n}].names[n_i={fdn_ni}]: {tupname}")
+                    print(f"⇒⇒⇒ {tupname.name} as {tupname.asname}")
+         
+        #print(mv_imports)
+        #nmv_imports = [imports[mvdefs[name]] for name in nonmvdefs]
+        #print(nmv_imports)
+    elif mv_list == [] and report:
+        print(f"⇒ No functions moving from {py_file} (it's being created from them)")
     return
