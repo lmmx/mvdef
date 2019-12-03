@@ -76,6 +76,50 @@ def find_assigned_args(fd):
     return assigned_args
 
 
+def get_def_names(func_list, funcdefs, import_annos, report=True, edit=False):
+    imp_name_lines, imp_name_dicts = import_annos
+    def_names = dict(zip(func_list, [{}] * len(func_list)))
+    for m in func_list:
+        fd_names = set()
+        assert m in [f.name for f in funcdefs], f"No function '{m}' is defined"
+        fd = funcdefs[[f.name for f in funcdefs].index(m)]
+        fd_params = [a.arg for a in fd.args.args]
+        assigned_args = find_assigned_args(fd)
+        for ast_statement in fd.body:
+            for node in list(ast.walk(ast_statement)):
+                if type(node) == ast.Name:
+                    n_id = node.id
+                    if n_id not in dir(builtins) + fd_params + assigned_args:
+                        fd_names.add(n_id)
+        def_names[m] = dict(zip(sorted(fd_names), [{} for x in range(len(fd_names))]))
+        # All names successfully found and can finish if remaining names are
+        # in the set of funcdef names, comparing them tothe import statements
+        unknowns = [n for n in fd_names if n not in imp_name_lines]
+        assert unknowns == [], f"These names could not be sourced: {unknowns}"
+        # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
+        # These refs will lead to import statements being copied and/or moved
+        mv_imp_refs = dict([[n, imp_name_lines.get(n)] for n in fd_names])
+        for k in mv_imp_refs:
+            n = mv_imp_refs.get(k).get("n")
+            d = imp_name_dicts[n]
+            n_i = [list(d.keys()).index(x) for x in d if d[x] == k][0]
+            assert n_i >= 0, f"Movable name {k} not found in import name dict"
+            # Store index in case of multiple imports per import statement line
+            mv_imp_refs.get(k)["n_i"] = n_i
+            fd_name_entry = def_names.get(m).get(k)
+            n = mv_imp_refs.get(k).get("n")
+            fd_name_entry["n"] = n
+            fd_name_entry["n_i"] = n_i
+            fd_name_entry["line"] = mv_imp_refs.get(k).get("line")
+            fd_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
+        if report:
+            print(f"The names in {m} are: {fd_names}")
+        if edit:
+            # Go do the file editing
+            pass
+    return def_names
+
+
 def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     """
     Produce a dictionary, `mvdef_names`, whose keys are the list of functions
@@ -99,57 +143,30 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
               parts conjoined by `.` (e.g. `matplotlib.pyplot`)
     
     I.e. the dictionary `mvdef_names[m][k]` for `m` in `mv_list` and `k` in the
-    subset of AST-identified imported names in the function with name `m` in
+    subset of AST-identified imported names in the function with  if f.name not in mv_listname `m` in
     the list of function definitions `funcdefs`.
     """
-    imp_name_lines, imp_name_dicts = annotate_imports(imports, report=report)
-    mvdef_names = dict(zip(mv_list, [{}] * len(mv_list)))
-    for m in mv_list:
-        fd_names = set()
-        assert m in [f.name for f in funcdefs], f"No function '{m}' is defined"
-        fd = funcdefs[[f.name for f in funcdefs].index(m)]
-        fd_params = [a.arg for a in fd.args.args]
-        assigned_args = find_assigned_args(fd)
-        for ast_statement in fd.body:
-            for node in list(ast.walk(ast_statement)):
-                if type(node) == ast.Name:
-                    n_id = node.id
-                    if n_id not in dir(builtins) + fd_params + assigned_args:
-                        fd_names.add(n_id)
-        mvdef_names[m] = dict(zip(sorted(fd_names), [{} for x in range(len(fd_names))]))
-        # All names successfully found and can finish if remaining names are
-        # in the set of funcdef names, comparing them tothe import statements
-        unknowns = [n for n in fd_names if n not in imp_name_lines]
-        assert unknowns == [], f"These names could not be sourced: {unknowns}"
-        # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
-        # These refs will lead to import statements being copied and/or moved
-        mv_imp_refs = dict([[n, imp_name_lines.get(n)] for n in fd_names])
-        for k in mv_imp_refs:
-            n = mv_imp_refs.get(k).get("n")
-            d = imp_name_dicts[n]
-            n_i = [list(d.keys()).index(x) for x in d if d[x] == k][0]
-            assert n_i >= 0, f"Movable name {k} not found in import name dict"
-            # Store index in case of multiple imports per import statement line
-            mv_imp_refs.get(k)["n_i"] = n_i
-            fd_name_entry = mvdef_names.get(m).get(k)
-            n = mv_imp_refs.get(k).get("n")
-            fd_name_entry["n"] = n
-            fd_name_entry["n_i"] = n_i
-            fd_name_entry["line"] = mv_imp_refs.get(k).get("line")
-            fd_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
-        if report:
-            print(f"The names in {m} are: {fd_names}")
-        if edit:
-            # Go do the file editing
-            pass
+    imp_annos = annotate_imports(imports, report=report)
+    mvdef_names = get_def_names(mv_list, funcdefs, imp_annos, report, edit)
     if report:
-        print("In summary, mvdef_names are:")
-        for mln in mvdef_names:
-            print(f"  {mln}:::" + "{")
-            for mlnm in mvdef_names.get(m):
-                print(f"    {mlnm}: {mvdef_names.get(m)[mlnm]}")
+        print("In summary, mvdef names are:")
+        for n in mvdef_names:
+            print(f"  {n}:::" + "{")
+            for m in mvdef_names.get(n):
+                print(f"    {m}: {mvdef_names.get(n)[m]}")
             print("  }")
-    return mvdef_names
+    # -------------------------------------------------------------------------#
+    # Next obtain nonmvdef_names
+    nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
+    nonmvdef_names = get_def_names(nomv_list, funcdefs, imp_annos, report, edit)
+    if report:
+        print("In summary, non-mvdef names are:")
+        for n in nonmvdef_names:
+            print(f"  {n}:::" + "{")
+            for m in nonmvdef_names.get(n):
+                print(f"    {m}: {nonmvdef_names.get(n)[m]}")
+            print("  }")
+    return mvdef_names, nonmvdef_names
 
 
 def ast_parse(py_file, mv_list=[], report=False, edit=False, backup=True):
@@ -189,7 +206,9 @@ def ast_parse(py_file, mv_list=[], report=False, edit=False, backup=True):
         # return imports, funcdefs
 
         if mv_list != []:
-            mvdef_names = parse_mv_funcs(mv_list, defs, imports, report, edit)
+            mvdef_names, nonmvdef_names = parse_mv_funcs(
+                mv_list, defs, imports, report, edit
+            )
         else:
             imp_name_lines, imp_name_dicts = annotate_imports(imports, report=report)
             # No files are to be moved from py_file, i.e. they are moving into py_file
