@@ -3,11 +3,6 @@ from numpy import arange, pi
 
 import matplotlib.pyplot as plt
 
-from skimage.measure import (
-    find_contours,
-    centroid as ctrd,
-)
-
 
 def show_line(n=None, suppress_display=False):
     if n is None:

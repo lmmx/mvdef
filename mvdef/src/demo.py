@@ -24,7 +24,7 @@ assert example_dir.exists() and example_dir.is_dir()
 mvdefs = ["show_line"]
 
 # Step 1: declare src and dst .py file paths and back up the files
-src_p, dst_p = (example_dir / f"{n}.py" for n in ["simple_program", "new_file"])
+src_p, dst_p = (example_dir / f"{n}.py" for n in ["demo_program", "new_file"])
 src_parsed, dst_parsed = parse_example(
     src_p, dst_p, move_list=mvdefs, report=True, nochange=True
 )
