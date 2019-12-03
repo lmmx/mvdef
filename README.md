@@ -80,8 +80,8 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
    - If not, it would just be a matter of testing this manually (i.e. not necessary to define test
      to use tool, but suggested best practice)
 - [x] Enumerate all import statements in `src.py` (nodes in the AST of type `ast.Import`)
-   - `src.ast`⠶`annotate_imports` returns this list, which gets assigned to the name
-     `imports` in `src.ast`⠶`parse_mv_funcs`
+   - `src.ast`⠶`annotate_imports` returns this list, which gets assigned to `imports`
+     in `src.ast`⠶`parse_mv_funcs`
 - [x] Enumerate all function definitions in `src.py` (nodes in the AST of type `ast.FunctionDef`)
    - `ast`⠶`parse` provides this as the `.body` nodes which are of type `ast.FunctionDef`.
      - This subset of AST nodes is assigned to the name `defs` in `src.ast`⠶`ast_parse`.
