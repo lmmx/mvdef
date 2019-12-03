@@ -120,6 +120,14 @@ def get_def_names(func_list, funcdefs, import_annos, report=True, edit=False):
     return def_names
 
 
+def pprint_def_names(def_names):
+    for n in def_names:
+        print(f"  {n}:::" + "{")
+        for m in def_names.get(n):
+            print(f"    {m}: {def_names.get(n)[m]}")
+        print("  }")
+
+
 def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     """
     Produce a dictionary, `mvdef_names`, whose keys are the list of functions
@@ -150,22 +158,14 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     mvdef_names = get_def_names(mv_list, funcdefs, imp_annos, report, edit)
     if report:
         print("In summary, mvdef names are:")
-        for n in mvdef_names:
-            print(f"  {n}:::" + "{")
-            for m in mvdef_names.get(n):
-                print(f"    {m}: {mvdef_names.get(n)[m]}")
-            print("  }")
+        pprint_def_names(mvdef_names)
     # -------------------------------------------------------------------------#
     # Next obtain nonmvdef_names
     nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
     nonmvdef_names = get_def_names(nomv_list, funcdefs, imp_annos, report, edit)
     if report:
         print("In summary, non-mvdef names are:")
-        for n in nonmvdef_names:
-            print(f"  {n}:::" + "{")
-            for m in nonmvdef_names.get(n):
-                print(f"    {m}: {nonmvdef_names.get(n)[m]}")
-            print("  }")
+        pprint_def_names(nonmvdef_names)
     return mvdef_names, nonmvdef_names
 
 
