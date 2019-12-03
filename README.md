@@ -28,8 +28,8 @@ inspect the error message tracebacks until I figure out the full set, or else
 just reset it to where I was, in which case the time spent so far was wasted!
 
 All of this motivates a library which can handle such operations for me, if not
-because I have difficulty so much as it is a waste of time every time, which
-also interrupts the train of thought (increasingly so as the software gets more
+because it's impossible to do manually so much as it's a waste of development time,
+which interrupts the train of thought (increasingly so as the software gets more
 complex, with more functions and libraries to consider).
 
 Software can scale to handle these higher levels of complexity no differently than
