@@ -66,7 +66,11 @@ the process.
 The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the following:
 
 1) Back up `src.py` and `dst.py`, as `src.py.backup` and `dst.py.backup` in case it doesn't work
-2) Optional: Define some test that should pass after the refactor, when `src.py` imports `fn1, fn2, fn3` from `dst.py`
+   - See `src.backup`
+   - I'd also like to add the option to rename functions, using a pattern or list to rename
+     as [not yet implemented]
+2) Optional: Define some test that should pass after the refactor,
+   when `src.py` imports `fn1, fn2, fn3` from `dst.py`
    - If not, it would just be a matter of testing this manually
 3) Enumerate all import statements in `src.py` (nodes in the AST of type `ast.Import`)
 4) Enumerate all function definitions in `src.py` (nodes in the AST of type `ast.FunctionDef`)
