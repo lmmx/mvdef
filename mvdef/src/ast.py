@@ -33,11 +33,8 @@ def annotate_imports(imports, report=True):
     assert len(imp_name_dict_list) == len(imports)
     assert sum([len(d) for d in imp_name_dict_list]) == len(imp_name_linedict)
     if report:
-        print("The import name dicts are:")
-        for nd in imp_name_dict_list:
-            print(nd)
-        print()
-        print(f"The import name line dict is:\n{imp_name_linedict}")
+        print("The import name line dict is:")
+        for ld in imp_name_linedict: print(f"  {ld}: {imp_name_linedict[ld]}")
     return imp_name_linedict, imp_name_dict_list
 
 
@@ -121,9 +118,11 @@ def ast_parse(py_file, move_list=[], report=False, edit=False, backup=True):
                     # Store index in case of multiple imports per import statement line
                     mv_imp_refs.get(k)["k_i"] = k_i
                     fd_name_entry = mv_list_namesets.get(m).get(k)
-                    fd_name_entry["n"] = mv_imp_refs.get(k).get("n")
+                    n = mv_imp_refs.get(k).get("n")
+                    fd_name_entry["n"] = n
                     fd_name_entry["k_i"] = k_i
                     fd_name_entry["line"] = mv_imp_refs.get(k).get("line")
+                    fd_name_entry["import"] = list(imp_name_dicts[n].keys())[k_i]
                 if report:
                     print(f"The names in {m} are: {fd_names}")
                 if edit:
@@ -132,7 +131,10 @@ def ast_parse(py_file, move_list=[], report=False, edit=False, backup=True):
             if report:
                 print("In summary, mv_list_namesets are:")
                 for mln in mv_list_namesets:
-                    print(mln, mv_list_namesets.get(m))
+                    print(f"  {mln}:::"+"{")
+                    for mlnm in mv_list_namesets.get(m):
+                        print(f"    {mlnm}: {mv_list_namesets.get(m)[mlnm]}")
+                    print("  }")
         else:
             # No files are to be moved from py_file, i.e. they are moving into py_file
             mvdef = []
