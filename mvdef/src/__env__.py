@@ -22,9 +22,13 @@ except AssertionError as e:
 try:
     assert len(example_dir) == 1
     example_dir = module_dir.parent / example_dir[0]
-    assert example_dir.exists() and example_dir.is_dir()
 except AssertionError as e:
     raise NotImplementedError(e, "There should only be one example path here")
+
+try:
+    assert example_dir.exists() and example_dir.is_dir()
+except AssertionError as e:
+    raise ValueError(e, "Example directory should be a directory that already exists")
 
 try:
     assert len(src_dir) == 1
