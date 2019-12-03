@@ -33,8 +33,8 @@ if or as needed.
 The problem comes from then having to do the mental calculation (and often old
 fashioned searching for library-imported names within the file) of whether the
 functions I am trying to move out into another file rely on names that came from
-import statements, and if so whether there are other functions which also rely on
-the same imported names. If I guess and get it wrong, I may then have to run the
+import statements, and if so, **whether there are other functions which also rely on
+the same imported names.** If I guess and get it wrong, I may then have to run the
 code multiple times and inspect the error message tracebacks until I figure out
 the full set, or else just reset it to where I was if things get particularly
 messy, in which case the time spent trying to move functions and import statements
@@ -49,6 +49,17 @@ Software can scale to handle these higher levels of complexity no differently th
 it can handle a simple case, and I began writing this on the basis that "if I'm going
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
+
+# Project status and future plans
+
+This library is currently working only as a proof of concept, with a demo, and not
+yet working for code. Watch this space!
+
+I'd like this to end up being a command line tool that assists the development workflow
+similar to how [`black`](https://github.com/psf/black/) has simplified linting to best
+practice conventions for Python code style, as a tool callable on a Python file to
+change it in place, and reliable enough to trust it not mess up any of your files in
+the process.
 
 # Approach
 
