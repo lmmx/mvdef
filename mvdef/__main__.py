@@ -8,6 +8,7 @@ sys.path.insert(0, "mvdef")
 
 import src
 import example
+from src.demo import run_demo
 from example.test.test_demo_program import test_report
 
 parser = argparse.ArgumentParser(
@@ -28,7 +29,7 @@ if "demo" in arg_l:
         except AssertionError as e:
             raise RuntimeError("The tests do not pass for the example file")
         # assert test_example() is None, "The tests do not pass for the example file"
-        from src.demo import src_parsed, dst_parsed
+        src_parsed, dst_parsed = run_demo()
 
         # src_imports, src_funcdefs = src_parsed
         src_ret = src_parsed

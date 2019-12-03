@@ -14,19 +14,24 @@ def parse_example(src_p, dst_p, move_list, report=True, nochange=True):
     dst_parsed = ast_parse(dst_p, report=report, edit=(not nochange))
     return src_parsed, dst_parsed
 
+def init_locate():
+    # Initial setup
+    print("Demo initialised")
+    assert pathvar[0] == "mvdef"
+    example_dir = Path(pathvar[1]) / "mvdef" / "example"
+    assert example_dir.exists() and example_dir.is_dir()
+    return example_dir
 
-# Initial setup
-print("Demo initialised")
-assert pathvar[0] == "mvdef"
-example_dir = Path(pathvar[1]) / "mvdef" / "example"
-assert example_dir.exists() and example_dir.is_dir()
+def run_demo():
+    print("--------------RUNNING src.demo⠶main()--------------")
+    example_dir = init_locate()
+    mvdefs = ["show_line"]
 
-mvdefs = ["show_line"]
-
-# Step 1: declare src and dst .py file paths and back up the files
-src_p, dst_p = (example_dir / f"{n}.py" for n in ["demo_program", "new_file"])
-src_parsed, dst_parsed = parse_example(
-    src_p, dst_p, move_list=mvdefs, report=True, nochange=True
-)
-if dst_parsed is None:
-    dst_parsed = "(Dst will take all src_parsed imports and funcdefs)"
+    # Step 1: declare src and dst .py file paths and back up the files
+    src_p, dst_p = (example_dir / f"{n}.py" for n in ["demo_program", "new_file"])
+    src_parsed, dst_parsed = parse_example(
+        src_p, dst_p, move_list=mvdefs, report=True, nochange=True
+    )
+    if dst_parsed is None:
+        dst_parsed = "(Dst will take all src_parsed imports and funcdefs)"
+    return src_parsed, dst_parsed
