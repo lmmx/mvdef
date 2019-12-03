@@ -84,7 +84,7 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
      in `src.ast`⠶`parse_mv_funcs`
 - [x] Enumerate all function definitions in `src.py` (nodes in the AST of type `ast.FunctionDef`)
    - `ast`⠶`parse` provides this as the `.body` nodes which are of type `ast.FunctionDef`.
-     - This subset of AST nodes is assigned to the name `defs` in `src.ast`⠶`ast_parse`.
+     - This subset of AST nodes is assigned to `defs` in `src.ast`⠶`ast_parse`.
 - [x] Find the following subsets:
    - [x] `mvdefs`: subset of all function definitions which are to be moved (`fn1`, `fn2`, `fn3`)
      - This subset is determined by cross-referencing the names of the `defs` (from previous step)
@@ -94,7 +94,7 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
    - [x] `nonmvdefs`: subset of all function definitions **not** to be moved (not in `mvdefs`)
      - This subset is determined by negative cross-ref. to names of the `defs` against the
        `mv_list` (such as `["fn4", "fn5", "fn6"]`), again using `src.ast`⠶`get_def_names`,
-       then returned by `src.ast.parse_mv_funcs` as a list, assigned to the name `nonmvdef_names`
+       then returned by `src.ast.parse_mv_funcs` as a list, assigned to `nonmvdef_names`
        in `src.ast.ast_parse`.
    - [ ] `mvdef_imports`: Import statements used by the functions in `mvdefs`
    - [ ] `nonmv_imports`: Import statements used by the functions in `nonmvdefs`
