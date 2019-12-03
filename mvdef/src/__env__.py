@@ -33,9 +33,13 @@ except AssertionError as e:
 try:
     assert len(src_dir) == 1
     src_dir = module_dir.parent / src_dir[0]
+except AssertionError as e:
+    raise NotImplementedError(e, "There should only be one src path here")
+
+try:
     assert src_dir.exists() and src_dir.is_dir()
 except AssertionError as e:
-    raise NotImplementedError(e, "There should only be one example path here")
+    raise ValueError(e, "src directory should be a directory that already exists")
 
 # Exports:
 #   - module_dir: absolute Path to the module directory, `mvdef/`,
