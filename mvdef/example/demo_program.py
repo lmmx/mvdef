@@ -1,11 +1,10 @@
 import numpy as np
 from numpy import arange, pi
 import matplotlib.pyplot as plt
+from os.path import basename, sep as pathsep, islink
 
 
-def show_line(n=None, suppress_display=False):
-    if n is None:
-        n = 4
+def show_line(n=4, suppress_display=False):
     assert type(n) in (int, np.typeDict["int"]), f"n must be an integer, {n} is not"
     assert n > 0, "Please provide a positive integer, {n} is not"
     l = arange(0, n + 1)
@@ -16,11 +15,9 @@ def show_line(n=None, suppress_display=False):
     return
 
 
-def print_some_pi(n=None, suppress_print=False):
-    if n is None:
-        n = 2
+def print_some_pi(n=2, suppress_print=False):
     assert type(n) in (int, np.typeDict["int"]), f"n must be an integer, {n} is not"
-    message = "hello world"
+    message = f"hey{pathsep}hi"
     output = f"{message}, {n} pi = {n * pi}"
     if suppress_print:
         return output

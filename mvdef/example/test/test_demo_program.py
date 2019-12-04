@@ -1,10 +1,8 @@
 import numpy as np
 from example.demo_program import show_line, print_some_pi
+from os.path import sep
 
-
-def test_show_line(n=None):
-    if n is None:
-        n = 4
+def test_show_line(n=4):
     plot_output = show_line(n, suppress_display=True)
     assert type(plot_output) is list and len(plot_output) == 1
     l = plot_output[0]
@@ -15,11 +13,9 @@ def test_show_line(n=None):
     return True
 
 
-def test_print_some_pi(n=None):
-    if n is None:
-        n = 2
+def test_print_some_pi(n=2):
     output = print_some_pi(n, suppress_print=True)
-    assert output == "hello world, 2 pi = 6.283185307179586"
+    assert output == sep.join(["hey","hi"])+", 2 pi = 6.283185307179586"
     return True
 
 
