@@ -216,24 +216,34 @@ def ast_parse(py_file, mv_list=[], report=False, edit=False, backup=True):
             print(f"⇒ No functions moving from {py_file} (presumably going to it)")
 
         mvdefs, nonmvdefs = parse_mv_funcs(mv_list, defs, imports, report, edit)
-        for fd in mvdefs:
-            fd_info = mvdefs.get(fd)
-            print(f"fd_info: {fd_info}")
-            for name in fd_info:
-                print(f"name: {name}")
-                fdn_info = fd_info.get(name)
-                fdn_n = fdn_info.get("n")
-                fdn_ni = fdn_info.get("n_i")
-                print(f"fdn_info: {fdn_info}")
-                print(f"imports[n={fdn_n}]: {imports[fdn_n]}")
-                if len(imports[fdn_n].names) > 1:
-                    tupname = imports[fdn_n].names[fdn_ni]
-                    print(f"imports[n={fdn_n}].names[n_i={fdn_ni}]: {tupname}")
-                    print(f"⇒⇒⇒ {tupname.name} as {tupname.asname}")
-         
-        #print(mv_imports)
-        #nmv_imports = [imports[mvdefs[name]] for name in nonmvdefs]
-        #print(nmv_imports)
+        mvdefs_names = set().union(*[list(mvdefs[x]) for x in mvdefs])
+        nonmvdefs_names = set().union(*[list(nonmvdefs[x]) for x in nonmvdefs])
+        mv_imports = mvdefs_names - nonmvdefs_names
+        nonmv_imports = nonmvdefs_names - mvdefs_names
+        mutual_imports = mvdefs_names.intersection(nonmvdefs_names)
+        print("mv_imports:", mv_imports)
+        print("nonmv_imports:", nonmv_imports)
+        print("mutual_imports:", mutual_imports)
     elif mv_list == [] and report:
         print(f"⇒ No functions moving from {py_file} (it's being created from them)")
     return
+
+def spare_mvdef_func():
+    """
+    Wrote this on a misunderstanding of what mvdef_import should be, but might reuse
+    this code for editing the entries(?) so hang onto it for access to the AST in case
+    I want to look at line numbers again(?) Otherwise throw this code away when ready.
+    """
+    fd_info = mvdefs.get(fd)
+    print(f"fd_info: {fd_info}")
+    for name in fd_info:
+        print(f"name: {name}")
+        fdn_info = fd_info.get(name)
+        fdn_n = fdn_info.get("n")
+        fdn_ni = fdn_info.get("n_i")
+        print(f"fdn_info: {fdn_info}")
+        print(f"imports[n={fdn_n}]: {imports[fdn_n]}")
+        if len(imports[fdn_n].names) > 1:
+            tupname = imports[fdn_n].names[fdn_ni]
+            print(f"imports[n={fdn_n}].names[n_i={fdn_ni}]: {tupname}")
+            print(f"⇒⇒⇒ {tupname.name} as {tupname.asname}")

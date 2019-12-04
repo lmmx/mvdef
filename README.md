@@ -96,14 +96,15 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
        `mv_list` (such as `["fn4", "fn5", "fn6"]`), again using `src.ast`⠶`get_def_names`,
        then returned by `src.ast`⠶`parse_mv_funcs` as a list, assigned to `nonmvdefs`
        in `src.ast`⠶`ast_parse`.
-   - [ ] `mvdef_imports`: Import statements used by the functions in `mvdefs`
-   - [ ] `nonmv_imports`: Import statements used by the functions in `nonmvdefs`
-- [ ] Move the import statements in only `mvdef_imports`
+   - [x] `mv_imports`: Import statements used only by the functions in `mvdefs`
+   - [x] `nonmv_imports`: Import statements used only by the functions in `nonmvdefs`
+   - [x] `mutual_imports`: Import statements used by both functions in `mvdefs` and `nonmvdefs`
+- [ ] Move the import statements in `mv_imports`
   - [ ] ...and also handle moving one import name from an import statement importing multiple
     names (i.e. where you can't simply copy the line)
     - [ ] ...including multi-line imports (i.e. where you can't simply find the names on one line)
-- [ ] Copy the import statements in both `mvdef_imports` and `nonmv_imports`
-- ...and only then move the function definitions across
+- [ ] Copy the import statements in `mutual_imports`
+- ...and only then move the function definitions in `mvdefs` across
 - [ ] If tests were defined in step 2, check that these tests run
    - [x] For the demo, the tests are checked (by running `test_report` a 2nd time) after
      `src.demo`⠶`run_demo` has returned a parsed version of the source and destination files
