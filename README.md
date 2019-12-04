@@ -99,11 +99,20 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
    - [x] `mv_imports`: Import statements used only by the functions in `mvdefs`
    - [x] `nonmv_imports`: Import statements used only by the functions in `nonmvdefs`
    - [x] `mutual_imports`: Import statements used by both functions in `mvdefs` and `nonmvdefs`
-- [ ] Move the import statements in `mv_imports`
-  - [ ] ...and also handle moving one import name from an import statement importing multiple
-    names (i.e. where you can't simply copy the line)
-    - [ ] ...including multi-line imports (i.e. where you can't simply find the names on one line)
-- [ ] Copy the import statements in `mutual_imports`
+   - [x] `nondef_imports`: Import statements not used by any function
+     - Note that these may no longer be in use, but this can only be confirmed by checking
+       outside of function definitions too.
+     - [ ] Potentially add this feature later, for now just report which imports aren't used.
+- Handle the 3 types of imported names:
+  - [ ] **Move** the import statements in `mv_imports`
+  - [ ] **Keep** the import statements in `nonmvdef_imports`
+  - [ ] **Copy** the import statements in `mutual_imports`
+- ...and also:
+  - [ ] Handle moving one import name from an import statement importing multiple
+        names (i.e. where you can't simply copy the line)
+  - [ ] Handle multi-line imports (i.e. where you can't simply find the names on one line)
+  - [ ] ...and then consider removing unused import statements, if it can be confirmed they're
+	genuinely not used
 - ...and only then move the function definitions in `mvdefs` across
 - [ ] If tests were defined in step 2, check that these tests run
    - [x] For the demo, the tests are checked (by running `test_report` a 2nd time) after
@@ -113,5 +122,5 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
      `src.ast`⠶`ast_parse(..., edit=True)` and ultimately carry out in-place editing of the
      source and/or destination file/s as required).
    - [ ] If they fail, ask to restore the backup and give the altered src/dst `.py` files
-    `.py.mvdef_fix` suffixes (i.e. always permit the user to exit gracefully with no further
-    changes to files rather than forcing them to)
+     `.py.mvdef_fix` suffixes (i.e. always permit the user to exit gracefully with no further
+     changes to files rather than forcing them to)

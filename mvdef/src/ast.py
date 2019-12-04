@@ -76,9 +76,9 @@ def find_assigned_args(fd):
     return assigned_args
 
 
-def get_nondef_names(unused, imp_annos, report=True):
+def get_nondef_names(unused, import_annos, report=True):
     print("Unused names:", unused)
-    imp_name_lines, imp_name_dicts = imp_annos
+    imp_name_lines, imp_name_dicts = import_annos
     # nondef_names is a dictionary keyed by the unused names (which were imported)
     nondef_names = dict([(x, {}) for x in unused])
     unknowns = [n for n in unused if n not in imp_name_lines]
@@ -181,15 +181,15 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     subset of AST-identified imported names in the function with  if f.name not in mv_listname `m` in
     the list of function definitions `funcdefs`.
     """
-    imp_annos = annotate_imports(imports, report=report)
-    mvdef_names = get_def_names(mv_list, funcdefs, imp_annos, report=report)
+    import_annos = annotate_imports(imports, report=report)
+    mvdef_names = get_def_names(mv_list, funcdefs, import_annos, report=report)
     if report:
         print("mvdef names:")
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
-    nonmvdef_names = get_def_names(nomv_list, funcdefs, imp_annos, report=report)
+    nonmvdef_names = get_def_names(nomv_list, funcdefs, import_annos, report=report)
     if report:
         print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
@@ -197,8 +197,8 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     # Next obtain unused_names
     mv_set = set().union(*[mvdef_names[x].keys() for x in mvdef_names])
     nomv_set = set().union(*[nonmvdef_names[x].keys() for x in nonmvdef_names])
-    unused_names = list(set(list(imp_annos[0].keys())) - mv_set - nomv_set)
-    nondef_names = get_nondef_names(unused_names, imp_annos, report=report)
+    unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
+    nondef_names = get_nondef_names(unused_names, import_annos, report=report)
     if report:
         print("non-def names (imported but not used in any function def):")
         pprint_def_names(nondef_names, no_funcdef_list=True)
