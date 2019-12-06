@@ -112,7 +112,7 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
         names (i.e. where you can't simply copy the line)
   - [ ] Handle multi-line imports (i.e. where you can't simply find the names on one line)
   - [ ] ...and then consider removing unused import statements, if it can be confirmed they're
-	genuinely not used
+	genuinely not used (for now they are just reported)
 - ...and only then move the function definitions in `mvdefs` across
 - [ ] If tests were defined in step 2, check that these tests run
    - [x] For the demo, the tests are checked (by running `test_report` a 2nd time) after
