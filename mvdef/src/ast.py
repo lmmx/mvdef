@@ -2,6 +2,7 @@ import ast
 from pathlib import Path
 from collections import OrderedDict
 import builtins
+from src.display import colour_str as colour
 
 
 def annotate_imports(imports, report=True):
@@ -26,6 +27,7 @@ def annotate_imports(imports, report=True):
                           OrderedDict preserves the per-line order of the imported
                           names.
     """
+    report_VERBOSE = False  # Silencing debug print statements
     # This dictionary gives the import line it's on for cross-ref with either
     # the imports list above or the per-line imported_name_dict
     imp_name_linedict = dict()  # Stores all names and their asnames
@@ -51,7 +53,7 @@ def annotate_imports(imports, report=True):
     # Ensure that they each got all the names
     assert len(imp_name_dict_list) == len(imports)
     assert sum([len(d) for d in imp_name_dict_list]) == len(imp_name_linedict)
-    if report:
+    if report_VERBOSE:
         print("The import name line dict is:")
         for ld in imp_name_linedict:
             print(f"  {ld}: {imp_name_linedict[ld]}")
@@ -77,7 +79,6 @@ def find_assigned_args(fd):
 
 
 def get_nondef_names(unused, import_annos, report=True):
-    print("Unused names:", unused)
     imp_name_lines, imp_name_dicts = import_annos
     # nondef_names is a dictionary keyed by the unused names (which were imported)
     nondef_names = dict([(x, {}) for x in unused])
@@ -100,6 +101,7 @@ def get_nondef_names(unused, import_annos, report=True):
         uu_name_entry["line"] = uu_imp_refs.get(k).get("line")
         uu_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
     return nondef_names
+
 
 def get_def_names(func_list, funcdefs, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
@@ -144,7 +146,7 @@ def pprint_def_names(def_names, no_funcdef_list=False):
     if no_funcdef_list:
         print("  {")
         for m in def_names:
-            print(f"    {m}: {def_names[m]}")
+            print(f"    {m}: {def_names.get(m)}")
         print("  }")
     else:
         for n in def_names:
@@ -177,29 +179,37 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
       import: The path of the import statement, which may contain multiple
               parts conjoined by `.` (e.g. `matplotlib.pyplot`)
     
-    I.e. the dictionary `mvdef_names[m][k]` for `m` in `mv_list` and `k` in the
-    subset of AST-identified imported names in the function with  if f.name not in mv_listname `m` in
-    the list of function definitions `funcdefs`.
+    I.e. the dictionary with entries accessed as `mvdef_names.get(m).get(k)`
+    for `m` in `mv_list` and `k` in the subset of AST-identified imported names
+    in the function with  if f.name not in mv_listname `m` in the list of
+    function definitions `funcdefs`. This access is handed off to the helper
+    function `get_def_names`.
+
+    For the names that were imported but not used, the dictionary is not keyed
+    by function (as there are no associated functions), and instead the entries
+    are accessed as `nondef_names.get(k)` for `k` in `unused_names`. This access
+    is handed off to the helper function `get_nondef_names`.
     """
+    report_VERBOSE = False  # Silencing debug print statements
     import_annos = annotate_imports(imports, report=report)
     mvdef_names = get_def_names(mv_list, funcdefs, import_annos, report=report)
-    if report:
+    if report_VERBOSE:
         print("mvdef names:")
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
     nonmvdef_names = get_def_names(nomv_list, funcdefs, import_annos, report=report)
-    if report:
+    if report_VERBOSE:
         print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain unused_names
-    mv_set = set().union(*[mvdef_names[x].keys() for x in mvdef_names])
-    nomv_set = set().union(*[nonmvdef_names[x].keys() for x in nonmvdef_names])
+    mv_set = set().union(*[mvdef_names.get(x).keys() for x in mvdef_names])
+    nomv_set = set().union(*[nonmvdef_names.get(x).keys() for x in nonmvdef_names])
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
     nondef_names = get_nondef_names(unused_names, import_annos, report=report)
-    if report:
+    if report_VERBOSE:
         print("non-def names (imported but not used in any function def):")
         pprint_def_names(nondef_names, no_funcdef_list=True)
     return mvdef_names, nonmvdef_names, nondef_names
@@ -208,11 +218,12 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
 def imp_subsets(mvdefs, nonmvdefs, report=True):
     """
     Given the list of mvdef_names and nonmvdef_names, construct the subsets:
-      - mv_imports:     imported names used by the functions to move,
-      - nonmv_imports:  imported names used by the functions not to move,
-      - mutual_imports: imported names used by both the functions to move and
+      mv_imports:      imported names used by the functions to move,
+      nonmv_imports:   imported names used by the functions not to move,
+      mutual_imports:  imported names used by both the functions to move and
                         the functions not to move
     """
+    report_VERBOSE = False  # Silencing debug print statements
     mvdefs_names = set().union(*[list(mvdefs[x]) for x in mvdefs])
     nonmvdefs_names = set().union(*[list(nonmvdefs[x]) for x in nonmvdefs])
     mv_imports = mvdefs_names - nonmvdefs_names
@@ -221,10 +232,16 @@ def imp_subsets(mvdefs, nonmvdefs, report=True):
     assert mv_imports.isdisjoint(nonmv_imports), "mv/nonmv_imports intersect!"
     assert mv_imports.isdisjoint(mutual_imports), "mv/mutual imports intersect!"
     assert nonmv_imports.isdisjoint(mutual_imports), "nonmv/mutual imports intersect!"
-    if report:
-        print("mv_imports:", mv_imports)
-        print("nonmv_imports:", nonmv_imports)
-        print("mutual_imports:", mutual_imports)
+    if report_VERBOSE:
+        print(
+            "mv_imports: ",
+            mv_imports,
+            ", nonmv_imports: ",
+            nonmv_imports,
+            ", mutual_imports: ",
+            mutual_imports,
+            sep="",
+        )
     all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
     all_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])
     assert sorted(all_defnames) == sorted(all_imports), "Defnames =/= import names"
@@ -245,7 +262,7 @@ def describe_def_name_dict(name, name_dict):
     """
     # Extract: import index; intra-import index; line number; import source
     n, n_i, ln, imp_src = [name_dict.get(x) for x in ["n", "n_i", "line", "import"]]
-    desc = f"(import n:{n} ⠶ i:{n_i} on line {ln}) {name} ⇒ <{imp_src}>"
+    desc = f"(import {n}:{n_i} on line {ln}) {name} ⇒ <{imp_src}>"
     return desc
 
 
@@ -254,12 +271,11 @@ def construct_edit_agenda(filepath, m_names, nm_names, rm_names, report=True):
     First, given the lists of mvdef names (m_names) and non-mvdef names
     (nm_names), construct the subsets:
 
-      - mv_imps:  imported names used by the functions to move (only in 
-                  mvdef_names),
-      - nm_imps:  imported names used by the functions not to move (only in
-                  nonmvdef_names),
-      - mu_imps:  imported names used by both the functions to move and the
-                  functions not to move (in both mvdef_names and nonmvdef_names)
+      mv_imps:  imported names used by the functions to move (only in mvdef_names),
+      nm_imps:  imported names used by the functions not to move (only in
+                nonmvdef_names),
+      mu_imps:  imported names used by both the functions to move and the
+                functions not to move (in both mvdef_names and nonmvdef_names)
 
     Potentially 'as a dry run' (if this is being called by process_imports and its
     parameter edit is False), report how to remove the import statements or statement
@@ -283,29 +299,30 @@ def construct_edit_agenda(filepath, m_names, nm_names, rm_names, report=True):
         i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(f" ⇢ ⇢ ⇢ MOVE  ⇢ ⇢ ⇢ {i_dict_desc}")
+            print(colour("green", f" ⇢ ⇢ ⇢ MOVE  ⇢ ⇢ ⇢ {i_dict_desc}"))
         edit_agenda.get("move").append({i: i_dict})
     for i in nm_imps:
         assert i in set().union(*[nm_names.get(k) for k in nm_names]), f"{i} not found"
         i_dict = [nm_names.get(k) for k in nm_names if i in nm_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(f"⇠ ⇠ ⇠  KEEP ⇠ ⇠ ⇠  {i_dict_desc}")
+            print(colour("dark_gray", f"⇠ ⇠ ⇠  KEEP ⇠ ⇠ ⇠  {i_dict_desc}"))
         edit_agenda.get("keep").append({i: i_dict})
     for i in mu_imps:
         assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
         i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(f"⇠⇢⇠⇢⇠⇢ COPY ⇠⇢⇠⇢⇠⇢ {i_dict_desc}")
+            print(colour("light_blue", f"⇠⇢⇠⇢⇠⇢ COPY ⇠⇢⇠⇢⇠⇢ {i_dict_desc}"))
         edit_agenda.get("copy").append({i: i_dict})
     for i in rm_names:
         i_dict = rm_names.get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(f" ✘ ✘ ✘ LOSE ✘ ✘ ✘  {i_dict_desc}")
+            print(colour("red", f" ✘ ✘ ✘ LOSE ✘ ✘ ✘  {i_dict_desc}"))
         edit_agenda.get("lose").append({i: i_dict})
     return edit_agenda
+
 
 def process_imports(fp, mv_list, defs, imports, report=True, edit=False):
     """
@@ -317,16 +334,17 @@ def process_imports(fp, mv_list, defs, imports, report=True, edit=False):
     operations on individual import statements between the source and destination
     Python files.
 
-      - fp:      File path to the file to be processed
-      - mv_list: List of functions to be moved
-      - defs:    List of all function definitions in the file
-      - report:  Whether to print a report during the program (default: True)
-      - edit:    Whether to change the file in place (default: False)
+      fp:       File path to the file to be processed
+      mv_list:  List of functions to be moved
+      defs:     List of all function definitions in the file
+      report:   Whether to print a report during the program (default: True)
+      edit:     Whether to change the file in place (default: False)
     """
     # mv_nmv_defs is a tuple of (mvdefs, nonmvdefs) returned from parse_mv_funcs
     mv_nmv_defs = parse_mv_funcs(mv_list, defs, imports, report=report, edit=edit)
     edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, report=report)
     return edit_agenda
+
 
 def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
     """
@@ -363,25 +381,29 @@ def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
         imports = [n for n in nodes if type(n) in [ast.Import, ast.ImportFrom]]
         defs = [n for n in nodes if type(n) == ast.FunctionDef]
         # return imports, funcdefs
+        edit_agenda = process_imports(py_file, mv_list, defs, imports, report)
 
         if mv_list == [] and report:
             # The mv_list is empty if it was not passed in at all, i.e. this indicates
             # no files are to be moved from py_file, i.e. they are moving into py_file
             # extant is True so non_mvdef is just all funcdefs for the file
-            print(f"⇒ No functions to move from {py_file}")
+            print(f"⇒ No functions to move from {colour('light_gray', py_file)}")
         elif mv_list != [] and report:
-            print(f"⇒ Functions moving from {py_file}: {mv_list}")
+            print(f"⇒ Functions moving from {colour('light_gray',py_file)}: {mv_list}")
         elif report:
-            print(f"⇒ No functions moving from {py_file} (presumably going to it)")
+            print(f"⇒ Functions moving to {colour('light_gray', py_file)}")
 
-        edit_agenda = process_imports(py_file, mv_list, defs, imports, report, edit)
         if edit:
             # Act out the changes specified in edit_agenda
             pass
     elif mv_list == [] and report:
         # not extant so file doesn't exist, however mv_list is [] so file must be dst
-        print(f"⇒ No functions moving from {py_file} (it's being created from them)")
+        print(
+            f"⇒ Functions will move to {colour('light_gray', py_file)}"
+            + " (it's being created from them)"
+        )
     return
+
 
 def spare_mvdef_func():
     """

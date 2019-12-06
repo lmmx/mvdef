@@ -1,7 +1,7 @@
 from sys import path as syspath
 from src.ast import ast_parse
 from src.backup import backup
-from src.__env__ import module_dir, example_dir
+from src.__env__ import example_dir
 from example.test.test_demo_program import test_report
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
