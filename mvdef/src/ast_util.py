@@ -8,38 +8,32 @@ from src.editor import edit_defs
 from src.deprecations import pprint_def_names
 
 
-def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
+def ast_parse(pyfile, mvdefs=[], transfers={}, report=True):
     """
     Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
-    a report of what changes would be required to move the mv_list of funcdefs out
-    of it, or a report of the imports and funcdefs in general if no mv_list is
+    a report of what changes would be required to move the mvdefs of funcdefs out
+    of it, or a report of the imports and funcdefs in general if no mvdefs is
     provided (taken to indicate that the file is the target funcdefs are moving to),
     or make changes to the file (either newly creating one if no such file exists,
     or editing in place according to the reported import statement differences).
 
-    If the py_file doesn't exist, it's being newly created by the move and obviously
+    If the pyfile doesn't exist, it's being newly created by the move and obviously
     no report can be made on it: it has no funcdefs and no import statements, so
     all the ones being moved will be newly created.
 
-    mv_list should be given if the file is the source of moved functions, and left
+    mvdefs should be given if the file is the source of moved functions, and left
     empty (defaulting to value of []) if the file is the destination to move them to.
     
     If report is True, returns a string describing the changes
     to be made (if False, nothing is returned).
     
-    If edit is True, files will be changed in place (note that this function does
-    not actually do the editing, it just returns the edit agenda and uses the edit
-    parameter as a sanity check to prevent wasted computation if neither edit nor
-    report is True).
-
     If backup is True, files will be changed in place by calling src.backup.backup
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """
-    assert True in (edit, report), "Nothing to do"
-    extant = py_file.exists() and py_file.is_file()
+    extant = pyfile.exists() and pyfile.is_file()
     if extant:
-        with open(py_file, "r") as f:
+        with open(pyfile, "r") as f:
             fc = f.read()
             # a = ast
             nodes = ast.parse(fc).body
@@ -47,28 +41,14 @@ def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
         imports = [n for n in nodes if type(n) in [ast.Import, ast.ImportFrom]]
         defs = [n for n in nodes if type(n) == ast.FunctionDef]
         # return imports, funcdefs
-        edit_agenda = process_imports(py_file, mv_list, defs, imports, report)
-
-        if mv_list == [] and report:
-            # The mv_list is empty if it was not passed in at all, i.e. this indicates
-            # no files are to be moved from py_file, i.e. they are moving into py_file
-            # extant is True so non_mvdef is just all funcdefs for the file
-            print(f"⇒ No functions to move from {colour('light_gray', py_file)}")
-        elif mv_list != [] and report:
-            print(f"⇒ Functions moving from {colour('light_gray',py_file)}: {mv_list}")
-        elif report:
-            print(f"⇒ Functions moving to {colour('light_gray', py_file)}")
+        edit_agenda = process_imports(pyfile, mvdefs, defs, imports, transfers, report)
         return edit_agenda
-    elif mv_list == [] and report:
+    elif mvdefs == [] and report:
         # not extant so file doesn't exist (cannot produce a parsed AST)
-        # however mv_list is [] so file must be dst
-        print(
-            f"⇒ Functions will move to {colour('light_gray', py_file)}"
-            + " (it's being created from them)"
-        )
+        # however mvdefs is [] so file must be dst, return value of None
         return
     else:
-        raise ValueError(f"Can't move {mv_list} from {py_file} – it doesn't exist!")
+        raise ValueError(f"Can't move {mvdefs} from {pyfile} – it doesn't exist!")
     return
 
 
@@ -209,12 +189,12 @@ def get_def_names(func_list, funcdefs, import_annos, report=True):
     return def_names
 
 
-def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
+def parse_mv_funcs(mvdefs, funcdefs, imports, report=True):
     """
     Produce a dictionary, `mvdef_names`, whose keys are the list of functions
-    to move (i.e. the list `mv_list` becomes the list of keys of `mvdef_names`),
+    to move (i.e. the list `mvdefs` becomes the list of keys of `mvdef_names`),
     and the value of which at each key (for a key `m` which indicates the name
-    of one of the functions given in `mv_list` to move) is another dictionary,
+    of one of the functions given in `mvdefs` to move) is another dictionary,
     keyed by the full set of names used in that function (`m`) which rely upon
     import statements (i.e. are not builtin names nor passed as parameters to
     the function, nor assigned in the body of the function), and the value
@@ -232,8 +212,8 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
               parts conjoined by `.` (e.g. `matplotlib.pyplot`)
     
     I.e. the dictionary with entries accessed as `mvdef_names.get(m).get(k)`
-    for `m` in `mv_list` and `k` in the subset of AST-identified imported names
-    in the function with  if f.name not in mv_listname `m` in the list of
+    for `m` in `mvdefs` and `k` in the subset of AST-identified imported names
+    in the function with  if f.name not in mvdefs name `m` in the list of
     function definitions `funcdefs`. This access is handed off to the helper
     function `get_def_names`.
 
@@ -244,14 +224,14 @@ def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     """
     report_VERBOSE = False  # Silencing debug print statements
     import_annos = annotate_imports(imports, report=report)
-    mvdef_names = get_def_names(mv_list, funcdefs, import_annos, report=report)
+    mvdef_names = get_def_names(mvdefs, funcdefs, import_annos, report=report)
     if report_VERBOSE:
         print("mvdef names:")
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
-    nomv_list = [f.name for f in funcdefs if f.name not in mv_list]
-    nonmvdef_names = get_def_names(nomv_list, funcdefs, import_annos, report=report)
+    nomvdefs = [f.name for f in funcdefs if f.name not in mvdefs]
+    nonmvdef_names = get_def_names(nomvdefs, funcdefs, import_annos, report=report)
     if report_VERBOSE:
         print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
@@ -318,7 +298,7 @@ def describe_def_name_dict(name, name_dict):
     return desc
 
 
-def construct_edit_agenda(filepath, m_names, nm_names, rm_names, report=True):
+def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=True):
     """
     First, given the lists of mvdef names (m_names) and non-mvdef names
     (nm_names), construct the subsets:
@@ -334,15 +314,22 @@ def construct_edit_agenda(filepath, m_names, nm_names, rm_names, report=True):
     sections which import mv_inames, do nothing to the import statements which import
     nonmv_inames, and copy the import statements which import mutual_inames (as both
     src and dst need them). The format of this reporting should be at the level of
-    file changes, and as such the filepath is accessed (read only here) to provide
-    process_imports the necessary 'edit agenda' to either report (if report is True)
-    and/or carry out (if edit is True for process_imports).
+    file changes, and as such the filepath, `fp`, is accessed (read only here) to
+    provide process_imports the necessary 'edit agenda' to either report (if report
+    is True).
+
+    Additionally, accept 'transfers' from a previously determined edit agenda,
+    so as to "take" the "move" names, and "echo" the "copy" names (i.e. when
+    receiving names marked by "move" and "copy", distinguish them to indicate
+    they are being received by transfer [from src⇒dst file], for clarity).
 
     For clarity, note that this function does **not** edit anything itself, it just
     describes how it would be possible to carry out the required edits at the level
     of Python file changes.
     """
-    edit_agenda = {"move": [], "keep": [], "copy": [], "lose": []}
+    if report:
+        print(f"• Edit agenda for {fp.name}:")
+    agenda = {"move": [], "keep": [], "copy": [], "lose": [], "take": [], "echo": []}
     # mv_inames is mv_imports returned from imp_subsets, and so on
     mv_imps, nm_imps, mu_imps = imp_subsets(m_names, nm_names, report=report)
     # Iterate over each imported name, i, in the subset of import names to move
@@ -351,48 +338,68 @@ def construct_edit_agenda(filepath, m_names, nm_names, rm_names, report=True):
         i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("green", f" ⇢ ⇢ ⇢ MOVE  ⇢ ⇢ ⇢ {i_dict_desc}"))
-        edit_agenda.get("move").append({i: i_dict})
+            print(colour("green", f" ⇢ MOVE  ⇢ {i_dict_desc}"))
+        agenda.get("move").append({i: i_dict})
     for i in nm_imps:
         assert i in set().union(*[nm_names.get(k) for k in nm_names]), f"{i} not found"
         i_dict = [nm_names.get(k) for k in nm_names if i in nm_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("dark_gray", f"⇠ ⇠ ⇠  KEEP ⇠ ⇠ ⇠  {i_dict_desc}"))
-        edit_agenda.get("keep").append({i: i_dict})
+            print(colour("dark_gray", f"⇠  KEEP ⇠  {i_dict_desc}"))
+        agenda.get("keep").append({i: i_dict})
     for i in mu_imps:
         assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
         i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("light_blue", f"⇠⇢⇠⇢⇠⇢ COPY ⇠⇢⇠⇢⇠⇢ {i_dict_desc}"))
-        edit_agenda.get("copy").append({i: i_dict})
+            print(colour("light_blue", f"⇠⇢ COPY ⇠⇢ {i_dict_desc}"))
+        agenda.get("copy").append({i: i_dict})
     for i in rm_names:
         i_dict = rm_names.get(i)
         if report:
             i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("red", f" ✘ ✘ ✘ LOSE ✘ ✘ ✘  {i_dict_desc}"))
-        edit_agenda.get("lose").append({i: i_dict})
-    return edit_agenda
+            print(colour("red", f" ✘ LOSE ✘  {i_dict_desc}"))
+        agenda.get("lose").append({i: i_dict})
+    if transfers == {}:
+        # Returning without transfers
+        return agenda
+    # i is 'ready made' from a previous call to ast_parse, and just needs reporting
+    for i in transfers.get("take"):
+        k = list(i)[0]
+        i_dict = i.get(k)
+        if report:
+            i_dict_desc = describe_def_name_dict(k, i_dict)
+            print(colour("green", f" ⇢ TAKE  ⇢ {i_dict_desc}"))
+        agenda.get("take").append({k: i_dict})
+    for i in transfers.get("echo"):
+        k = list(i)[0]
+        i_dict = i.get(k)
+        if report:
+            i_dict_desc = describe_def_name_dict(k, i_dict)
+            print(colour("light_blue", f"⇠⇢ ECHO ⇠⇢ {i_dict_desc}"))
+        agenda.get("echo").append({k: i_dict})
+    return agenda
 
 
-def process_imports(fp, mv_list, defs, imports, report=True, edit=False):
+def process_imports(fp, mvdefs, defs, imports, transfers={}, report=True):
     """
-    Handle the hand-off to dedicated functions to go from the mv_list of functions
-    to move, first deriving lists of imported names which belong to the mv_list and
-    the non-mv_list functions (using `parse_mv_funcs`), then constructing an
+    Handle the hand-off to dedicated functions to go from the mvdefs of functions
+    to move, first deriving lists of imported names which belong to the mvdefs and
+    the non-mvdefs functions (using `parse_mv_funcs`), then constructing an
     'edit agenda' (using `construct_edit_agenda`) which describes [and optionally
     reports] the changes to be made at the file level, in terms of move/keep/copy
     operations on individual import statements between the source and destination
     Python files.
 
-      fp:       File path to the file to be processed
-      mv_list:  List of functions to be moved
-      defs:     List of all function definitions in the file
-      report:   Whether to print a report during the program (default: True)
-      edit:     Whether to change the file in place (default: False)
+      fp:         File path to the file to be processed
+      mvdefs:     List of functions to be moved
+      defs:       List of all function definitions in the file
+      imports:    List of import statements in the file (both Import & ImportFrom)
+      transfers:  List of transfers already determined to be made from the src
+                  to the dst file (from the first call to ast_parse)
+      report:     Whether to print a report during the program (default: True)
     """
     # mv_nmv_defs is a tuple of (mvdefs, nonmvdefs) returned from parse_mv_funcs
-    mv_nmv_defs = parse_mv_funcs(mv_list, defs, imports, report=report, edit=edit)
-    edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, report=report)
+    mv_nmv_defs = parse_mv_funcs(mvdefs, defs, imports, report=report)
+    edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, transfers, report=report)
     return edit_agenda
