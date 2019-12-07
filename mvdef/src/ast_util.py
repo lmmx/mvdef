@@ -3,6 +3,72 @@ from pathlib import Path
 from collections import OrderedDict
 import builtins
 from src.display import colour_str as colour
+from asttokens import ASTTokens
+from src.editor import edit_defs
+
+
+def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
+    """
+    Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
+    a report of what changes would be required to move the mv_list of funcdefs out
+    of it, or a report of the imports and funcdefs in general if no mv_list is
+    provided (taken to indicate that the file is the target funcdefs are moving to),
+    or make changes to the file (either newly creating one if no such file exists,
+    or editing in place according to the reported import statement differences).
+
+    If the py_file doesn't exist, it's being newly created by the move and obviously
+    no report can be made on it: it has no funcdefs and no import statements, so
+    all the ones being moved will be newly created.
+
+    mv_list should be given if the file is the source of moved functions, and left
+    empty (defaulting to value of []) if the file is the destination to move them to.
+    
+    If report is True, returns a string describing the changes
+    to be made (if False, nothing is returned).
+    
+    If edit is True, files will be changed in place (note that this function does
+    not actually do the editing, it just returns the edit agenda and uses the edit
+    parameter as a sanity check to prevent wasted computation if neither edit nor
+    report is True).
+
+    If backup is True, files will be changed in place by calling src.backup.backup
+    (obviously, be careful switching this setting off if report is True, as any
+    changes made cannot be restored afterwards from this backup file).
+    """
+    assert True in (edit, report), "Nothing to do"
+    extant = py_file.exists() and py_file.is_file()
+    if extant:
+        with open(py_file, "r") as f:
+            fc = f.read()
+            # a = ast
+            nodes = ast.parse(fc).body
+
+        imports = [n for n in nodes if type(n) in [ast.Import, ast.ImportFrom]]
+        defs = [n for n in nodes if type(n) == ast.FunctionDef]
+        # return imports, funcdefs
+        edit_agenda = process_imports(py_file, mv_list, defs, imports, report)
+
+        if mv_list == [] and report:
+            # The mv_list is empty if it was not passed in at all, i.e. this indicates
+            # no files are to be moved from py_file, i.e. they are moving into py_file
+            # extant is True so non_mvdef is just all funcdefs for the file
+            print(f"⇒ No functions to move from {colour('light_gray', py_file)}")
+        elif mv_list != [] and report:
+            print(f"⇒ Functions moving from {colour('light_gray',py_file)}: {mv_list}")
+        elif report:
+            print(f"⇒ Functions moving to {colour('light_gray', py_file)}")
+        return edit_agenda
+    elif mv_list == [] and report:
+        # not extant so file doesn't exist (cannot produce a parsed AST)
+        # however mv_list is [] so file must be dst
+        print(
+            f"⇒ Functions will move to {colour('light_gray', py_file)}"
+            + " (it's being created from them)"
+        )
+        return
+    else:
+        raise ValueError(f"Can't move {mv_list} from {py_file} – it doesn't exist!")
+    return
 
 
 def annotate_imports(imports, report=True):
@@ -344,65 +410,6 @@ def process_imports(fp, mv_list, defs, imports, report=True, edit=False):
     mv_nmv_defs = parse_mv_funcs(mv_list, defs, imports, report=report, edit=edit)
     edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, report=report)
     return edit_agenda
-
-
-def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
-    """
-    Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
-    a report of what changes would be required to move the mv_list of funcdefs out
-    of it, or a report of the imports and funcdefs in general if no mv_list is
-    provided (taken to indicate that the file is the target funcdefs are moving to),
-    or make changes to the file (either newly creating one if no such file exists,
-    or editing in place according to the reported import statement differences).
-
-    If the py_file doesn't exist, it's being newly created by the move and obviously
-    no report can be made on it: it has no funcdefs and no import statements, so
-    all the ones being moved will be newly created.
-
-    mv_list should be given if the file is the source of moved functions, and left
-    empty (defaulting to value of []) if the file is the destination to move them to.
-    
-    If report is True, returns a string describing the changes
-    to be made (if False, nothing is returned).
-    
-    If edit is True, files will be changed in place.
-
-    If backup is True, files will be changed in place by calling src.backup.backup
-    (obviously, be careful switching this setting off if report is True, as any
-    changes made cannot be restored afterwards from this backup file).
-    """
-    assert True in (edit, report), "Nothing to do"
-    extant = py_file.exists() and py_file.is_file()
-    if extant:
-        with open(py_file, "r") as f:
-            fc = f.read()
-            nodes = ast.parse(fc).body
-
-        imports = [n for n in nodes if type(n) in [ast.Import, ast.ImportFrom]]
-        defs = [n for n in nodes if type(n) == ast.FunctionDef]
-        # return imports, funcdefs
-        edit_agenda = process_imports(py_file, mv_list, defs, imports, report)
-
-        if mv_list == [] and report:
-            # The mv_list is empty if it was not passed in at all, i.e. this indicates
-            # no files are to be moved from py_file, i.e. they are moving into py_file
-            # extant is True so non_mvdef is just all funcdefs for the file
-            print(f"⇒ No functions to move from {colour('light_gray', py_file)}")
-        elif mv_list != [] and report:
-            print(f"⇒ Functions moving from {colour('light_gray',py_file)}: {mv_list}")
-        elif report:
-            print(f"⇒ Functions moving to {colour('light_gray', py_file)}")
-
-        if edit:
-            # Act out the changes specified in edit_agenda
-            pass
-    elif mv_list == [] and report:
-        # not extant so file doesn't exist, however mv_list is [] so file must be dst
-        print(
-            f"⇒ Functions will move to {colour('light_gray', py_file)}"
-            + " (it's being created from them)"
-        )
-    return
 
 
 def spare_mvdef_func():

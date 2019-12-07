@@ -80,22 +80,22 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
    - If not, it would just be a matter of testing this manually (i.e. not necessary to define test
      to use tool, but suggested best practice)
 - [x] Enumerate all import statements in `src.py` (nodes in the AST of type `ast.Import`)
-   - `src.ast`⠶`annotate_imports` returns this list, which gets assigned to `imports`
-     in `src.ast`⠶`parse_mv_funcs`
+   - `src.ast_util`⠶`annotate_imports` returns this list, which gets assigned to `imports`
+     in `src.ast_util`⠶`parse_mv_funcs`
 - [x] Enumerate all function definitions in `src.py` (nodes in the AST of type `ast.FunctionDef`)
    - `ast`⠶`parse` provides this as the `.body` nodes which are of type `ast.FunctionDef`.
-     - This subset of AST nodes is assigned to `defs` in `src.ast`⠶`ast_parse`.
+     - This subset of AST nodes is assigned to `defs` in `src.ast_util`⠶`ast_parse`.
 - [x] Find the following subsets:
    - [x] `mvdefs`: subset of all function definitions which are to be moved (`fn1`, `fn2`, `fn3`)
      - This subset is determined by cross-referencing the names of the `defs` (from previous step)
        against the `mv_list` (list of functions to move, such as `["fn1", "fn2", "fn3"]`),
-       in the dedicated function `src.ast`⠶`get_def_names`, then returned by `src.ast`⠶
-       `parse_mv_funcs` as a list, assigned to `mvdefs` in `src.ast`⠶`ast_parse`.
+       in the dedicated function `src.ast_util`⠶`get_def_names`, then returned by `src.ast_tools`⠶
+       `parse_mv_funcs` as a list, assigned to `mvdefs` in `src.ast_util`⠶`ast_parse`.
    - [x] `nonmvdefs`: subset of all function definitions **not** to be moved (not in `mvdefs`)
      - This subset is determined by negative cross-ref. to names of the `defs` against the
-       `mv_list` (such as `["fn4", "fn5", "fn6"]`), again using `src.ast`⠶`get_def_names`,
-       then returned by `src.ast`⠶`parse_mv_funcs` as a list, assigned to `nonmvdefs`
-       in `src.ast`⠶`ast_parse`.
+       `mv_list` (such as `["fn4", "fn5", "fn6"]`), again using `src.ast_util`⠶`get_def_names`,
+       then returned by `src.ast_util`⠶`parse_mv_funcs` as a list, assigned to `nonmvdefs`
+       in `src.ast_util`⠶`ast_parse`.
    - [x] `mv_imports`: Import statements used only by the functions in `mvdefs`
    - [x] `nonmv_imports`: Import statements used only by the functions in `nonmvdefs`
    - [x] `mutual_imports`: Import statements used by both functions in `mvdefs` and `nonmvdefs`
@@ -119,7 +119,7 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
      `src.demo`⠶`run_demo` has returned a parsed version of the source and destination files
      (which will only matter once the parameter `nochange` is set to `False` in `run_demo`,
      allowing it to propagate through the call to `src.demo`⠶`parse_example` into a call to
-     `src.ast`⠶`ast_parse(..., edit=True)` and ultimately carry out in-place editing of the
+     `src.ast_util`⠶`ast_parse(..., edit=True)` and ultimately carry out in-place editing of the
      source and/or destination file/s as required).
    - [ ] If they fail, ask to restore the backup and give the altered src/dst `.py` files
      `.py.mvdef_fix` suffixes (i.e. always permit the user to exit gracefully with no further

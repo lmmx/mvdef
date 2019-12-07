@@ -1,7 +1,11 @@
 import numpy as np
 from numpy import arange, pi
 import matplotlib.pyplot as plt
-from os.path import basename, sep as pathsep, islink
+from os.path import (
+    basename as aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,
+    sep as pathsep,
+    islink,
+)
 
 
 def show_line(n=4, suppress_display=False):

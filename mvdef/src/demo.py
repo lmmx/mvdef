@@ -1,7 +1,8 @@
 from sys import path as syspath
-from src.ast import ast_parse
+from src.ast_util import ast_parse
 from src.backup import backup
 from src.__env__ import example_dir
+from src.display import colour_str as colour
 from example.test.test_demo_program import test_report
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
@@ -10,6 +11,7 @@ def parse_example(src_p, dst_p, move_list, report=True, nochange=True):
     # and creating a hidden placeholder if the target doesn't exist yet
     assert backup(src_p, dry_run=nochange)
     assert backup(dst_p, dry_run=nochange)
+    # Create edit agendas from the parsed AST of source and destination files
     src_parsed = ast_parse(src_p, move_list, report=report, edit=(not nochange))
     dst_parsed = ast_parse(dst_p, report=report, edit=(not nochange))
     return src_parsed, dst_parsed
@@ -26,12 +28,11 @@ def main(mvdefs, dry_run=True, report=True):
     src_parsed, dst_parsed = parse_example(
         src_p, dst_p, move_list=mvdefs, report=report, nochange=dry_run
     )
-    if dst_parsed is None:
-        dst_parsed = "(Dst will take all src_parsed imports and funcdefs)"
     # src imports, src_funcdefs = src_parsed
-    src_ret = src_parsed
-    if type(dst_parsed) is str:
-        if report: print(dst_parsed)
+    assert src_parsed is not None, "The src file did not return a processed AST"
+    if dst_parsed is None:
+        if report:
+            print("(Dst will take all src_parsed imports and funcdefs)")
     else:
         dst_imports, dst_funcdefs = dst_parsed
     if dry_run:
