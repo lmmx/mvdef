@@ -328,8 +328,9 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
     of Python file changes.
     """
     if report:
-        print(f"• Edit agenda for {fp.name}:")
-    agenda = {"move": [], "keep": [], "copy": [], "lose": [], "take": [], "echo": []}
+        print(f"• Determining edit agenda for {fp.name}:")
+    agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
+    agenda = dict([(c, []) for c in agenda_categories])
     # mv_inames is mv_imports returned from imp_subsets, and so on
     mv_imps, nm_imps, mu_imps = imp_subsets(m_names, nm_names, report=report)
     # Iterate over each imported name, i, in the subset of import names to move
@@ -363,21 +364,57 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
     if transfers == {}:
         # Returning without transfers
         return agenda
+    #elif report:
+    #    if len(agenda.get("lose")) > 0:
+    #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to ast_parse, and just needs reporting
     for i in transfers.get("take"):
-        k = list(i)[0]
-        i_dict = i.get(k)
+        k, i_dict = list(i.items())[0]
         if report:
             i_dict_desc = describe_def_name_dict(k, i_dict)
             print(colour("green", f" ⇢ TAKE  ⇢ {i_dict_desc}"))
         agenda.get("take").append({k: i_dict})
     for i in transfers.get("echo"):
-        k = list(i)[0]
-        i_dict = i.get(k)
+        k, i_dict = list(i.items())[0]
         if report:
             i_dict_desc = describe_def_name_dict(k, i_dict)
             print(colour("light_blue", f"⇠⇢ ECHO ⇠⇢ {i_dict_desc}"))
         agenda.get("echo").append({k: i_dict})
+    # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
+    # by any identically named imports marked 'take' or 'echo', change to 'stay'
+    for i in agenda.get("lose"):
+        k, i_dict = list(i.items())[0]
+        imp_src = i_dict.get("import")
+        if k in [list(x)[0] for x in agenda.get("take")]:
+            t_i_dict = [x for x in agenda.get("take") if k in x][0].get(k)
+            take_imp_src = t_i_dict.get("import")
+            if imp_src != take_imp_src:
+                continue
+            # Deduplicate 'lose'/'take' k: replace both with 'stay'
+            if report:
+                i_dict_desc = describe_def_name_dict(k, i_dict)
+                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
+                    + f" (solved LOSE/TAKE conflict)"))
+            agenda.get("stay").append({k: i_dict})
+            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
+            del agenda.get("lose")[l_k_i]
+            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(t_i_dict)
+            del agenda.get("take")[t_k_i]
+        elif k in [list(x)[0] for x in agenda.get("echo")]:
+            e_i_dict = [x for x in agenda.get("echo") if k in x][0].get(k)
+            echo_imp_src = e_i_dict.get("import")
+            if imp_src != echo_imp_src:
+                continue
+            # Deduplicate 'lose'/'echo' k: replace both with 'stay'
+            if report:
+                i_dict_desc = describe_def_name_dict(k, i_dict)
+                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
+                    + f" (solved LOSE/ECHO conflict)"))
+            agenda.get("stay").append({k: i_dict})
+            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
+            del agenda.get("lose")[l_k_i]
+            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(e_i_dict)
+            del agenda.get("echo")[e_k_i]
     return agenda
 
 
