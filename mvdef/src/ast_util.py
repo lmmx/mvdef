@@ -5,6 +5,7 @@ import builtins
 from src.display import colour_str as colour
 from asttokens import ASTTokens
 from src.editor import edit_defs
+from src.deprecations import pprint_def_names
 
 
 def ast_parse(py_file, mv_list=[], report=True, edit=False, backup=True):
@@ -208,21 +209,6 @@ def get_def_names(func_list, funcdefs, import_annos, report=True):
     return def_names
 
 
-def pprint_def_names(def_names, no_funcdef_list=False):
-    if no_funcdef_list:
-        print("  {")
-        for m in def_names:
-            print(f"    {m}: {def_names.get(m)}")
-        print("  }")
-    else:
-        for n in def_names:
-            print(f"  {n}:::" + "{")
-            for m in def_names.get(n):
-                print(f"    {m}: {def_names.get(n)[m]}")
-            print("  }")
-    return
-
-
 def parse_mv_funcs(mv_list, funcdefs, imports, report=True, edit=False):
     """
     Produce a dictionary, `mvdef_names`, whose keys are the list of functions
@@ -410,24 +396,3 @@ def process_imports(fp, mv_list, defs, imports, report=True, edit=False):
     mv_nmv_defs = parse_mv_funcs(mv_list, defs, imports, report=report, edit=edit)
     edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, report=report)
     return edit_agenda
-
-
-def spare_mvdef_func():
-    """
-    Wrote this on a misunderstanding of what mvdef_import should be, but might reuse
-    this code for editing the entries(?) so hang onto it for access to the AST in case
-    I want to look at line numbers again(?) Otherwise throw this code away when ready.
-    """
-    fd_info = mvdefs.get(fd)
-    print(f"fd_info: {fd_info}")
-    for name in fd_info:
-        print(f"name: {name}")
-        fdn_info = fd_info.get(name)
-        fdn_n = fdn_info.get("n")
-        fdn_ni = fdn_info.get("n_i")
-        print(f"fdn_info: {fdn_info}")
-        print(f"imports[n={fdn_n}]: {imports[fdn_n]}")
-        if len(imports[fdn_n].names) > 1:
-            tupname = imports[fdn_n].names[fdn_ni]
-            print(f"imports[n={fdn_n}].names[n_i={fdn_ni}]: {tupname}")
-            print(f"⇒⇒⇒ {tupname.name} as {tupname.asname}")
