@@ -78,7 +78,7 @@ def imp_def_subsets(mvdefs, nonmvdefs, report=True):
       mutual_imports:  imported names used by both the functions to move and
                         the functions not to move
     """
-    report_VERBOSE = False # Silencing debug print statements
+    report_VERBOSE = False  # Silencing debug print statements
     mvdefs_names = set().union(*[list(mvdefs[x]) for x in mvdefs])
     nonmvdefs_names = set().union(*[list(nonmvdefs[x]) for x in nonmvdefs])
     mv_imports = mvdefs_names - nonmvdefs_names

@@ -64,7 +64,9 @@ def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=T
             test_func.__call__()
         except AssertionError as e:
             # TODO: implement backup restore
-            print(f"! {test_func} failed, indicating changes made by mvdef broke the"
-                + "program (if backups used, mvdefs will now attempt to restore)")
+            print(
+                f"! {test_func} failed, indicating changes made by mvdef broke the"
+                + "program (if backups used, mvdefs will now attempt to restore)"
+            )
             raise RuntimeError(e)
     return src_edits, dst_edits

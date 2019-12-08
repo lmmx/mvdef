@@ -1,10 +1,11 @@
 from asttokens import ASTTokens
 from ast import Import as IType, ImportFrom as IFType, walk
 
+
 def get_imports(source_filepath, index_list=None):
-    with open(source_filepath, 'r') as f:
+    with open(source_filepath, "r") as f:
         source = f.read()
-    fl = source.split('\n')
+    fl = source.split("\n")
     a = ASTTokens(source, parse=True)
     imports = [t for t in walk(a.tree) if type(t) in (IType, IFType)]
     if index_list is not None:
@@ -12,6 +13,7 @@ def get_imports(source_filepath, index_list=None):
         for (n, n_i) in index_list:
             return [imports[i] for i in index_list]
     return imports
+
 
 def count_imported_names(nodes):
     """
@@ -33,6 +35,7 @@ def count_imported_names(nodes):
             assert ast.stmt in type(nodes).mro(), f"{nodes} is not an AST statement"
             counts.append(0)
     return counts
+
 
 def locate_import_ends(source_filepath, index_list=None):
     ends = []

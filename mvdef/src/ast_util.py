@@ -126,7 +126,7 @@ rderedDict([('numpy', 'np')])
         if report:
             pprint_agenda(agenda)
         return agenda
-    #elif report:
+    # elif report:
     #    if len(agenda.get("lose")) > 0:
     #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to ast_parse, and just needs reporting
@@ -173,8 +173,10 @@ rderedDict([('numpy', 'np')])
             imp_src = imported_names.get(k)[0]
             if imp_src != take_imp_src:
                 # This means that the same name is being used by a different function
-                raise ValueError(f"Cannot move imported name '{k}', it is already "
-                    +f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})")
+                raise ValueError(
+                    f"Cannot move imported name '{k}', it is already "
+                    + f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})"
+                )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
             # to 'take' the imported name is already fulfilled.
@@ -190,8 +192,10 @@ rderedDict([('numpy', 'np')])
             imp_src = imported_names.get(k)[0]
             if imp_src != echo_imp_src:
                 # This means that the same name is being used by a different function
-                raise ValueError(f"Cannot move imported name '{k}', it is already "
-                    +f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})")
+                raise ValueError(
+                    f"Cannot move imported name '{k}', it is already "
+                    + f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})"
+                )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
             # to 'echo' the imported name is already fulfilled.
@@ -234,6 +238,7 @@ def get_extradef_names(extra_nodes):
         for n in node_names:
             extradef_names.add(n)
     return extradef_names
+
 
 def get_nondef_names(unused, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
