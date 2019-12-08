@@ -74,9 +74,8 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
   when `src.py` imports `fn1, fn2, fn3` from `dst.py`
    - [x] Tests defined for all functions in `example.demo_program` in `example.test`⠶`test_report`,
      called in `__main__`
-     - [x] For the demo, the tests are checked and raise a `RuntimeError` if they fail at this
+     - [x] Tests are checked and raise a `RuntimeError` if they fail at this
        stage (i.e. the whole process aborts before any files are modified or created)
-     - [ ] Should this be moved to `src.demo` ?
    - If not, it would just be a matter of testing this manually (i.e. not necessary to define test
      to use tool, but suggested best practice)
 - [x] Enumerate all import statements in `src.py` (nodes in the AST of type `ast.Import`)
@@ -104,17 +103,17 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
        outside of function definitions too.
      - [ ] Potentially add this feature later, for now just report which imports aren't used.
 - Handle the 3 types of imported names:
-  - [ ] **Move** the import statements in `mv_imports`
-  - [ ] **Keep** the import statements in `nonmvdef_imports`
-  - [ ] **Copy** the import statements in `mutual_imports`
+  - [x] **Move** the import statements in `mv_imports` (received as "take")
+  - [x] **Keep** the import statements in `nonmvdef_imports`
+  - [x] **Copy** the import statements in `mutual_imports` (received as "echo")
 - ...and also:
-  - [ ] Handle moving one import name from an import statement importing multiple
+  - [x] Handle moving one import name from an import statement importing multiple
         names (i.e. where you can't simply copy the line)
-  - [ ] Handle multi-line imports (i.e. where you can't simply find the names on one line)
+  - [x] Handle multi-line imports (i.e. where you can't simply find the names on one line)
   - [ ] ...and then consider removing unused import statements, if it can be confirmed they're
 	genuinely not used (for now they are just reported)
 - ...and only then move the function definitions in `mvdefs` across
-- [ ] If tests were defined in step 2, check that these tests run
+- [x] If tests were defined in step 2, check that these tests run
    - [x] For the demo, the tests are checked (by running `test_report` a 2nd time) after
      `src.demo`⠶`run_demo` has returned a parsed version of the source and destination files
      (which will only matter once the parameter `nochange` is set to `False` in `run_demo`,
