@@ -51,6 +51,192 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     return
 
 
+def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
+    """
+    Handle the hand-off to dedicated functions to go from the mvdefs of functions
+    to move, first deriving lists of imported names which belong to the mvdefs and
+    the non-mvdefs functions (using `parse_mv_funcs`), then constructing an
+    'edit agenda' (using `process_ast`) which describes [and optionally
+    reports] the changes to be made at the file level, in terms of move/keep/copy
+    operations on individual import statements between the source and destination
+    Python files.
+rderedDict([('numpy', 'np')])
+
+      mvdefs:     List of functions to be moved
+      trunk:      Tree body of the file's AST, which will be separated into
+                  function definitions, import statements, and anything else.
+      transfers:  List of transfers already determined to be made from the src
+                  to the dst file (from the first call to ast_parse)
+      report:     Whether to print a report during the program (default: True)
+
+    -------------------------------------------------------------------------------
+    
+    First, given the lists of mvdef names (m_names) and non-mvdef names
+    (nm_names), construct the subsets:
+
+      mv_imps:  imported names used by the functions to move (only in mvdef_names),
+      nm_imps:  imported names used by the functions not to move (only in
+                nonmvdef_names),
+      mu_imps:  imported names used by both the functions to move and the
+                functions not to move (in both mvdef_names and nonmvdef_names)
+
+    Potentially 'as a dry run' (if this is being called by process_ast and its
+    parameter edit is False), report how to remove the import statements or statement
+    sections which import mv_inames, do nothing to the import statements which import
+    nonmv_inames, and copy the import statements which import mutual_inames (as both
+    src and dst need them).
+
+    Additionally, accept 'transfers' from a previously determined edit agenda,
+    so as to "take" the "move" names, and "echo" the "copy" names (i.e. when
+    receiving names marked by "move" and "copy", distinguish them to indicate
+    they are being received by transfer [from src⇒dst file], for clarity).
+
+    For clarity, note that this function does **not** edit anything itself, it just
+    describes how it would be possible to carry out the required edits at the level
+    of Python file changes.
+    """
+    # get_edit_agenda(m_names, nm_names, rm_names, transfers, report=True)
+    m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
+    imported_names = get_imported_name_sources(trunk, report=report)
+    if report:
+        print(f"• Determining edit agenda for {fp.name}:")
+    agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
+    agenda = dict([(c, []) for c in agenda_categories])
+    # mv_inames is mv_imports returned from imp_def_subsets, and so on
+    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=report)
+    # Iterate over each imported name, i, in the subset of import names to move
+    for i in mv_imps:
+        assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
+        i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
+        agenda.get("move").append({i: i_dict})
+    for i in nm_imps:
+        assert i in set().union(*[nm_names.get(k) for k in nm_names]), f"{i} not found"
+        i_dict = [nm_names.get(k) for k in nm_names if i in nm_names.get(k)][0].get(i)
+        agenda.get("keep").append({i: i_dict})
+    for i in mu_imps:
+        assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
+        i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
+        agenda.get("copy").append({i: i_dict})
+    for i in rm_names:
+        i_dict = rm_names.get(i)
+        agenda.get("lose").append({i: i_dict})
+    if transfers == {}:
+        # Returning without transfers
+        if report:
+            pprint_agenda(agenda)
+        return agenda
+    #elif report:
+    #    if len(agenda.get("lose")) > 0:
+    #        print("• Resolving edit agenda conflicts:")
+    # i is 'ready made' from a previous call to ast_parse, and just needs reporting
+    for i in transfers.get("take"):
+        k, i_dict = list(i.items())[0]
+        agenda.get("take").append({k: i_dict})
+    for i in transfers.get("echo"):
+        k, i_dict = list(i.items())[0]
+        agenda.get("echo").append({k: i_dict})
+    # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
+    # by any identically named imports marked 'take' or 'echo', change to 'stay'
+    for i in agenda.get("lose"):
+        k, i_dict = list(i.items())[0]
+        imp_src = i_dict.get("import")
+        if k in [list(x)[0] for x in agenda.get("take")]:
+            t_i_dict = [x for x in agenda.get("take") if k in x][0].get(k)
+            take_imp_src = t_i_dict.get("import")
+            if imp_src != take_imp_src:
+                continue
+            # Deduplicate 'lose'/'take' k: replace both with 'stay'
+            if report:
+                pprint_agenda_desc("stay", k, i_dict, f" (solved LOSE/TAKE conflict)")
+            agenda.get("stay").append({k: i_dict})
+            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
+            del agenda.get("lose")[l_k_i]
+            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(t_i_dict)
+            del agenda.get("take")[t_k_i]
+        elif k in [list(x)[0] for x in agenda.get("echo")]:
+            e_i_dict = [x for x in agenda.get("echo") if k in x][0].get(k)
+            echo_imp_src = e_i_dict.get("import")
+            if imp_src != echo_imp_src:
+                continue
+            # Deduplicate 'lose'/'echo' k: replace both with 'stay'
+            agenda.get("stay").append({k: i_dict})
+            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
+            del agenda.get("lose")[l_k_i]
+            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(e_i_dict)
+            del agenda.get("echo")[e_k_i]
+    # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
+    # out by any identically named imports already present, change to 'stay'
+    for i in agenda.get("take"):
+        k, i_dict = list(i.items())[0]
+        take_imp_src = i_dict.get("import")
+        if k in imported_names:
+            # Check the import source and asnames match
+            imp_src = imported_names.get(k)[0]
+            if imp_src != take_imp_src:
+                # This means that the same name is being used by a different function
+                raise ValueError(f"Cannot move imported name '{k}', it is already "
+                    +f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})")
+                # (N.B. could rename automatically as future feature)
+            # Otherwise there is simply a duplicate import statement, so the demand
+            # to 'take' the imported name is already fulfilled.
+            # Replace unnecessary 'take' with 'stay'
+            agenda.get("stay").append({k: i_dict})
+            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(i_dict)
+            del agenda.get("take")[t_k_i]
+    for i in agenda.get("echo"):
+        k, i_dict = list(i.items())[0]
+        echo_imp_src = i_dict.get("import")
+        if k in imported_names:
+            # Check the import source and asnames match
+            imp_src = imported_names.get(k)[0]
+            if imp_src != echo_imp_src:
+                # This means that the same name is being used by a different function
+                raise ValueError(f"Cannot move imported name '{k}', it is already "
+                    +f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})")
+                # (N.B. could rename automatically as future feature)
+            # Otherwise there is simply a duplicate import statement, so the demand
+            # to 'echo' the imported name is already fulfilled.
+            # Replace unnecessary 'take' with 'stay'
+            agenda.get("stay").append({k: i_dict})
+            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(i_dict)
+            del agenda.get("echo")[e_k_i]
+    if report:
+        pprint_agenda(agenda)
+    return agenda
+
+
+def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):
+    """
+    Pretty print an edit agenda entry according to the agenda category.
+    The 7 categories are: move, keep, copy, lose, take, echo, stay.
+    """
+    entry_desc = describe_def_name_dict(entry_key, entry_dict)
+    if category == "move":
+        m = colour("green", f" ⇢ MOVE  ⇢ {entry_desc}" + extra_message)
+    elif category == "keep":
+        m = colour("dark_gray", f"⇠  KEEP ⇠  {entry_desc}" + extra_message)
+    elif category == "copy":
+        m = colour("light_blue", f"⇠⇢ COPY ⇠⇢ {entry_desc}" + extra_message)
+    elif category == "lose":
+        m = colour("red", f" ✘ LOSE ✘  {entry_desc}" + extra_message)
+    elif category == "take":
+        m = colour("green", f" ⇢ TAKE  ⇢ {entry_desc}" + extra_message)
+    elif category == "echo":
+        m = colour("light_blue", f"⇠⇢ ECHO ⇠⇢ {entry_desc}" + extra_message)
+    elif category == "stay":
+        m = colour("dark_gray", f"⇠  STAY ⇠  {entry_desc}" + extra_message)
+    else:
+        raise ValueError(f"Unknown agenda category: {category}")
+    print(m)
+    return
+
+def pprint_agenda(agenda):
+    for category in agenda:
+        for entry in agenda.get(category):
+            name, info_dict = list(entry.items())[0]
+            pprint_agenda_desc(category, name, info_dict)
+    return
+
 def get_imported_name_sources(trunk, report=True):
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
@@ -333,185 +519,3 @@ def describe_def_name_dict(name, name_dict):
     n, n_i, ln, imp_src = [name_dict.get(x) for x in ["n", "n_i", "line", "import"]]
     desc = f"(import {n}:{n_i} on line {ln}) {name} ⇒ <{imp_src}>"
     return desc
-
-
-def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
-    """
-    Handle the hand-off to dedicated functions to go from the mvdefs of functions
-    to move, first deriving lists of imported names which belong to the mvdefs and
-    the non-mvdefs functions (using `parse_mv_funcs`), then constructing an
-    'edit agenda' (using `process_ast`) which describes [and optionally
-    reports] the changes to be made at the file level, in terms of move/keep/copy
-    operations on individual import statements between the source and destination
-    Python files.
-rderedDict([('numpy', 'np')])
-
-      mvdefs:     List of functions to be moved
-      trunk:      Tree body of the file's AST, which will be separated into
-                  function definitions, import statements, and anything else.
-      transfers:  List of transfers already determined to be made from the src
-                  to the dst file (from the first call to ast_parse)
-      report:     Whether to print a report during the program (default: True)
-
-    -------------------------------------------------------------------------------
-    
-    First, given the lists of mvdef names (m_names) and non-mvdef names
-    (nm_names), construct the subsets:
-
-      mv_imps:  imported names used by the functions to move (only in mvdef_names),
-      nm_imps:  imported names used by the functions not to move (only in
-                nonmvdef_names),
-      mu_imps:  imported names used by both the functions to move and the
-                functions not to move (in both mvdef_names and nonmvdef_names)
-
-    Potentially 'as a dry run' (if this is being called by process_ast and its
-    parameter edit is False), report how to remove the import statements or statement
-    sections which import mv_inames, do nothing to the import statements which import
-    nonmv_inames, and copy the import statements which import mutual_inames (as both
-    src and dst need them).
-
-    Additionally, accept 'transfers' from a previously determined edit agenda,
-    so as to "take" the "move" names, and "echo" the "copy" names (i.e. when
-    receiving names marked by "move" and "copy", distinguish them to indicate
-    they are being received by transfer [from src⇒dst file], for clarity).
-
-    For clarity, note that this function does **not** edit anything itself, it just
-    describes how it would be possible to carry out the required edits at the level
-    of Python file changes.
-    """
-    # get_edit_agenda(m_names, nm_names, rm_names, transfers, report=True)
-    m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
-    if report:
-        print(f"• Determining edit agenda for {fp.name}:")
-    agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
-    agenda = dict([(c, []) for c in agenda_categories])
-    # mv_inames is mv_imports returned from imp_def_subsets, and so on
-    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=report)
-    # Iterate over each imported name, i, in the subset of import names to move
-    for i in mv_imps:
-        assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
-        i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
-        if report:
-            i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("green", f" ⇢ MOVE  ⇢ {i_dict_desc}"))
-        agenda.get("move").append({i: i_dict})
-    for i in nm_imps:
-        assert i in set().union(*[nm_names.get(k) for k in nm_names]), f"{i} not found"
-        i_dict = [nm_names.get(k) for k in nm_names if i in nm_names.get(k)][0].get(i)
-        if report:
-            i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("dark_gray", f"⇠  KEEP ⇠  {i_dict_desc}"))
-        agenda.get("keep").append({i: i_dict})
-    for i in mu_imps:
-        assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
-        i_dict = [m_names.get(k) for k in m_names if i in m_names.get(k)][0].get(i)
-        if report:
-            i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("light_blue", f"⇠⇢ COPY ⇠⇢ {i_dict_desc}"))
-        agenda.get("copy").append({i: i_dict})
-    for i in rm_names:
-        i_dict = rm_names.get(i)
-        if report:
-            i_dict_desc = describe_def_name_dict(i, i_dict)
-            print(colour("red", f" ✘ LOSE ✘  {i_dict_desc}"))
-        agenda.get("lose").append({i: i_dict})
-    if transfers == {}:
-        # Returning without transfers
-        return agenda
-    #elif report:
-    #    if len(agenda.get("lose")) > 0:
-    #        print("• Resolving edit agenda conflicts:")
-    # i is 'ready made' from a previous call to ast_parse, and just needs reporting
-    for i in transfers.get("take"):
-        k, i_dict = list(i.items())[0]
-        if report:
-            i_dict_desc = describe_def_name_dict(k, i_dict)
-            print(colour("green", f" ⇢ TAKE  ⇢ {i_dict_desc}"))
-        agenda.get("take").append({k: i_dict})
-    for i in transfers.get("echo"):
-        k, i_dict = list(i.items())[0]
-        if report:
-            i_dict_desc = describe_def_name_dict(k, i_dict)
-            print(colour("light_blue", f"⇠⇢ ECHO ⇠⇢ {i_dict_desc}"))
-        agenda.get("echo").append({k: i_dict})
-    # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
-    # by any identically named imports marked 'take' or 'echo', change to 'stay'
-    for i in agenda.get("lose"):
-        k, i_dict = list(i.items())[0]
-        imp_src = i_dict.get("import")
-        if k in [list(x)[0] for x in agenda.get("take")]:
-            t_i_dict = [x for x in agenda.get("take") if k in x][0].get(k)
-            take_imp_src = t_i_dict.get("import")
-            if imp_src != take_imp_src:
-                continue
-            # Deduplicate 'lose'/'take' k: replace both with 'stay'
-            if report:
-                i_dict_desc = describe_def_name_dict(k, i_dict)
-                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
-                    + f" (solved LOSE/TAKE conflict)"))
-            agenda.get("stay").append({k: i_dict})
-            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
-            del agenda.get("lose")[l_k_i]
-            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(t_i_dict)
-            del agenda.get("take")[t_k_i]
-        elif k in [list(x)[0] for x in agenda.get("echo")]:
-            e_i_dict = [x for x in agenda.get("echo") if k in x][0].get(k)
-            echo_imp_src = e_i_dict.get("import")
-            if imp_src != echo_imp_src:
-                continue
-            # Deduplicate 'lose'/'echo' k: replace both with 'stay'
-            if report:
-                i_dict_desc = describe_def_name_dict(k, i_dict)
-                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
-                    + f" (solved LOSE/ECHO conflict)"))
-            agenda.get("stay").append({k: i_dict})
-            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
-            del agenda.get("lose")[l_k_i]
-            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(e_i_dict)
-            del agenda.get("echo")[e_k_i]
-    # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
-    # out by any identically named imports already present, change to 'stay'
-    imported_names = get_imported_name_sources(trunk, report=report)
-    for i in agenda.get("take"):
-        k, i_dict = list(i.items())[0]
-        take_imp_src = i_dict.get("import")
-        if k in imported_names:
-            # Check the import source and asnames match
-            imp_src = imported_names.get(k)[0]
-            if imp_src != take_imp_src:
-                # This means that the same name is being used by a different function
-                raise ValueError(f"Cannot move imported name '{k}', it is already "
-                    +f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})")
-                # (N.B. could rename automatically as future feature)
-            # Otherwise there is simply a duplicate import statement, so the demand
-            # to 'take' the imported name is already fulfilled.
-            # Replace unnecessary 'take' with 'stay'
-            if report:
-                i_dict_desc = describe_def_name_dict(k, i_dict)
-                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
-                    + f" (TAKE name is already imported)"))
-            agenda.get("stay").append({k: i_dict})
-            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(i_dict)
-            del agenda.get("take")[t_k_i]
-    for i in agenda.get("echo"):
-        k, i_dict = list(i.items())[0]
-        echo_imp_src = i_dict.get("import")
-        if k in imported_names:
-            # Check the import source and asnames match
-            imp_src = imported_names.get(k)[0]
-            if imp_src != echo_imp_src:
-                # This means that the same name is being used by a different function
-                raise ValueError(f"Cannot move imported name '{k}', it is already "
-                    +f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})")
-                # (N.B. could rename automatically as future feature)
-            # Otherwise there is simply a duplicate import statement, so the demand
-            # to 'echo' the imported name is already fulfilled.
-            # Replace unnecessary 'take' with 'stay'
-            if report:
-                i_dict_desc = describe_def_name_dict(k, i_dict)
-                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
-                    + f" (TAKE name is already imported)"))
-            agenda.get("stay").append({k: i_dict})
-            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(i_dict)
-            del agenda.get("echo")[e_k_i]
-    return agenda
