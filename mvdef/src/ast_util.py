@@ -61,7 +61,6 @@ def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
     reports] the changes to be made at the file level, in terms of move/keep/copy
     operations on individual import statements between the source and destination
     Python files.
-rderedDict([('numpy', 'np')])
 
       mvdefs:     List of functions to be moved
       trunk:      Tree body of the file's AST, which will be separated into
