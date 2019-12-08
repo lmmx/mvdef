@@ -65,7 +65,7 @@ the process.
 
 The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the following:
 
-- [ ] Back up `src.py` and `dst.py`, as `src.py.backup` and `dst.py.backup` in case it doesn't work
+- [x] Back up `src.py` and `dst.py`, as `src.py.backup` and `dst.py.backup` in case it doesn't work
    - [x] Function completed in `src.backup`⠶`backup()` with `dry_run` parameter, called in `src.demo`
    - [ ] I'd also like to add the option to rename functions, using a pattern or list to rename
      as
@@ -110,8 +110,7 @@ The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the fo
   - [x] Handle moving one import name from an import statement importing multiple
         names (i.e. where you can't simply copy the line)
   - [x] Handle multi-line imports (i.e. where you can't simply find the names on one line)
-  - [ ] ...and then consider removing unused import statements, if it can be confirmed they're
-	genuinely not used (for now they are just reported)
+  - [x] ...and remove unused import statements (neither in/outside any function definitions)
 - ...and only then move the function definitions in `mvdefs` across
 - [x] If tests were defined in step 2, check that these tests run
    - [x] For the demo, the tests are checked (by running `test_report` a 2nd time) after

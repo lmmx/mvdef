@@ -490,12 +490,9 @@ def imp_def_subsets(mvdefs, nonmvdefs, report=True):
     assert nonmv_imports.isdisjoint(mutual_imports), "nonmv/mutual imports intersect!"
     if report_VERBOSE:
         print(
-            "mv_imports: ",
-            mv_imports,
-            ", nonmv_imports: ",
-            nonmv_imports,
-            ", mutual_imports: ",
-            mutual_imports,
+            f"mv_imports: {mv_imports}",
+            f", nonmv_imports: {nonmv_imports}",
+            f", mutual_imports: {mutual_imports}",
             sep="",
         )
     all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
