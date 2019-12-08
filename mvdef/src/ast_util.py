@@ -51,6 +51,19 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     return
 
 
+def get_imported_name_sources(trunk, report=True):
+    import_types = [ast.Import, ast.ImportFrom]
+    imports = [n for n in trunk if type(n) in import_types]
+    imp_name_lines, imp_name_dict_list = annotate_imports(imports, report=report)
+    imported_names = {}
+    for ld in imp_name_lines:
+        ld_n = imp_name_lines.get(ld).get("n")
+        line_n = imp_name_dict_list[ld_n]
+        imp_src = [x for x in list(line_n.items()) if x[1] == ld][0]
+        imported_names[ld] = imp_src
+    return imported_names
+
+
 def annotate_imports(imports, report=True):
     """
     Produce two data structures from the list of import statements (the statements
@@ -102,7 +115,7 @@ def annotate_imports(imports, report=True):
     if report_VERBOSE:
         print("The import name line dict is:")
         for ld in imp_name_linedict:
-            print(f"  {ld}: {imp_name_linedict[ld]}")
+            print(f"  {ld}: {imp_name_linedict.get(ld)}")
     return imp_name_linedict, imp_name_dict_list
 
 
@@ -272,7 +285,7 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     return mvdef_names, nonmvdef_names, undef_names
 
 
-def imp_subsets(mvdefs, nonmvdefs, report=True):
+def imp_def_subsets(mvdefs, nonmvdefs, report=True):
     """
     Given the list of mvdef_names and nonmvdef_names, construct the subsets:
       mv_imports:      imported names used by the functions to move,
@@ -280,7 +293,7 @@ def imp_subsets(mvdefs, nonmvdefs, report=True):
       mutual_imports:  imported names used by both the functions to move and
                         the functions not to move
     """
-    report_VERBOSE = False  # Silencing debug print statements
+    report_VERBOSE = False # Silencing debug print statements
     mvdefs_names = set().union(*[list(mvdefs[x]) for x in mvdefs])
     nonmvdefs_names = set().union(*[list(nonmvdefs[x]) for x in nonmvdefs])
     mv_imports = mvdefs_names - nonmvdefs_names
@@ -300,8 +313,8 @@ def imp_subsets(mvdefs, nonmvdefs, report=True):
             sep="",
         )
     all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
-    all_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])
-    assert sorted(all_defnames) == sorted(all_imports), "Defnames =/= import names"
+    all_def_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])
+    assert sorted(all_defnames) == sorted(all_def_imports), "Defnames =/= import names"
     return mv_imports, nonmv_imports, mutual_imports
 
 
@@ -312,8 +325,7 @@ def describe_def_name_dict(name, name_dict):
     fields are instantiated within `get_def_names`, which in turn is assigned to
     the variable `mvdef_names` within `parse_mv_funcs`.
     
-    The output of `parse_mv_funcs` gets passed to `construct_edit_agenda` by the
-    wrapper function `process_ast`, and `construct_edit_agenda` iterates over
+    The output of `parse_mv_funcs` gets passed to `process_ast`, which iterates over
     the subsets within the output of `parse_mv_funcs`, at which stage it's
     necessary to produce a nice readable output, calling `describe_mvdef_name_dict`.
     """
@@ -323,8 +335,26 @@ def describe_def_name_dict(name, name_dict):
     return desc
 
 
-def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=True):
+def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
     """
+    Handle the hand-off to dedicated functions to go from the mvdefs of functions
+    to move, first deriving lists of imported names which belong to the mvdefs and
+    the non-mvdefs functions (using `parse_mv_funcs`), then constructing an
+    'edit agenda' (using `process_ast`) which describes [and optionally
+    reports] the changes to be made at the file level, in terms of move/keep/copy
+    operations on individual import statements between the source and destination
+    Python files.
+rderedDict([('numpy', 'np')])
+
+      mvdefs:     List of functions to be moved
+      trunk:      Tree body of the file's AST, which will be separated into
+                  function definitions, import statements, and anything else.
+      transfers:  List of transfers already determined to be made from the src
+                  to the dst file (from the first call to ast_parse)
+      report:     Whether to print a report during the program (default: True)
+
+    -------------------------------------------------------------------------------
+    
     First, given the lists of mvdef names (m_names) and non-mvdef names
     (nm_names), construct the subsets:
 
@@ -338,10 +368,7 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
     parameter edit is False), report how to remove the import statements or statement
     sections which import mv_inames, do nothing to the import statements which import
     nonmv_inames, and copy the import statements which import mutual_inames (as both
-    src and dst need them). The format of this reporting should be at the level of
-    file changes, and as such the filepath, `fp`, is accessed (read only here) to
-    provide process_ast the necessary 'edit agenda' to either report (if report
-    is True).
+    src and dst need them).
 
     Additionally, accept 'transfers' from a previously determined edit agenda,
     so as to "take" the "move" names, and "echo" the "copy" names (i.e. when
@@ -352,12 +379,14 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
     describes how it would be possible to carry out the required edits at the level
     of Python file changes.
     """
+    # get_edit_agenda(m_names, nm_names, rm_names, transfers, report=True)
+    m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
     if report:
         print(f"• Determining edit agenda for {fp.name}:")
     agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
     agenda = dict([(c, []) for c in agenda_categories])
-    # mv_inames is mv_imports returned from imp_subsets, and so on
-    mv_imps, nm_imps, mu_imps = imp_subsets(m_names, nm_names, report=report)
+    # mv_inames is mv_imports returned from imp_def_subsets, and so on
+    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=report)
     # Iterate over each imported name, i, in the subset of import names to move
     for i in mv_imps:
         assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
@@ -440,27 +469,49 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
             del agenda.get("lose")[l_k_i]
             e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(e_i_dict)
             del agenda.get("echo")[e_k_i]
+    # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
+    # out by any identically named imports already present, change to 'stay'
+    imported_names = get_imported_name_sources(trunk, report=report)
+    for i in agenda.get("take"):
+        k, i_dict = list(i.items())[0]
+        take_imp_src = i_dict.get("import")
+        if k in imported_names:
+            # Check the import source and asnames match
+            imp_src = imported_names.get(k)[0]
+            if imp_src != take_imp_src:
+                # This means that the same name is being used by a different function
+                raise ValueError(f"Cannot move imported name '{k}', it is already "
+                    +f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})")
+                # (N.B. could rename automatically as future feature)
+            # Otherwise there is simply a duplicate import statement, so the demand
+            # to 'take' the imported name is already fulfilled.
+            # Replace unnecessary 'take' with 'stay'
+            if report:
+                i_dict_desc = describe_def_name_dict(k, i_dict)
+                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
+                    + f" (TAKE name is already imported)"))
+            agenda.get("stay").append({k: i_dict})
+            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(i_dict)
+            del agenda.get("take")[t_k_i]
+    for i in agenda.get("echo"):
+        k, i_dict = list(i.items())[0]
+        echo_imp_src = i_dict.get("import")
+        if k in imported_names:
+            # Check the import source and asnames match
+            imp_src = imported_names.get(k)[0]
+            if imp_src != echo_imp_src:
+                # This means that the same name is being used by a different function
+                raise ValueError(f"Cannot move imported name '{k}', it is already "
+                    +f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})")
+                # (N.B. could rename automatically as future feature)
+            # Otherwise there is simply a duplicate import statement, so the demand
+            # to 'echo' the imported name is already fulfilled.
+            # Replace unnecessary 'take' with 'stay'
+            if report:
+                i_dict_desc = describe_def_name_dict(k, i_dict)
+                print(colour("dark_gray", f"⇠  STAY ⇠  {i_dict_desc}"
+                    + f" (TAKE name is already imported)"))
+            agenda.get("stay").append({k: i_dict})
+            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(i_dict)
+            del agenda.get("echo")[e_k_i]
     return agenda
-
-
-def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
-    """
-    Handle the hand-off to dedicated functions to go from the mvdefs of functions
-    to move, first deriving lists of imported names which belong to the mvdefs and
-    the non-mvdefs functions (using `parse_mv_funcs`), then constructing an
-    'edit agenda' (using `construct_edit_agenda`) which describes [and optionally
-    reports] the changes to be made at the file level, in terms of move/keep/copy
-    operations on individual import statements between the source and destination
-    Python files.
-
-      mvdefs:     List of functions to be moved
-      trunk:      Tree body of the file's AST, which will be separated into
-                  function definitions, import statements, and anything else.
-      transfers:  List of transfers already determined to be made from the src
-                  to the dst file (from the first call to ast_parse)
-      report:     Whether to print a report during the program (default: True)
-    """
-    # mv_nmv_defs is a tuple of (mvdefs, nonmvdefs) returned from parse_mv_funcs
-    mv_nmv_defs = parse_mv_funcs(mvdefs, trunk, report=report)
-    edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, transfers, report=report)
-    return edit_agenda
