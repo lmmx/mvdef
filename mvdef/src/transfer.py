@@ -1,6 +1,7 @@
 from src.ast_util import ast_parse
 from src.backup import backup
-from src.display import colour_str as colour
+from src.colours import colour_str as colour
+from src.editor import transfer_mvdefs
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=True):
@@ -26,6 +27,11 @@ def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=T
     # Backs up source and target to a hidden file, restorable in case of error,
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
+    if test_func is not None:
+        try:
+            test_func.__call__()
+        except AssertionError as e:
+            raise RuntimeError(f"! {test_func} failed, aborting mvdef execution.")
     assert backup(src_p, dry_run=nochange)
     assert backup(dst_p, dry_run=nochange)
     # Create edit agendas from the parsed AST of source and destination files
@@ -47,7 +53,11 @@ def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=T
             print(f"⇒ Functions will move to {colour('light_gray', dst_p)}")
     if nochange:
         print("DRY RUN: No files have been modified, skipping tests.")
-    elif test_func is None:
+        return src_edits, dst_edits
+    else:
+        # Edit the files
+        transfer_mvdefs(src_p, dst_p, imports, mvdefs, src_edits, dst_edits)
+    if test_func is None:
         return src_edits, dst_edits
     else:
         try:

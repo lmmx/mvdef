@@ -2,9 +2,8 @@ import ast
 from pathlib import Path
 from collections import OrderedDict
 import builtins
-from src.display import colour_str as colour
+from src.colours import colour_str as colour
 from asttokens import ASTTokens
-from src.editor import edit_defs
 from src.deprecations import pprint_def_names
 
 

@@ -5,11 +5,6 @@ from example.test.test_demo import test_report as demotest
 
 def main(mvdefs, dry_run=True, report=True):
     print("--------------RUNNING src.demo⠶main()--------------")
-    try:
-        demotest()
-    except AssertionError as e:
-        raise RuntimeError("The tests do not pass for the example file.")
-
     # Step 1: declare src and dst .py file paths and back up the files
     src_p, dst_p = (example_dir / f"{n}.py" for n in ["demo_program", "new_file"])
     src_parsed, dst_parsed = parse_transfer(
