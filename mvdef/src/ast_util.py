@@ -7,18 +7,20 @@ from asttokens import ASTTokens
 from src.deprecations import pprint_def_names
 
 
-def ast_parse(pyfile, mvdefs=[], transfers={}, report=True):
+def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     """
     Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
-    a report of what changes would be required to move the mvdefs of funcdefs out
-    of it, or a report of the imports and funcdefs in general if no mvdefs is
-    provided (taken to indicate that the file is the target funcdefs are moving to),
-    or make changes to the file (either newly creating one if no such file exists,
-    or editing in place according to the reported import statement differences).
+    a report of what changes would be required to move the mvdefs subset of all
+    function definitions out of it, or a report of the imports and funcdefs in general
+    if no mvdefs is provided (taken to indicate that the file is the target funcdefs
+    are moving to), or make changes to the file (either newly creating one if no such
+    file exists, or editing in place according to the reported import statement
+    differences).
 
-    If the pyfile doesn't exist, it's being newly created by the move and obviously
-    no report can be made on it: it has no funcdefs and no import statements, so
-    all the ones being moved will be newly created.
+    If the Python file `fp` doesn't exist (which can be checked directly as it's a
+    Path object), it's being newly created by the move and obviously no report can
+    be made on it: it has no funcdefs and no import statements, so all the ones being
+    moved will be newly created.
 
     mvdefs should be given if the file is the source of moved functions, and left
     empty (defaulting to value of []) if the file is the destination to move them to.
@@ -30,24 +32,22 @@ def ast_parse(pyfile, mvdefs=[], transfers={}, report=True):
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """
-    extant = pyfile.exists() and pyfile.is_file()
+    extant = fp.exists() and fp.is_file()
     if extant:
-        with open(pyfile, "r") as f:
+        with open(fp, "r") as f:
             fc = f.read()
             # a = ast
-            nodes = ast.parse(fc).body
+            trunk = ast.parse(fc).body
 
-        imports = [n for n in nodes if type(n) in [ast.Import, ast.ImportFrom]]
-        defs = [n for n in nodes if type(n) == ast.FunctionDef]
         # return imports, funcdefs
-        edit_agenda = process_imports(pyfile, mvdefs, defs, imports, transfers, report)
+        edit_agenda = process_ast(fp, mvdefs, trunk, transfers, report)
         return edit_agenda
     elif mvdefs == [] and report:
         # not extant so file doesn't exist (cannot produce a parsed AST)
         # however mvdefs is [] so file must be dst, return value of None
         return
     else:
-        raise ValueError(f"Can't move {mvdefs} from {pyfile} – it doesn't exist!")
+        raise ValueError(f"Can't move {mvdefs} from {fp} – it doesn't exist!")
     return
 
 
@@ -124,6 +124,19 @@ def find_assigned_args(fd):
     return assigned_args
 
 
+def get_extradef_names(extra_nodes):
+    """
+    Return the names used in the AST trunk nodes which are outside of both function
+    definitions and import statements, so as to distinguish the unused names from
+    those which are just used outside of function definitions.
+    """
+    extradef_names = set()
+    for node in extra_nodes:
+        node_names = [x.id for x in list(ast.walk(node)) if type(x) is ast.Name]
+        for n in node_names:
+            extradef_names.add(n)
+    return extradef_names
+
 def get_nondef_names(unused, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
     # nondef_names is a dictionary keyed by the unused names (which were imported)
@@ -188,8 +201,12 @@ def get_def_names(func_list, funcdefs, import_annos, report=True):
     return def_names
 
 
-def parse_mv_funcs(mvdefs, funcdefs, imports, report=True):
+def parse_mv_funcs(mvdefs, trunk, report=True):
     """
+    mvdefs:  the list of functions to move (string list of function names)
+    trunk:   AST body for the file (via `ast.parse(fc).body`)
+    report:  whether to print [minimal, readable] 'reporting' output
+
     Produce a dictionary, `mvdef_names`, whose keys are the list of functions
     to move (i.e. the list `mvdefs` becomes the list of keys of `mvdef_names`),
     and the value of which at each key (for a key `m` which indicates the name
@@ -213,7 +230,7 @@ def parse_mv_funcs(mvdefs, funcdefs, imports, report=True):
     I.e. the dictionary with entries accessed as `mvdef_names.get(m).get(k)`
     for `m` in `mvdefs` and `k` in the subset of AST-identified imported names
     in the function with  if f.name not in mvdefs name `m` in the list of
-    function definitions `funcdefs`. This access is handed off to the helper
+    function definitions `defs`. This access is handed off to the helper
     function `get_def_names`.
 
     For the names that were imported but not used, the dictionary is not keyed
@@ -222,15 +239,20 @@ def parse_mv_funcs(mvdefs, funcdefs, imports, report=True):
     is handed off to the helper function `get_nondef_names`.
     """
     report_VERBOSE = False  # Silencing debug print statements
+    import_types = [ast.Import, ast.ImportFrom]
+    imports = [n for n in trunk if type(n) in import_types]
+    defs = [n for n in trunk if type(n) == ast.FunctionDef]
+    # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
+    extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
     import_annos = annotate_imports(imports, report=report)
-    mvdef_names = get_def_names(mvdefs, funcdefs, import_annos, report=report)
+    mvdef_names = get_def_names(mvdefs, defs, import_annos, report=report)
     if report_VERBOSE:
         print("mvdef names:")
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
-    nomvdefs = [f.name for f in funcdefs if f.name not in mvdefs]
-    nonmvdef_names = get_def_names(nomvdefs, funcdefs, import_annos, report=report)
+    nomvdefs = [f.name for f in defs if f.name not in mvdefs]
+    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, report=report)
     if report_VERBOSE:
         print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
@@ -239,11 +261,15 @@ def parse_mv_funcs(mvdefs, funcdefs, imports, report=True):
     mv_set = set().union(*[mvdef_names.get(x).keys() for x in mvdef_names])
     nomv_set = set().union(*[nonmvdef_names.get(x).keys() for x in nonmvdef_names])
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
-    nondef_names = get_nondef_names(unused_names, import_annos, report=report)
+    nondefs = get_nondef_names(unused_names, import_annos, report=report)
+    # Omit names used outside of function definitions so as not to remove them
+    extradefs = get_extradef_names(extra)
+    # undef_names contains only those names that are imported but never used
+    undef_names = dict([(x, nondefs.get(x)) for x in nondefs if x not in extradefs])
     if report_VERBOSE:
         print("non-def names (imported but not used in any function def):")
-        pprint_def_names(nondef_names, no_funcdef_list=True)
-    return mvdef_names, nonmvdef_names, nondef_names
+        pprint_def_names(nondefs, no_funcdef_list=True)
+    return mvdef_names, nonmvdef_names, undef_names
 
 
 def imp_subsets(mvdefs, nonmvdefs, report=True):
@@ -287,7 +313,7 @@ def describe_def_name_dict(name, name_dict):
     the variable `mvdef_names` within `parse_mv_funcs`.
     
     The output of `parse_mv_funcs` gets passed to `construct_edit_agenda` by the
-    wrapper function `process_imports`, and `construct_edit_agenda` iterates over
+    wrapper function `process_ast`, and `construct_edit_agenda` iterates over
     the subsets within the output of `parse_mv_funcs`, at which stage it's
     necessary to produce a nice readable output, calling `describe_mvdef_name_dict`.
     """
@@ -308,13 +334,13 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
       mu_imps:  imported names used by both the functions to move and the
                 functions not to move (in both mvdef_names and nonmvdef_names)
 
-    Potentially 'as a dry run' (if this is being called by process_imports and its
+    Potentially 'as a dry run' (if this is being called by process_ast and its
     parameter edit is False), report how to remove the import statements or statement
     sections which import mv_inames, do nothing to the import statements which import
     nonmv_inames, and copy the import statements which import mutual_inames (as both
     src and dst need them). The format of this reporting should be at the level of
     file changes, and as such the filepath, `fp`, is accessed (read only here) to
-    provide process_imports the necessary 'edit agenda' to either report (if report
+    provide process_ast the necessary 'edit agenda' to either report (if report
     is True).
 
     Additionally, accept 'transfers' from a previously determined edit agenda,
@@ -417,7 +443,7 @@ def construct_edit_agenda(fp, m_names, nm_names, rm_names, transfers, report=Tru
     return agenda
 
 
-def process_imports(fp, mvdefs, defs, imports, transfers={}, report=True):
+def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
     """
     Handle the hand-off to dedicated functions to go from the mvdefs of functions
     to move, first deriving lists of imported names which belong to the mvdefs and
@@ -427,15 +453,14 @@ def process_imports(fp, mvdefs, defs, imports, transfers={}, report=True):
     operations on individual import statements between the source and destination
     Python files.
 
-      fp:         File path to the file to be processed
       mvdefs:     List of functions to be moved
-      defs:       List of all function definitions in the file
-      imports:    List of import statements in the file (both Import & ImportFrom)
+      trunk:      Tree body of the file's AST, which will be separated into
+                  function definitions, import statements, and anything else.
       transfers:  List of transfers already determined to be made from the src
                   to the dst file (from the first call to ast_parse)
       report:     Whether to print a report during the program (default: True)
     """
     # mv_nmv_defs is a tuple of (mvdefs, nonmvdefs) returned from parse_mv_funcs
-    mv_nmv_defs = parse_mv_funcs(mvdefs, defs, imports, report=report)
+    mv_nmv_defs = parse_mv_funcs(mvdefs, trunk, report=report)
     edit_agenda = construct_edit_agenda(fp, *mv_nmv_defs, transfers, report=report)
     return edit_agenda
