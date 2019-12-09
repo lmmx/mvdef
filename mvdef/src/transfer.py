@@ -55,8 +55,8 @@ def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=T
         print("DRY RUN: No files have been modified, skipping tests.")
         return src_edits, dst_edits
     else:
-        # Edit the files
-        transfer_mvdefs(src_p, dst_p, imports, mvdefs, src_edits, dst_edits)
+        # Edit the files (no longer pass imports or defs, will recompute AST)
+        transfer_mvdefs(src_p, dst_p, mvdefs, src_edits, dst_edits)
     if test_func is None:
         return src_edits, dst_edits
     else:

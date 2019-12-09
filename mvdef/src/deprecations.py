@@ -1,12 +1,3 @@
-import ast
-from pathlib import Path
-from collections import OrderedDict
-import builtins
-from src.colours import colour_str as colour
-from asttokens import ASTTokens
-from src.editor import transfer_mvdefs
-
-
 def pprint_def_names(def_names, no_funcdef_list=False):
     if no_funcdef_list:
         print("  {")
