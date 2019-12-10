@@ -34,8 +34,9 @@ def get_import_stmt_str(alias_list, imp_src=None, max_linechars=88):
     if imp_src is None:
         ast_import_stmt = ast.Import(alias_obj_list)
     else:
-        imp_level = len(imp_src) - len(imp_src.lstrip('.'))
-        ast_import_stmt = ast.ImportFrom(imp_src, alias_obj_list, level=imp_level)
+        import_level = len(imp_src) - len(imp_src.lstrip('.'))
+        imp_src = imp_src.lstrip('.')
+        ast_import_stmt = ast.ImportFrom(imp_src, alias_obj_list, level=import_level)
     import_stmt_str = to_source(ast.Module([ast_import_stmt]))
     return import_stmt_str
 
