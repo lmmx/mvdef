@@ -1,5 +1,122 @@
 import ast
+from asttokens import ASTTokens
 from collections import OrderedDict
+from src.colours import colour_str as colour
+
+
+def colour_imp_stmt(imp_stmt, lines):
+    """
+    For an import statement within an asttokens-annotated AST, which comes with
+    all subnodes annotated with first and last token start/end positional information,
+    access all the tokens corresponding to the import statement name(s) and asname(s).
+    
+    Do this using a list of lines (i.e. a list of strings, each of which is a line),
+    the subset of which corresponding to the import statement `imp_stmt` are given
+    by its `first_token.start` and `last_token.end` attributes (in each case, the
+    attribute is a tuple of `(line, column)` numbers, and it is conventional to store
+    these as a 1-based index, so to cross-reference to a 0-based index of the list
+    of lines we decrement this value and store as `imp_startln` and `imp_endln`).
+    The subset of lines corresponding to `imp_stmt` is then assigned as `nodelines`,
+    and we join this into a single string as `nodestring`.
+
+    Then a new ASTTokens object, `tko`, can be made by parsing `nodestring`, on which
+    the `find_tokens` method provides access to each name/asname one at a time, when
+    matched to the name/asname string. These name/asname strings are available
+    within the `imp_stmt` object via its `names` attribute, which is a list of
+    `ast.alias` class instances, each of which has both a `name` and `asname` attribute
+    (the latter of which is `None` if no asname is given for the import name).
+
+    `find_tokens` returns a token with attribute `type` of value `1` for a name (1 is
+    the index of "NAME" in the `token.tok_name` dictionary), and `startpos`/`endpos`
+    attributes (integers which indicate the string offsets within `nodestring`).
+
+    These `startpos` integers are an efficient way to store this list of tokens
+    (the "NAME" tokens corresponding to import statement alias names and asnames),
+    and so even though it would be possible to store all tokens, I choose to simply
+    re-access them with the `tko.get_token_from_offset(startpos)` method.
+
+    At the moment, I only re-access these tokens to retrieve their `endpos` (end
+    position offset), which is also an integer and could also be stored easily
+    without much problem, however for the sake of clarity I prefer to re-access
+    the entire token and not have to construct an arbitrary data structure for
+    storing the start and end positions (which could get confusing).
+
+    Lastly, I construct a colourful string representation of the import statement
+    by using these start positions and re-retrieved end positions to pull out
+    and modify (using the `src.colours`⠶`colour_str` function) the names and asnames
+    (names are coloured red, asnames are coloured purple), and use string slicing
+    to swap the ranges that the names and asnames were in in the original
+    `nodestring` for these colourful replacements.
+
+    The end result, `modified_nodestring` is then returned, which will then
+    display in colour on Linux and OSX (I don't think Windows supports ANSI codes,
+    so I made `colour_str` only apply on these platforms).
+    """
+    assert 'first_token' in imp_stmt.__dir__(), "Not an asttokens-annotated AST node"
+    assert type(imp_stmt) in [ast.Import, ast.ImportFrom], "Not an import statement"
+    is_from = type(imp_stmt) is ast.ImportFrom
+    imp_startln = imp_stmt.first_token.start[0] - 1  # Use 0-based line index
+    imp_endln = imp_stmt.last_token.end[0] - 1  # to match list of lines
+    nodelines = lines[imp_startln : (imp_endln + 1)]
+    n_implines = len(nodelines)
+    nodestring = "".join(nodelines)
+    tko = ASTTokens(nodestring)
+    new_nodelines = [list() for _ in range(n_implines)]
+    # Subtract the import statement start position from the name or asname
+    # token start position to get the offset, then use the offset to extract
+    # a range of text from the re-parsed ASTTokens object for the nodestring
+    # corresponding to the import name or asname in question.
+    imp_startpos = imp_stmt.first_token.startpos
+    alias_starts = []
+    for alias in imp_stmt.names:
+        al_n, al_as = alias.name, alias.asname
+        # 1 is the key for "NAME" in Python's tokens.tok_name
+        s = [tko.find_token(tko.tokens[0], 1, tok_str=al_n).startpos]
+        if al_as is not None:
+            s.append(tko.find_token(tko.tokens[0], 1, tok_str=al_as).startpos)
+        alias_starts.append(s)
+    assert len(alias_starts) > 0, "An import statement cannot import no names!"
+    assert alias_starts[0][0] > 0, "An import statement cannot begin with a name!"
+    modified_nodestring = ""
+    # -------------------------------------------------------------------------
+    # Now set up colour definitions for the modified import statement string
+    name_colour, asname_colour = ["red", "purple"]
+    pre_colour, post_colour = ["light_blue", "light_red"]
+    as_string_colour = "yellow"
+    comma_colour = "light_green"
+    # -------------------------------------------------------------------------
+    first_import_name_startpos = alias_starts[0][0]
+    pre_str = nodestring[:first_import_name_startpos]
+    modified_nodestring += colour(pre_colour, pre_str)
+    seen_endpos = first_import_name_startpos
+    # (Could add a try/except here to verify colours are in colour dict if modifiable)
+    for al_i, alias_start_list in enumerate(alias_starts):
+        for al_j, al_start in enumerate(alias_start_list):
+            if seen_endpos < al_start:
+                # There is an intervening string, append it to modified_nodestring
+                intervening_str = nodestring[seen_endpos:al_start]
+                if al_j > 0:
+                    # This is the word "as", which comes between a name and an asname
+                    modified_nodestring += colour(as_string_colour, intervening_str)
+                else:
+                    if al_i > 0:
+                        assert "," in intervening_str, "Import aliases not comma-sep.?"
+                        modified_nodestring += colour(comma_colour, intervening_str)
+                    else:
+                        modified_nodestring += intervening_str
+            # Possible here to distinguish between names and asnames by al_j if needed
+            is_asname = bool(al_j)  # al_j is 0 if name, 1 if asname
+            name_tok = tko.get_token_from_offset(al_start)
+            assert name_tok.type > 0, f"No import name at {al_start} in {nodestring}"
+            al_endpos = name_tok.endpos
+            imp_name = nodestring[al_start:al_endpos]
+            cstr_colour = [name_colour, asname_colour][al_j]
+            cstr = colour(cstr_colour, imp_name)
+            modified_nodestring += cstr
+            seen_endpos = al_endpos
+    end_str = nodestring[seen_endpos:]
+    modified_nodestring += colour(post_colour, end_str)
+    return modified_nodestring
 
 
 def get_imported_name_sources(trunk, report=True):
@@ -37,7 +154,7 @@ def annotate_imports(imports, report=True):
                           OrderedDict preserves the per-line order of the imported
                           names.
     """
-    report_VERBOSE = False  # Silencing debug print statements
+    report_VERBOSE = True  # Silencing debug print statements
     # This dictionary gives the import line it's on for cross-ref with either
     # the imports list above or the per-line imported_name_dict
     imp_name_linedict = dict()  # Stores all names and their asnames
@@ -66,7 +183,11 @@ def annotate_imports(imports, report=True):
     if report_VERBOSE:
         print("The import name line dict is:")
         for ld in imp_name_linedict:
-            print(f"  {ld}: {imp_name_linedict.get(ld)}")
+            # print(f"  {ld}: {imp_name_linedict.get(ld)}")
+            pass
+        print("The import name dict list is:")
+        for ln in imp_name_dict_list:
+            print(ln)
     return imp_name_linedict, imp_name_dict_list
 
 

@@ -1,7 +1,6 @@
 import ast
 from asttokens import ASTTokens
 import builtins
-from collections import OrderedDict
 from pathlib import Path
 from src.agenda_util import pprint_agenda
 from src.deprecations import pprint_def_names

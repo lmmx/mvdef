@@ -13,12 +13,17 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     # ------------------------- First move the imports ------------------------------
     # Do not need to handle "copy", "keep", or "stay" edit_agenda entries,
     # "copy" entries in src_agenda are mirrored by "echo" entries in dst_agenda
+    # -------------------------------------------------------------------------------
     for rm_i in dst_agenda.get("lose"):
-        # Remove rm_i (imported name marked "lose") from the source file
+        # Remove rm_i (imported name marked "lose") from the destination file using
+        # the line numbers of `dst_trunk`, computed as `dst_imports` by `get_imports`
+        # (a destructive operation, so line numbers of `dst_trunk` no longer valid)
         rm_i_name, dst_info = list(rm_i.items())[0]
         pass
     for mv_i in dst_agenda.get("take"):
         # Transfer mv_i into the destination file: receive "move" as "take"
+        # Recompute the line numbers for `dst_trunk` for each operation, as removals
+        # in the previous for loop rendered line numbers from `dst_trunk` invalid
         mv_i_name, dst_info = list(mv_i.items())[0]
         pass
     for cp_i in dst_agenda.get("echo"):
@@ -28,10 +33,13 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     for mvdef in src_mvdefs:
         # Transfer mvdef into the destination file: receive mvdef
         # mvdef is an ast.FunctionDefinition node with start/end position annotations
+        # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
+        # (this is an append operation, so line numbers from `src_trunk` remain valid)
         defstring = get_defstring(mvdef, src_lines)
         append_def(defstring, src_path, dst_path)
     # -------- Line number preservation no longer needed, only now modify src -------
     # Iterate through funcdefs in reverse line number order (i.e. upward from bottom)
+    # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
     for mvdef in sorted(src_mvdefs, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def(def_node=mvdef, py_path=src_path, return_def=False)
