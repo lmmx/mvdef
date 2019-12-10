@@ -1,11 +1,52 @@
 import ast
+from astor import to_source
 from asttokens import ASTTokens
 from collections import OrderedDict
 from src.colours import colour_str as colour
 
 
+def get_import_stmt_str(alias_list, imp_src=None, max_linechars=88):
+    """
+    Construct an import statement by building an AST, convert it to source using
+    astor.to_source, and then return the string.
+
+      alias_list:   List of strings to use as ast.alias `name`, and optionally also
+                    `asname entries. If only one name is listed per item in the
+                    alias_list, the `asname` will be instantiated as None.
+      imp_src:      If provided, the import statement will be use the
+                    `ast.ImportFrom` class, otherwise it will use `ast.Import`.
+                    Relative imports are permitted for "import from" statements
+                    (such as `from ..foo import bar`) however absolute imports
+                    (such as `from foo import bar`) are recommended in PEP8.
+
+    I don't think it's possible to specify the line width?
+    """
+    alias_obj_list = []
+    assert type(alias_list) is list, "alias_list must be a list"
+    for alias_pair in alias_list:
+        if type(alias_pair) is str:
+            alias_pair = [alias_pair]
+        assert len(alias_pair) > 0, "Cannot import using an empty string"
+        assert type(alias_pair[0]) is str, "Import alias name must be a string"
+        if len(alias_pair) < 2: alias_pair.append(None)
+        al = ast.alias(*alias_pair[0:2])
+        alias_obj_list.append(al)
+    if imp_src is None:
+        ast_import_stmt = ast.Import(alias_obj_list)
+    else:
+        imp_level = len(imp_src) - len(imp_src.lstrip('.'))
+        ast_import_stmt = ast.ImportFrom(imp_src, alias_obj_list, level=imp_level)
+    import_stmt_str = to_source(ast.Module([ast_import_stmt]))
+    return import_stmt_str
+
+
 def colour_imp_stmt(imp_stmt, lines):
     """
+    Summary: get a string which when printed will show the separate parts of an
+    import statement in different colours (preamble in blue, alias names in red,
+    alias asnames in purple, the word "as" itself in yellow, commas between import
+    aliases in light green, and post-matter (a bracket) in light red.
+
     For an import statement within an asttokens-annotated AST, which comes with
     all subnodes annotated with first and last token start/end positional information,
     access all the tokens corresponding to the import statement name(s) and asname(s).
