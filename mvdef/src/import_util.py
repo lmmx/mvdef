@@ -1,25 +1,26 @@
 import ast
+from ast import Import as IType, ImportFrom as IFType
 from astor import to_source
 from asttokens import ASTTokens
 from collections import OrderedDict
 from src.colours import colour_str as colour
+from os import linesep as nl
 
-
-def get_import_stmt_str(alias_list, imp_src=None, max_linechars=88):
+def get_import_stmt_str(alias_list, import_src=None, max_linechars=88):
     """
     Construct an import statement by building an AST, convert it to source using
     astor.to_source, and then return the string.
 
-      alias_list:   List of strings to use as ast.alias `name`, and optionally also
-                    `asname entries. If only one name is listed per item in the
-                    alias_list, the `asname` will be instantiated as None.
-      imp_src:      If provided, the import statement will be use the
-                    `ast.ImportFrom` class, otherwise it will use `ast.Import`.
-                    Relative imports are permitted for "import from" statements
-                    (such as `from ..foo import bar`) however absolute imports
-                    (such as `from foo import bar`) are recommended in PEP8.
-
-    I don't think it's possible to specify the line width?
+      alias_list:     List of strings to use as ast.alias `name`, and optionally also
+                      `asname entries. If only one name is listed per item in the
+                      alias_list, the `asname` will be instantiated as None.
+      import_src:     If provided, the import statement will be use the
+                      `ast.ImportFrom` class, otherwise it will use `ast.Import`.
+                      Relative imports are permitted for "import from" statements
+                      (such as `from ..foo import bar`) however absolute imports
+                      (such as `from foo import bar`) are recommended in PEP8.
+      max_linechars:  Maximum linewidth, beyond which the import statement string will
+                      be multilined with `multilinify_import_stmt_str`.
     """
     alias_obj_list = []
     assert type(alias_list) is list, "alias_list must be a list"
@@ -31,14 +32,90 @@ def get_import_stmt_str(alias_list, imp_src=None, max_linechars=88):
         if len(alias_pair) < 2: alias_pair.append(None)
         al = ast.alias(*alias_pair[0:2])
         alias_obj_list.append(al)
-    if imp_src is None:
-        ast_import_stmt = ast.Import(alias_obj_list)
+    if import_src is None:
+        ast_imp_stmt = ast.Import(alias_obj_list)
     else:
-        import_level = len(imp_src) - len(imp_src.lstrip('.'))
-        imp_src = imp_src.lstrip('.')
-        ast_import_stmt = ast.ImportFrom(imp_src, alias_obj_list, level=import_level)
-    import_stmt_str = to_source(ast.Module([ast_import_stmt]))
-    return import_stmt_str
+        import_level = len(import_src) - len(import_src.lstrip('.'))
+        import_src = import_src.lstrip('.')
+        ast_imp_stmt = ast.ImportFrom(import_src, alias_obj_list, level=import_level)
+    import_stmt_str = to_source(ast.Module([ast_imp_stmt]))
+    if len(import_stmt_str.rstrip(nl)) > max_linechars:
+        return multilinify_import_stmt_str(import_stmt_str)
+    else:
+        return import_stmt_str
+
+
+def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma=True):
+    """
+    Takes a single line import statement and turns it into a multiline string.
+    Will raise a `ValueError` if given a multiline string (a newline at the end
+    of the string is permitted).
+
+    This function is written in expectation of the output of `get_import_stmt_str`,
+    and is not intended to process all potential ways of writing an import statement.
+
+        import_stmt_str:  String of Python code carrying out an import statement.
+        indent_spaces:    Number of spaces to indent by in multiline format.
+        trailing_comma:   Whether to add a trailing comma to the final alias in a
+                          multiline list of import aliases (default: True)
+    """
+    import_stmt_str = import_stmt_str.rstrip(nl)
+    n_nl = import_stmt_str.count(nl)
+    if n_nl > 0:
+        raise ValueError(f"{import_stmt_str} is not a single line string")
+    imp_ast = ast.parse(import_stmt_str)
+    assert type(imp_ast.body[0]) in [IType, IFType], "Not a valid import statement"
+    tko = ASTTokens(import_stmt_str)
+    first_tok = tko.tokens[0]
+    import_tok = tko.find_token(first_tok, tok_type=1, tok_str="import")
+    assert import_tok.type > 0, f"Unable to find import token in the given string"
+    imp_preamble_str = import_stmt_str[:import_tok.endpos]
+    post_import_tok = tko.tokens[import_tok.index + 1]
+    imp_names_str = import_stmt_str[post_import_tok.startpos:]
+    aliases = [(x.name, x.asname) for x in imp_ast.body[0].names]
+    seen_comma_tok = None
+    multiline_import_stmt_str = imp_preamble_str
+    multiline_import_stmt_str += " (" + nl
+    for al_i, (a_n, a_as) in enumerate(aliases):
+        is_final_alias = al_i + 1 == len(aliases)
+        if seen_comma_tok is None:
+            # Match the start of the alias by either the full name like "numpy" or the first part of the 
+            al_n_tok = tko.find_token(import_tok, tok_type=1, tok_str=a_n.split(".")[0])
+            assert al_n_tok.type > 0, f"Unable to find the token for {a_n} (after {import_tok} in {import_stmt_str})"
+        else:
+            al_n_tok = tko.find_token(seen_comma_tok, tok_type=1, tok_str=a_n.split(".")[0])
+            assert al_n_tok.type > 0, f"Unable to find the token for {a_n} (after {seen_comma_tok} in {import_stmt_str})"
+        al_startpos = al_n_tok.startpos
+        if a_as is None:
+            if is_final_alias:
+                # There won't be a comma after this (it is the last import name token)
+                al_endpos = al_n_tok.endpos
+            else:
+                comma_tok = tko.find_token(al_n_tok, tok_type=53, tok_str=",")
+                assert comma_tok.type > 0, f"Unable to find comma token (after {al_n_tok} in {import_stmt_str})"
+                al_endpos = comma_tok.endpos
+        else:
+            al_as_tok = tko.find_token(al_n_tok, tok_type=1, tok_str=a_as)
+            assert al_as_tok.type > 0, f"Unable to find the token for {a_as} (after {al_n_tok} in {import_stmt_str})"
+            if is_final_alias:
+                # There won't be a comma after this (it's the last import asname token)
+                al_endpos = al_as_tok.endpos
+            else:
+                comma_tok = tko.find_token(al_as_tok, tok_type=53, tok_str=",")
+                assert comma_tok.type > 0, f"Unable to find comma token (after {al_as_tok} in {import_stmt_str})"
+                al_endpos = comma_tok.endpos
+        alias_chunk = import_stmt_str[al_startpos : al_endpos]
+        if is_final_alias:
+            if trailing_comma:
+                alias_chunk += ","
+        else:
+            seen_comma_tok = comma_tok
+        multiline_import_stmt_str += (' ' * indent_spaces) + alias_chunk + nl
+    # Finally, verify that the end of the tokenised string was reached
+    assert al_endpos == tko.tokens[-1].endpos, "Did not tokenise to the end of string"
+    # No need to further slice the input string, return the final result
+    multiline_import_stmt_str += ")" + nl
+    return multiline_import_stmt_str
 
 
 def colour_imp_stmt(imp_stmt, lines):
@@ -95,8 +172,8 @@ def colour_imp_stmt(imp_stmt, lines):
     so I made `colour_str` only apply on these platforms).
     """
     assert 'first_token' in imp_stmt.__dir__(), "Not an asttokens-annotated AST node"
-    assert type(imp_stmt) in [ast.Import, ast.ImportFrom], "Not an import statement"
-    is_from = type(imp_stmt) is ast.ImportFrom
+    assert type(imp_stmt) in [IType, IFType], "Not an import statement"
+    is_from = type(imp_stmt) is IFType
     imp_startln = imp_stmt.first_token.start[0] - 1  # Use 0-based line index
     imp_endln = imp_stmt.last_token.end[0] - 1  # to match list of lines
     nodelines = lines[imp_startln : (imp_endln + 1)]
@@ -162,7 +239,7 @@ def colour_imp_stmt(imp_stmt, lines):
 
 
 def get_imported_name_sources(trunk, report=True):
-    import_types = [ast.Import, ast.ImportFrom]
+    import_types = [IType, IFType]
     imports = [n for n in trunk if type(n) in import_types]
     imp_name_lines, imp_name_dict_list = annotate_imports(imports, report=report)
     imported_names = {}
@@ -205,7 +282,7 @@ def annotate_imports(imports, report=True):
         imp_name_dict = OrderedDict()
         for imported_names in imp_line.names:
             name, asname = imported_names.name, imported_names.asname
-            if type(imp_line) == ast.ImportFrom:
+            if type(imp_line) == IFType:
                 assert imp_line.level == 0, "I've only encountered level 0 imports"
                 fullname = ".".join([imp_line.module, name])
             else:
