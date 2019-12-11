@@ -79,12 +79,12 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
     for al_i, (a_n, a_as) in enumerate(aliases):
         is_final_alias = al_i + 1 == len(aliases)
         if seen_comma_tok is None:
-            # Match the start of the alias by either the full name like "numpy" or the first part of the 
-            al_n_tok = tko.find_token(import_tok, tok_type=1, tok_str=a_n.split(".")[0])
-            assert al_n_tok.type > 0, f"Unable to find the token for {a_n} (after {import_tok} in {import_stmt_str})"
+            # Get start of alias by either full name or first part of .-separated name
+            al_n_tok = tko.find_token(import_tok, 1, tok_str=a_n.split(".")[0])
+            assert al_n_tok.type > 0, f"Unable to find the token for {a_n}"
         else:
-            al_n_tok = tko.find_token(seen_comma_tok, tok_type=1, tok_str=a_n.split(".")[0])
-            assert al_n_tok.type > 0, f"Unable to find the token for {a_n} (after {seen_comma_tok} in {import_stmt_str})"
+            al_n_tok = tko.find_token(seen_comma_tok, 1, tok_str=a_n.split(".")[0])
+            assert al_n_tok.type > 0, f"Unable to find the token for {a_n}"
         al_startpos = al_n_tok.startpos
         if a_as is None:
             if is_final_alias:
@@ -92,17 +92,17 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
                 al_endpos = al_n_tok.endpos
             else:
                 comma_tok = tko.find_token(al_n_tok, tok_type=53, tok_str=",")
-                assert comma_tok.type > 0, f"Unable to find comma token (after {al_n_tok} in {import_stmt_str})"
+                assert comma_tok.type > 0, f"Unable to find comma token"
                 al_endpos = comma_tok.endpos
         else:
             al_as_tok = tko.find_token(al_n_tok, tok_type=1, tok_str=a_as)
-            assert al_as_tok.type > 0, f"Unable to find the token for {a_as} (after {al_n_tok} in {import_stmt_str})"
+            assert al_as_tok.type > 0, f"Unable to find the token for {a_as}"
             if is_final_alias:
                 # There won't be a comma after this (it's the last import asname token)
                 al_endpos = al_as_tok.endpos
             else:
                 comma_tok = tko.find_token(al_as_tok, tok_type=53, tok_str=",")
-                assert comma_tok.type > 0, f"Unable to find comma token (after {al_as_tok} in {import_stmt_str})"
+                assert comma_tok.type > 0, f"Unable to find comma token"
                 al_endpos = comma_tok.endpos
         alias_chunk = import_stmt_str[al_startpos : al_endpos]
         if is_final_alias:
