@@ -251,6 +251,37 @@ def get_imported_name_sources(trunk, report=True):
     return imported_names
 
 
+def get_module_srcs(imports):
+    ifr_srcs = []
+    for imp in imports:
+        if type(imp) == IFType:
+            ifr_srcs.append(imp.module)
+        else:
+            ifr_srcs.append(None)
+    return ifr_srcs
+
+
+def count_imported_names(nodes):
+    """
+    Return an integer for a single node (0 if not an import statement),
+    else return a list of integers for a list of AST nodes.
+    """
+    if type(nodes) is not list:
+        if type(nodes) in [IType, IFType]:
+            return len(nodes.names)
+        else:
+            assert ast.stmt in type(nodes).mro(), f"{nodes} is not an AST statement"
+            return 0
+    counts = []
+    for node in nodes:
+        if type(node) in [IType, IFType]:
+            counts.append(len(node.names))
+        else:
+            assert ast.stmt in type(nodes).mro(), f"{nodes} is not an AST statement"
+            counts.append(0)
+    return counts
+
+
 def annotate_imports(imports, report=True):
     """
     Produce two data structures from the list of import statements (the statements
@@ -273,7 +304,7 @@ def annotate_imports(imports, report=True):
                           OrderedDict preserves the per-line order of the imported
                           names.
     """
-    report_VERBOSE = True  # Silencing debug print statements
+    report_VERBOSE = False  # Silencing debug print statements
     # This dictionary gives the import line it's on for cross-ref with either
     # the imports list above or the per-line imported_name_dict
     imp_name_linedict = dict()  # Stores all names and their asnames
