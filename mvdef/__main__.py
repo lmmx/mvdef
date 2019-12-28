@@ -21,6 +21,6 @@ arg_l = parser.parse_args(argv)
 
 if "demo" in arg_l:
     if arg_l.demo:
-        dry_run = True
+        dry_run = False
         report = True
         run_demo(mvdefs=["show_line"], dry_run=dry_run, report=report)

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from src.ast_tokens import get_defs, get_imports, get_tree
 from src.ast_util import annotate_imports
-from src.editor_util import get_def_lines_to_append, excise_def_lines, overwrite_import
+from src.editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from src.import_util import get_import_stmt_str, get_module_srcs, count_imported_names
 
 
@@ -61,13 +61,15 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_startline = dst_imports[rm_i_n].first_token.start[0]
             imp_endline = dst_imports[rm_i_n].last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(imp_linerange):
+            for i in range(*imp_linerange):
                 dst_lines[i] = None
             dst_info["shorten"] = None
-    to_shorten = dst_rm_agenda.copy()
-    for rm_i in to_shorten:
-        if to_shorten.get(rm_i).get("shorten") is None:
-            del to_shorten[rm_i]
+    to_shorten = []
+    for rm_i in dst_rm_agenda:
+        if dst_rm_agenda.get(rm_i).get("shorten") is not None:
+            to_shorten.append((rm_i, dst_rm_agenda.get(rm_i)))
+    to_shorten = OrderedDict(to_shorten)
+    print(f"STEP 1) to_shorten: {to_shorten}")
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -90,7 +92,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_startline = pre_imp.first_token.start[0]
             imp_endline = pre_imp.last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(imp_linerange):
+            for i in range(*imp_linerange):
                 dst_lines[i] = None
         else:
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
@@ -128,10 +130,12 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             # This means `rc_i` is an ast.Import statement, not ImportFrom
             # (PEP8 reccomends separate imports, so do not extend another)
             dst_info["extend"] = None
-    to_extend = dst_rcv_agenda.copy()
-    for rc_i in to_extend:
-        if to_extend.get(rc_i).get("extend") is None:
-            del to_extend[rc_i]
+    to_extend = []
+    for rc_i in dst_rcv_agenda:
+        if dst_rcv_agenda.get(rc_i).get("extend") is not None:
+            to_extend.append((rc_i, dst_rcv_agenda.get(rc_i)))
+    to_extend = OrderedDict(to_extend)
+    print(f"STEP 2) to_extend: {to_extend}")
     n_to_extend = set([to_extend.get(x).get("n") for x in to_extend])
     # Group all names being added as extensions that are of a common import statement
     for n in n_to_extend:
@@ -164,9 +168,9 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # mvdef is an ast.FunctionDefinition node with start/end position annotations
         # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
         # (this is an append operation, so line numbers from `src_trunk` remain valid)
-        defrange = get_defrange(mvdef)
+        def_startline, def_endline = get_defrange(mvdef)
         deflines = src_lines[def_startline:def_endline]
-        dst_lines += get_def_lines_to_append(deflines, dst_lines)
+        dst_lines += get_def_lines(deflines, dst_lines)
     # -------- Line number preservation no longer needed, only now modify src -------
     # Iterate through funcdefs in reverse line number order (i.e. upward from bottom)
     # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
@@ -175,7 +179,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     #
     for mvdef in sorted(src_mvdefs, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
-        excise_def_from_lines(mvdef, src_lines)
+        excise_def_lines(mvdef, src_lines)
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
@@ -205,13 +209,15 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_startline = src_imports[rm_i_n].first_token.start[0]
             imp_endline = src_imports[rm_i_n].last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(imp_linerange):
+            for i in range(*imp_linerange):
                 src_lines[i] = None
             src_info["shorten"] = None
-    to_shorten = src_rm_agenda.copy()
-    for rm_i in to_shorten:
-        if to_shorten.get(rm_i).get("shorten") is None:
-            del to_shorten[rm_i]
+    to_shorten = []
+    for rm_i in src_rm_agenda:
+        if src_rm_agenda.get(rm_i).get("shorten") is not None:
+            to_shorten.append((rm_i, src_rm_agenda.get(rm_i)))
+    to_shorten = OrderedDict(to_shorten)
+    print(f"STEP 5) to_shorten: {to_shorten}")
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -225,7 +231,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         for (name, asname) in shortened_alias_list[::-1]:
             if asname is None and name not in names_to_short:
                 continue
-            elif asname not in names_to_short:
+            elif asname is not None and asname not in names_to_short:
                 continue
             del_i = shortened_alias_list.index((name, asname))
             del shortened_alias_list[del_i]
@@ -234,17 +240,23 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_startline = pre_imp.first_token.start[0]
             imp_endline = pre_imp.last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(imp_linerange):
+            print(f"Identified imp_linerange ({name}, {asname}):", imp_linerange)
+            for i in range(*imp_linerange):
                 src_lines[i] = None
         else:
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
+            print(f"Overwriting ({name}, {asname}) imp_stmt_str: ", imp_stmt_str)
             overwrite_import(pre_imp, imp_stmt_str, src_lines)
     # Finish by writing line changes back to file (only if agenda shows edits made)
     if len(src_rm_agenda) > 0:
+        print("src_lines:")
+        print(src_lines)
         src_lines = "".join([line for line in src_lines if line is not None])
         with open(src_path, "w") as f:
             f.write(src_lines)
     if len(dst_rcv_agenda) + len(dst_rm_agenda) > 0:
+        print("dst_lines:")
+        print(dst_lines)
         dst_lines = "".join([line for line in dst_lines if line is not None])
         with open(dst_path, "w") as f:
             f.write(dst_lines)

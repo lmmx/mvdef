@@ -42,7 +42,7 @@ def append_def_to_file(defstring, dst_path):
     return
 
 
-def get_def_lines_to_append(deflines, dst_lines):
+def get_def_lines(deflines, dst_lines):
     """
     Get the list of lines of a func. def. suitable to be appended to a set of lines.
 
@@ -184,11 +184,12 @@ def overwrite_import(imp_node, replacement_str, lines):
     """
     if not replacement_str.endswith(nl):
         replacement_str += nl
-    pre_startline = imp_node.last_token.start[0]
-    pre_endline = imp_node.first_token.end[0]
-    len_pre = pre_endline - pre_startline + 1
+    pre_startline = imp_node.first_token.start[0] - 1
+    pre_endline = imp_node.last_token.end[0]
+    len_pre = pre_endline - pre_startline + 2
     replacement_lines = [f"{r}{nl}" for r in replacement_str.rstrip(nl).split(nl)]
     len_post = len(replacement_lines)
+    print(f"pre range: {pre_startline}:{pre_endline}, len {len_pre} ⇒ {len_post}")
     if len_pre >= len_post:
         # Replace all lines of pre with lines of post, set any remainder to `None`
         for i in range(len_pre):

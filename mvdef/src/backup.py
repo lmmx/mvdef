@@ -26,7 +26,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
     bname = f"{hid_prefix}{filepath.name}{suffix}"
     if fd / bname in fd.iterdir():
         for i in range(0, 12):
-            bname_i = fd / f"{b_name}{i}"
+            bname_i = fd / f"{bname}{i}"
             if bname_i not in fd.iterdir():
                 break
             i += 1
