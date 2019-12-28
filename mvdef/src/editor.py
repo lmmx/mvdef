@@ -119,15 +119,37 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
                 # line) which imports from the same module as the to-be-added import
                 # name does, so combine it with this existing line. Assume the 1st
                 # such ImportFrom is to be extended (ignoring other possible ones).
-                dst_info["extend_n"] = dst_modules.index(rc_i_module)
+                dst_info["extend"] = dst_modules.index(rc_i_module)
             else:
                 # This means there is nothing from this module being imported yet,
                 # so must create a new ImportFrom statement (i.e. a new line)
-                dst_info["extend_n"] = None
+                dst_info["extend"] = None
         else:
             # This means `rc_i` is an ast.Import statement, not ImportFrom
             # (PEP8 reccomends separate imports, so do not extend another)
-            dst_info["extend_n"] = None
+            dst_info["extend"] = None
+    to_extend = dst_rcv_agenda.copy()
+    for rc_i in to_extend:
+        if to_extend.get(rc_i).get("extend") is None:
+            del to_extend[rc_i]
+    n_to_extend = set([to_extend.get(x).get("n") for x in to_extend])
+    # Group all names being added as extensions that are of a common import statement
+    for n in n_to_extend:
+        names_to_extend = [x for x in to_extend if to_extend.get(x).get("n") == n]
+        # Rewrite `dst_imports[n]` to include the aliases in `names_to_extend`
+        imp_module = dst_modules[n]
+        pre_imp = dst_imports[n]
+        extended_alias_list = [(a.name, a.asname) for a in pre_imp.names]
+        for rc_i in names_to_extend:
+            dst_info = to_extend.get(rc_i)
+            imp_src_ending = dst_info.get("import").split(".")[-1]
+            if rc_i != imp_src_ending:
+                rc_i_name, rc_i_as = imp_src_ending, rc_i
+            else:
+                rc_i_name, rc_i_as = rc_i, None
+            extended_alias_list.append((rc_i_name, rc_i_as))
+        imp_stmt_str = get_import_stmt_str(extended_alias_list, imp_module)
+        overwrite_import(pre_imp, imp_stmt_str, dst_lines)
     # ------------------------------------------------------------------------------
     # Postpone the extension/addition of import statements (do all at once so as to
     # retain meaningful line numbers, as changing one at a time would ruin index)
