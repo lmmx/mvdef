@@ -8,10 +8,11 @@ def get_defrange(def_node):
     def_node:    An ast.FunctionDefinition node with start/end position annotations
                  from the asttokens library.
     """
-    def_startline = def_node.first_token.start[0] - 1 # Subtract 1 to get 0-base index
-    def_endline = def_node.last_token.end[0] # Don't subtract 1, to include full range
+    def_startline = def_node.first_token.start[0] - 1  # Subtract 1 to get 0-base index
+    def_endline = def_node.last_token.end[0]  # Don't subtract 1, to include full range
     defrange = [def_startline, def_endline]
     return defrange
+
 
 def get_defstring(def_node, file_lines):
     """
@@ -21,8 +22,8 @@ def get_defstring(def_node, file_lines):
                  newlines, the list will be joined with a blank string).
     """
     def_startline, def_endline = get_defrange(def_node)
-    deflines = file_lines[def_startline : def_endline]
-    defstring = ''.join(deflines)
+    deflines = file_lines[def_startline:def_endline]
+    defstring = "".join(deflines)
     return defstring
 
 
@@ -53,6 +54,7 @@ def get_appendable_def_lines(deflines, dst_lines):
     append_newlines = [nl for _ in range(max((0, 2 - end_blanklines)))]
     return append_newlines + deflines
 
+
 def excise_def_from_file(def_node, py_path, return_def=True):
     """
     Either cut or delete a function definition using its AST node (via asttokens).
@@ -67,8 +69,8 @@ def excise_def_from_file(def_node, py_path, return_def=True):
     with open(py_path, "w+") as f:
         lines = f.readlines()
         # Inkeeping with convention, range is inclusive at start, exclusive at end i.e. [)
-        def_startline = def_node.first_token.start[0] - 1 # Subtract 1 to get 0-base index
-        def_endline = def_node.last_token.end[0] # Don't subtract 1, to include full range
+        def_startline = def_node.first_token.start[0] - 1
+        def_endline = def_node.last_token.end[0]
         defrange = [def_startline, def_endline]
         pre = (def_startline - 2, def_startline)
         post = (def_endline, def_endline + 2)
@@ -93,9 +95,9 @@ def excise_def_from_file(def_node, py_path, return_def=True):
         # a file, in which case no need to add whitespace, so no need to check for it.
         excised_lines = lines.copy()
         for i in reversed(range(*defrange)):
-            del excised_lines[i] # Delete lines backwards from end of file line range
+            del excised_lines[i]  # Delete lines backwards from end of file line range
     if return_def:
-        deflines = lines[def_startline : def_endline]
+        deflines = lines[def_startline:def_endline]
         return deflines
     else:
         # Edit file in place (N.B. will not use this actually)
@@ -135,7 +137,7 @@ def excise_def_from_lines(def_node, lines):
     # Whitespace count of less than 2 could only happen when a def is at the end of
     # a file, in which case no need to add whitespace, so no need to check for it.
     for i in range(*defrange):
-        lines[i] = None # Mark lines as deleted by setting the string to `None`
+        lines[i] = None  # Mark lines as deleted by setting the string to `None`
     return
 
 
@@ -180,7 +182,8 @@ def overwrite_import(imp_node, replacement_str, lines):
     import statement string in one entry of the `lines` list, and set the "spare"
     entries over the range previously occupied by the import statement to `None`.
     """
-    if not replacement_str.endswith(nl): replacement_str += nl
+    if not replacement_str.endswith(nl):
+        replacement_str += nl
     pre_startline = imp_node.last_token.start[0]
     pre_endline = imp_node.first_token.end[0]
     len_pre = pre_endline - pre_startline + 1
@@ -194,7 +197,7 @@ def overwrite_import(imp_node, replacement_str, lines):
                 lines[pre_startline + i] = post_line
             else:
                 lines[pre_startline + i] = None
-    else: # len_pre < len_post
+    else:  # len_pre < len_post
         # Set the original line range to `None`, except for the first line of the
         # range which is replaced with the entire replacement string
         for i in range(len_pre):

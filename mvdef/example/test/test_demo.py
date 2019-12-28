@@ -2,6 +2,7 @@ import numpy as np
 from example.demo_program import show_line, print_some_pi
 from os.path import sep
 
+
 def test_show_line(n=4):
     plot_output = show_line(n, suppress_display=True)
     assert type(plot_output) is list and len(plot_output) == 1
@@ -15,7 +16,7 @@ def test_show_line(n=4):
 
 def test_print_some_pi(n=2):
     output = print_some_pi(n, suppress_print=True)
-    assert output == sep.join(["hey","hi"])+", 2 pi = 6.283185307179586"
+    assert output == sep.join(["hey", "hi"]) + ", 2 pi = 6.283185307179586"
     return True
 
 
@@ -34,6 +35,7 @@ def get_test_failures():
     else:
         return exceptions
 
+
 def list_failing_tests():
     """
     Returns None if no failing tests, otherwise returns a list of
@@ -46,10 +48,11 @@ def list_failing_tests():
     else:
         failed_funcs = []
         for e in exceptions:
-            if e.startswith('Test failed:'):
-                fail_func = e.split(':')[1][1:]
+            if e.startswith("Test failed:"):
+                fail_func = e.split(":")[1][1:]
                 failed_funcs.append(fail_func)
         return failed_funcs
+
 
 def test_report(verbose=True):
     """

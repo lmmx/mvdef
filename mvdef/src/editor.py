@@ -165,7 +165,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
         # (this is an append operation, so line numbers from `src_trunk` remain valid)
         defrange = get_defrange(mvdef)
-        deflines = src_lines[def_startline : def_endline]
+        deflines = src_lines[def_startline:def_endline]
         dst_lines += get_appendable_def_lines(deflines, dst_lines)
     # -------- Line number preservation no longer needed, only now modify src -------
     # Iterate through funcdefs in reverse line number order (i.e. upward from bottom)

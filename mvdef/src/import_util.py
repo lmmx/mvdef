@@ -6,6 +6,7 @@ from collections import OrderedDict
 from src.colours import colour_str as colour
 from os import linesep as nl
 
+
 def get_import_stmt_str(alias_list, import_src=None, max_linechars=88):
     """
     Construct an import statement by building an AST, convert it to source using
@@ -29,14 +30,15 @@ def get_import_stmt_str(alias_list, import_src=None, max_linechars=88):
             alias_pair = [alias_pair]
         assert len(alias_pair) > 0, "Cannot import using an empty string"
         assert type(alias_pair[0]) is str, "Import alias name must be a string"
-        if len(alias_pair) < 2: alias_pair.append(None)
+        if len(alias_pair) < 2:
+            alias_pair.append(None)
         al = ast.alias(*alias_pair[0:2])
         alias_obj_list.append(al)
     if import_src is None:
         ast_imp_stmt = ast.Import(alias_obj_list)
     else:
-        import_level = len(import_src) - len(import_src.lstrip('.'))
-        import_src = import_src.lstrip('.')
+        import_level = len(import_src) - len(import_src.lstrip("."))
+        import_src = import_src.lstrip(".")
         ast_imp_stmt = ast.ImportFrom(import_src, alias_obj_list, level=import_level)
     import_stmt_str = to_source(ast.Module([ast_imp_stmt]))
     if len(import_stmt_str.rstrip(nl)) > max_linechars:
@@ -69,9 +71,9 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
     first_tok = tko.tokens[0]
     import_tok = tko.find_token(first_tok, tok_type=1, tok_str="import")
     assert import_tok.type > 0, f"Unable to find import token in the given string"
-    imp_preamble_str = import_stmt_str[:import_tok.endpos]
+    imp_preamble_str = import_stmt_str[: import_tok.endpos]
     post_import_tok = tko.tokens[import_tok.index + 1]
-    imp_names_str = import_stmt_str[post_import_tok.startpos:]
+    imp_names_str = import_stmt_str[post_import_tok.startpos :]
     aliases = [(x.name, x.asname) for x in imp_ast.body[0].names]
     seen_comma_tok = None
     multiline_import_stmt_str = imp_preamble_str
@@ -104,13 +106,13 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
                 comma_tok = tko.find_token(al_as_tok, tok_type=53, tok_str=",")
                 assert comma_tok.type > 0, f"Unable to find comma token"
                 al_endpos = comma_tok.endpos
-        alias_chunk = import_stmt_str[al_startpos : al_endpos]
+        alias_chunk = import_stmt_str[al_startpos:al_endpos]
         if is_final_alias:
             if trailing_comma:
                 alias_chunk += ","
         else:
             seen_comma_tok = comma_tok
-        multiline_import_stmt_str += (' ' * indent_spaces) + alias_chunk + nl
+        multiline_import_stmt_str += (" " * indent_spaces) + alias_chunk + nl
     # Finally, verify that the end of the tokenised string was reached
     assert al_endpos == tko.tokens[-1].endpos, "Did not tokenise to the end of string"
     # No need to further slice the input string, return the final result
@@ -171,7 +173,7 @@ def colour_imp_stmt(imp_stmt, lines):
     display in colour on Linux and OSX (I don't think Windows supports ANSI codes,
     so I made `colour_str` only apply on these platforms).
     """
-    assert 'first_token' in imp_stmt.__dir__(), "Not an asttokens-annotated AST node"
+    assert "first_token" in imp_stmt.__dir__(), "Not an asttokens-annotated AST node"
     assert type(imp_stmt) in [IType, IFType], "Not an import statement"
     is_from = type(imp_stmt) is IFType
     imp_startln = imp_stmt.first_token.start[0] - 1  # Use 0-based line index

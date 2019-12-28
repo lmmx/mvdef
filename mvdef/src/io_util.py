@@ -1,5 +1,6 @@
 from os import linesep as nl
 
+
 def terminal_whitespace(inputfile, from_file=True):
     """
     Return the number of whitespace newlines in the file.
