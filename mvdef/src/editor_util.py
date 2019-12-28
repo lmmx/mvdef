@@ -42,7 +42,7 @@ def append_def_to_file(defstring, dst_path):
     return
 
 
-def get_appendable_def_lines(deflines, dst_lines):
+def get_def_lines_to_append(deflines, dst_lines):
     """
     Get the list of lines of a func. def. suitable to be appended to a set of lines.
 
@@ -104,7 +104,7 @@ def excise_def_from_file(def_node, py_path, return_def=True):
         return
 
 
-def excise_def_from_lines(def_node, lines):
+def excise_def_lines(def_node, lines):
     """
     Delete a function definition using its AST node (via asttokens) from a list of lines
     which originated from a single, entire, Python file.

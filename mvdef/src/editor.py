@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from src.ast_tokens import get_defs, get_imports, get_tree
 from src.ast_util import annotate_imports
-from src.editor_util import get_defstring, append_def, excise_def, overwrite_import
+from src.editor_util import get_def_lines_to_append, excise_def_lines, overwrite_import
 from src.import_util import get_import_stmt_str, get_module_srcs, count_imported_names
 
 
@@ -166,7 +166,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # (this is an append operation, so line numbers from `src_trunk` remain valid)
         defrange = get_defrange(mvdef)
         deflines = src_lines[def_startline:def_endline]
-        dst_lines += get_appendable_def_lines(deflines, dst_lines)
+        dst_lines += get_def_lines_to_append(deflines, dst_lines)
     # -------- Line number preservation no longer needed, only now modify src -------
     # Iterate through funcdefs in reverse line number order (i.e. upward from bottom)
     # using the line numbers of `src_trunk`, computed as `src_mvdefs` by `get_defs`
