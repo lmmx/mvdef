@@ -239,4 +239,13 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         else:
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, src_lines)
+    # Finish by writing line changes back to file (only if agenda shows edits made)
+    if len(src_rm_agenda) > 0:
+        src_lines = "".join([line for line in src_lines if line is not None])
+        with open(src_path, "w") as f:
+            f.write(src_lines)
+    if len(dst_rcv_agenda) + len(dst_rm_agenda) > 0:
+        dst_lines = "".join([line for line in dst_lines if line is not None])
+        with open(dst_path, "w") as f:
+            f.write(dst_lines)
     return
