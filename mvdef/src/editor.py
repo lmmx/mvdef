@@ -36,6 +36,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     #
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
+    removed_import_n = []
     for rm_i in dst_rm_agenda:
         # Remove rm_i (imported name marked "lose") from the destination file using
         # the line numbers of `dst_trunk`, computed as `dst_imports` by `get_imports`
@@ -47,10 +48,6 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # Retrieve the index of the line in import list
         rm_i_n = dst_info.get("n")
         rm_i_linecount = dst_import_counts[rm_i_n]
-        if rm_i != imp_src_ending:
-            rm_i_name, rm_i_as = imp_src_ending, rm_i
-        else:
-            rm_i_name, rm_i_as = rm_i, None
         if rm_i_linecount > 1:
             # This means there is ≥1 other import alias in the import statement
             # for this name, so remove it from it (i.e. "shorten" the statement.
@@ -58,6 +55,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         else:
             # This means there is nothing from this module being imported yet, so
             # must remove entire import statement (i.e. delete entire line range)
+            removed_import_n.append(rm_i_n)
             imp_startline = dst_imports[rm_i_n].first_token.start[0]
             imp_endline = dst_imports[rm_i_n].last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
@@ -69,7 +67,6 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         if dst_rm_agenda.get(rm_i).get("shorten") is not None:
             to_shorten.append((rm_i, dst_rm_agenda.get(rm_i)))
     to_shorten = OrderedDict(to_shorten)
-    print(f"STEP 1) to_shorten: {to_shorten}")
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -89,6 +86,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             del shortened_alias_list[del_i]
         if len(shortened_alias_list) == 0:
             # All import aliases were removed, so remove the entire import statement
+            removed_import_n.append(n)
             imp_startline = pre_imp.first_token.start[0]
             imp_endline = pre_imp.last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
@@ -109,10 +107,6 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # the module which is at the same index in the list of src modules:
         rc_i_n = dst_info.get("n")
         rc_i_module = src_modules[rc_i_n]
-        if rc_i != imp_src_ending:
-            rc_i_name, rc_i_as = imp_src_ending, rc_i
-        else:
-            rc_i_name, rc_i_as = rc_i, None
         # Compare the imported name to the module if one exists
         if rc_i_module is not None:
             dst_module_set = set(dst_modules).difference({None})
@@ -128,14 +122,13 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
                 dst_info["extend"] = None
         else:
             # This means `rc_i` is an ast.Import statement, not ImportFrom
-            # (PEP8 reccomends separate imports, so do not extend another)
+            # (PEP8 recommends separate imports, so do not extend another)
             dst_info["extend"] = None
     to_extend = []
     for rc_i in dst_rcv_agenda:
         if dst_rcv_agenda.get(rc_i).get("extend") is not None:
             to_extend.append((rc_i, dst_rcv_agenda.get(rc_i)))
     to_extend = OrderedDict(to_extend)
-    print(f"STEP 2) to_extend: {to_extend}")
     n_to_extend = set([to_extend.get(x).get("n") for x in to_extend])
     # Group all names being added as extensions that are of a common import statement
     for n in n_to_extend:
@@ -146,14 +139,62 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         extended_alias_list = [(a.name, a.asname) for a in pre_imp.names]
         for rc_i in names_to_extend:
             dst_info = to_extend.get(rc_i)
-            imp_src_ending = dst_info.get("import").split(".")[-1]
-            if rc_i != imp_src_ending:
+            imp_src = dst_info.get("import")
+            imp_src_ending = imp_src.split(".")[-1]
+            if rc_i == imp_src_ending:
+                rc_i_name, rc_i_as = rc_i, None
+            elif imp_module is not None:
                 rc_i_name, rc_i_as = imp_src_ending, rc_i
             else:
-                rc_i_name, rc_i_as = rc_i, None
+                rc_i_name, rc_i_as = imp_src, rc_i
             extended_alias_list.append((rc_i_name, rc_i_as))
         imp_stmt_str = get_import_stmt_str(extended_alias_list, imp_module)
         overwrite_import(pre_imp, imp_stmt_str, dst_lines)
+    # Next, put any import names marked "take" or "echo" that are not extensions
+    # of existing import statements into new lines (this breaks the line index).
+    #
+    # Firstly, find the insertion point for new import statements by re-processing
+    # the list of lines (default to start of file if it has no import statements)
+    import_n = [n for n, _ in enumerate(dst_imports) if n not in removed_import_n]
+    last_import = dst_imports[import_n[-1]]
+    last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
+    ins_imp_stmts = []  # Collect import statements to insert after the last one
+    seen_multimodule_imports = set()
+    for rc_i in dst_rcv_agenda:
+        dst_info = dst_rcv_agenda.get(rc_i)
+        if rc_i in seen_multimodule_imports or dst_info.get("extend") is not None:
+            continue
+        imp_src = dst_info.get("import")
+        imp_src_ending = imp_src.split(".")[-1]
+        rc_i_n = dst_info.get("n")
+        rc_i_module = src_modules[rc_i_n]
+        if rc_i == imp_src_ending:
+            rc_i_name, rc_i_as = rc_i, None
+        elif rc_i_module is not None:
+            rc_i_name, rc_i_as = imp_src_ending, rc_i
+        else:
+            rc_i_name, rc_i_as = imp_src, rc_i
+        alias_list = [(rc_i_name, rc_i_as)]
+        for r in dst_rcv_agenda:
+            if r == rc_i: continue
+            if src_modules[dst_rcv_agenda.get(r).get("n")] == rc_i_module:
+                seen_multimodule_imports.add(r)
+                r_dst_info = dst_rcv_agenda.get(r)
+                r_imp_src = r_dst_info.get("import")
+                r_imp_src_ending = r_imp_src.split(".")[-1]
+                r_n = r_dst_info.get("n")
+                r_module = src_modules[r_n]
+                if r == r_imp_src_ending:
+                    r_name, r_as = r, None
+                elif r_module is not None:
+                    r_name, r_as = r_imp_src_ending, r
+                else:
+                    r_name, r_as = r_dst_info.get("import"), r
+                alias_list.append((rc_i_name, rc_i_as))
+        # Create the Import or ImportFrom statement
+        imp_stmt_str = get_import_stmt_str(alias_list, rc_i_module)
+        ins_imp_stmts.append(imp_stmt_str)
+    dst_lines = dst_lines[:last_imp_end] + ins_imp_stmts + dst_lines[last_imp_end:]
     # ------------------------------------------------------------------------------
     # Postpone the extension/addition of import statements (do all at once so as to
     # retain meaningful line numbers, as changing one at a time would ruin index)
@@ -194,10 +235,6 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         # Retrieve the index of the line in import list
         rm_i_n = src_info.get("n")
         rm_i_linecount = src_import_counts[rm_i_n]
-        if rm_i != imp_src_ending:
-            rm_i_name, rm_i_as = imp_src_ending, rm_i
-        else:
-            rm_i_name, rm_i_as = rm_i, None
         if rm_i_linecount > 1:
             # This means there is ≥1 other import alias in the import statement
             # for this name, so remove it from it (i.e. "shorten" the statement.
@@ -217,7 +254,6 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
         if src_rm_agenda.get(rm_i).get("shorten") is not None:
             to_shorten.append((rm_i, src_rm_agenda.get(rm_i)))
     to_shorten = OrderedDict(to_shorten)
-    print(f"STEP 5) to_shorten: {to_shorten}")
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -240,23 +276,17 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_startline = pre_imp.first_token.start[0]
             imp_endline = pre_imp.last_token.end[0]
             imp_linerange = [imp_startline - 1, imp_endline]
-            print(f"Identified imp_linerange ({name}, {asname}):", imp_linerange)
             for i in range(*imp_linerange):
                 src_lines[i] = None
         else:
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
-            print(f"Overwriting ({name}, {asname}) imp_stmt_str: ", imp_stmt_str)
             overwrite_import(pre_imp, imp_stmt_str, src_lines)
     # Finish by writing line changes back to file (only if agenda shows edits made)
     if len(src_rm_agenda) > 0:
-        print("src_lines:")
-        print(src_lines)
         src_lines = "".join([line for line in src_lines if line is not None])
         with open(src_path, "w") as f:
             f.write(src_lines)
     if len(dst_rcv_agenda) + len(dst_rm_agenda) > 0:
-        print("dst_lines:")
-        print(dst_lines)
         dst_lines = "".join([line for line in dst_lines if line is not None])
         with open(dst_path, "w") as f:
             f.write(dst_lines)

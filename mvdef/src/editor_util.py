@@ -189,7 +189,6 @@ def overwrite_import(imp_node, replacement_str, lines):
     len_pre = pre_endline - pre_startline + 2
     replacement_lines = [f"{r}{nl}" for r in replacement_str.rstrip(nl).split(nl)]
     len_post = len(replacement_lines)
-    print(f"pre range: {pre_startline}:{pre_endline}, len {len_pre} ⇒ {len_post}")
     if len_pre >= len_post:
         # Replace all lines of pre with lines of post, set any remainder to `None`
         for i in range(len_pre):
