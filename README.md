@@ -50,10 +50,25 @@ it can handle a simple case, and I began writing this on the basis that "if I'm 
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
 
+# Demo
+
+![](mvdef/example/documentation/demo-success-screenshot-annotated.png)
+
+- **Above:** the function `show_line` is moved from the source file (_left_) to the
+  destination file (_right_), taking along import statements (or more precisely,
+  taking individual aliases from import statements, which then form new import statements
+  in the destination file). The top right of the image displays a report of the 'agenda'
+  which `mvdef` follows, alias by alias, to carry out these changes.
+- This demo can be reproduced by running `python -im mvdef --demo` from the main directory
+  upon cloning this repository, and inspecting the source file (`demo_program.py`) and
+  destination file (`new_file.py`) under `mvdef/example/`.
+
 # Project status and future plans
 
-This library is currently working only as a proof of concept, with a demo, and not
-yet working for code. Watch this space!
+- November 2019: This library is currently working only as a proof of concept, with a demo, and not
+yet working for code.
+- December 2019: The demo now works, so I'm going to finish off the command line flags after which it
+should be viable as a general purpose command line tool. Watch this space!
 
 I'd like this to end up being a command line tool that assists the development workflow
 similar to how [`black`](https://github.com/psf/black/) has simplified linting to best
