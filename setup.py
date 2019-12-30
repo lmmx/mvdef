@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
  
 setup(
     name="mvdef-lmmx",
-    version="0.0.1",
+    version="0.0.2",
     author="Louis Maddox",
     author_email="louismmx@gmail.com",
     description="Package to move functions and their import statements between files",

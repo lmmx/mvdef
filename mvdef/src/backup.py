@@ -8,7 +8,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
     requirements, don't call `src.backup.backup` before calling `src.ast_util.ast_parse`).
     """
     fd = filepath.parent
-    assert fd.exists() and fd.is_dir(), "Can't backup {filepath}: {fd} doesn't exist"
+    assert fd.exists() and fd.is_dir(), f"Can't backup {filepath}: {fd} doesn't exist"
     hid_prefix = "." * int(hidden)  # Empty string if hidden is False
     if not filepath.exists():
         # This file is a dst to be created, make an empty backup (indicates no restore)
@@ -16,7 +16,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
         empty_msg = f"# EMPTY BACKUP FOR {filepath.name} CREATED BY `mvdef⠶backup()`"
         b_file = fd / f"{hid_prefix}{filepath.name}.backup"
         # Do not tolerate even a single backup file for a file to be newly created
-        assert not b_file.exists(), "Backup {b_file} exists for non-existing file!"
+        assert not b_file.exists(), f"Backup {b_file} exists for non-existing file!"
         if not dry_run:
             with open(b_file, "w") as f:
                 f.write(f"{empty_msg}\n")
