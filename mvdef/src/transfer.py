@@ -43,6 +43,11 @@ def parse_transfer(
     if report:
         print(f"⇒ Functions moving from {colour('light_gray', src_p)}: {mvdefs}")
     transfers = dict([["take", src_edits.get("move")], ["echo", src_edits.get("copy")]])
+    # Create the destination file if it doesn't exist, and if this isn't a dry run
+    dst_extant = dst_p.exists() and dst_p.is_file()
+    if not dst_extant and not nochange:
+        with open(dst_p, "w") as f:
+            f.write("")
     dst_edits = ast_parse(dst_p, transfers=transfers, report=report)
     if dst_edits is None:
         # There is no destination file (it will be created)

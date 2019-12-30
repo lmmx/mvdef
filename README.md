@@ -16,8 +16,7 @@ on the command line. Type `mvdef -h` to get the following usage message.
 # Usage
 
 ```
-usage: mvdef [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r | -q]
-             [-b] [-d]
+usage: mvdef [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r] [-b] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -26,7 +25,6 @@ optional arguments:
   --src SRC
   --dst DST
   -r, --report
-  -q, --quiet
   -b, --backup
   -d, --dry-run
 ```

@@ -42,7 +42,7 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
         # return imports, funcdefs
         edit_agenda = process_ast(fp, mvdefs, trunk, transfers, report)
         return edit_agenda
-    elif mvdefs == [] and report:
+    elif mvdefs == []:
         # not extant so file doesn't exist (cannot produce a parsed AST)
         # however mvdefs is [] so file must be dst, return value of None
         return

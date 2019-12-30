@@ -15,6 +15,7 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     dst_trunk = get_tree(dst_path).body
     src_mvdefs = get_defs(tr=src_trunk, def_list=mvdefs, trunk_only=True)
     src_imports = get_imports(src_trunk, trunk_only=True)
+    dst_imports = []
     dst_imports = get_imports(dst_trunk, trunk_only=True)
     src_import_counts = count_imported_names(src_imports)
     dst_import_counts = count_imported_names(dst_imports)
@@ -156,8 +157,12 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     # Firstly, find the insertion point for new import statements by re-processing
     # the list of lines (default to start of file if it has no import statements)
     import_n = [n for n, _ in enumerate(dst_imports) if n not in removed_import_n]
-    last_import = dst_imports[import_n[-1]]
-    last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
+    if len(import_n) == 0:
+        # Place any new import statements at the start of the file, as none exist yet
+        last_imp_end = 0  # 1-based index logic: this means "before the first line"
+    else:
+        last_import = dst_imports[import_n[-1]]
+        last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
     ins_imp_stmts = []  # Collect import statements to insert after the last one
     seen_multimodule_imports = set()
     for rc_i in dst_rcv_agenda:
