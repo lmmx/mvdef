@@ -5,6 +5,33 @@
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
+# Usage
+
+Currently I'm using this as a package, for instance to carry out the demo from the command line:
+
+`python -m mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb`
+
+is equivalent to `python -m mvdef --demo`.
+
+```
+usage: __main__.py [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r | -q]
+                   [-b] [-d]
+
+Move function definitions and associated import statements from one file to
+another within a library.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --demo
+  -m MVDEF, --mvdef MVDEF
+  --src SRC
+  --dst DST
+  -r, --report
+  -q, --quiet
+  -b, --backup
+  -d, --dry-run
+```
+
 # Motivation
 
 My workflow typically involves a process of starting to work in one file,
@@ -62,13 +89,15 @@ forward".
 - This demo can be reproduced by running `python -im mvdef --demo` from the main directory
   upon cloning this repository, and inspecting the source file (`demo_program.py`) and
   destination file (`new_file.py`) under `mvdef/example/`.
+- This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
+  moving them back so as to overwrite the original files.
 
 # Project status and future plans
 
 - November 2019: This library is currently working only as a proof of concept, with a demo, and not
 yet working for code.
-- December 2019: The demo now works, so I'm going to finish off the command line flags after which it
-should be viable as a general purpose command line tool. Watch this space!
+- December 2019: The demo now works, and using the command line flags it works as a command line tool
+for any list of functions and any pair of files specified.
 
 I'd like this to end up being a command line tool that assists the development workflow
 similar to how [`black`](https://github.com/psf/black/) has simplified linting to best

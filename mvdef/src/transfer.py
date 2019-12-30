@@ -4,7 +4,9 @@ from src.colours import colour_str as colour
 from src.editor import transfer_mvdefs
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
-def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=True):
+def parse_transfer(
+    src_p, dst_p, mvdefs, test_func=None, report=True, nochange=True, use_backup=True
+):
     """
     Execute the transfer of function definitions and import statements, optionally
     (if test_func is specified) also calls that afterwards to confirm functionality
@@ -32,8 +34,9 @@ def parse_transfer(src_p, dst_p, mvdefs, test_func=None, report=True, nochange=T
             test_func.__call__()
         except AssertionError as e:
             raise RuntimeError(f"! {test_func} failed, aborting mvdef execution.")
-    assert backup(src_p, dry_run=nochange)
-    assert backup(dst_p, dry_run=nochange)
+    if use_backup:
+        assert backup(src_p, dry_run=nochange)
+        assert backup(dst_p, dry_run=nochange)
     # Create edit agendas from the parsed AST of source and destination files
     src_edits = ast_parse(src_p, mvdefs=mvdefs, report=report)
     assert src_edits is not None, "The src file did not return a processed AST"
