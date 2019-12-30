@@ -13,8 +13,8 @@ Currently I'm using this as a package, for instance to carry out the demo from t
 
 is equivalent to `python -m mvdef --demo`.
 
-I've not yet figured out how best to make it a command line tool, so recommend just aliasing it
-as `alias mvdef='python -m mvdef'` after installing to your environment from PyPi.
+After installing to your environment from PyPi, the `mvdef` will be available
+on the command line (type `mvdef -h` to get the following usage message).
 
 ```
 usage: __main__.py [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r | -q]

@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
  
 setup(
-    name="mvdef-lmmx",
-    version="0.0.2",
+    name="mvdef",
+    version="0.1.1",
     author="Louis Maddox",
     author_email="louismmx@gmail.com",
     description="Package to move functions and their import statements between files",
