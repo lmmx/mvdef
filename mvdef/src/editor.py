@@ -181,8 +181,9 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             rc_i_name, rc_i_as = imp_src, rc_i
         alias_list = [(rc_i_name, rc_i_as)]
         for r in dst_rcv_agenda:
-            if r == rc_i: continue
-            if src_modules[dst_rcv_agenda.get(r).get("n")] == rc_i_module:
+            r_src_module = src_modules[dst_rcv_agenda.get(r).get("n")]
+            if r == rc_i or None in [rc_i_module, r_src_module]: continue
+            if r_src_module == rc_i_module:
                 seen_multimodule_imports.add(r)
                 r_dst_info = dst_rcv_agenda.get(r)
                 r_imp_src = r_dst_info.get("import")
