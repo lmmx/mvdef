@@ -5,16 +5,15 @@
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
+# Installation
+
+mvdef is [available on PyPi](https://pypi.org/project/mvdef/): install it
+using `pip install mvdef`
+
+After installing to your environment from PyPi, the `mvdef` command will be available
+on the command line. Type `mvdef -h` to get the following usage message.
+
 # Usage
-
-Currently I'm using this as a package, for instance to carry out the demo from the command line:
-
-`python -m mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb`
-
-is equivalent to `python -m mvdef --demo`.
-
-After installing to your environment from PyPi, the `mvdef` will be available
-on the command line (type `mvdef -h` to get the following usage message).
 
 ```
 usage: __main__.py [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r | -q]
@@ -34,6 +33,24 @@ optional arguments:
   -b, --backup
   -d, --dry-run
 ```
+
+## Example usage
+
+`mvdef -m func1 --src path/to/source_program.py --dst path/to/destination_program.py -rb`
+
+will move the funcdef named `func1` from `source_program.py` to `destination_program.py`,
+while reporting output (thanks to the `-r` flag) and making backups (thanks to the `-b` flag).
+
+- Further functions can be moved by adding more `-m` flags each followed by a function name,
+e.g. `mvdef -m func1 -m func2 -m func3` ...
+
+For instance to carry out the demo from the command line, run `mvdef --demo`, or equivalently:
+
+`mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb`
+
+If you feel like there would be a more concise or useful way of specifying command line
+arguments, please let me know by making a GitHub issue, however I chose not to just have
+anonymous parameters as over time it could get easy to forget which are which.
 
 # Motivation
 
