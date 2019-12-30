@@ -2,7 +2,8 @@ from src.transfer import parse_transfer
 
 
 def main(src_p, dst_p, mvdefs, dry_run, report, backup):
-    print("--------------RUNNING src.cli⠶main()--------------")
+    if report:
+        print("--------------RUNNING src.cli⠶main()--------------")
     src_parsed, dst_parsed = parse_transfer(
         src_p,
         dst_p,
@@ -12,5 +13,6 @@ def main(src_p, dst_p, mvdefs, dry_run, report, backup):
         nochange=dry_run,
         use_backup=backup,
     )
-    print("------------------COMPLETE--------------------------")
+    if report:
+        print("------------------COMPLETE--------------------------")
     return

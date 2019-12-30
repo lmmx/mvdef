@@ -17,9 +17,7 @@ parser.add_argument("--demo", action="store_true")
 parser.add_argument("-m", "--mvdef", action="append")
 parser.add_argument("--src", action="store")
 parser.add_argument("--dst", action="store")
-group = parser.add_mutually_exclusive_group()
-group.add_argument("-r", "--report", action="store_true")
-group.add_argument("-q", "--quiet", action="store_true")
+parser.add_argument("-r", "--report", action="store_true")
 parser.add_argument("-b", "--backup", action="store_true")
 parser.add_argument("-d", "--dry-run", action="store_true")
 
@@ -34,7 +32,7 @@ if not arg_l.demo:
     dst_path = Path(arg_l.dst).absolute()
     mvdefs = arg_l.mvdef
     dry_run = arg_l.dry_run
-    report = (arg_l.report or not arg_l.quiet)
+    report = arg_l.report
     backup = arg_l.backup
     run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
 else:
