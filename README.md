@@ -120,6 +120,12 @@ practice conventions for Python code style, as a tool callable on a Python file 
 change it in place, and reliable enough to trust it not mess up any of your files in
 the process.
 
+# Changelog
+
+- version 0.1.7:
+  - resolved a bug arising from `mvdef.src.ast_util`⠶`get_def_names` not registering variables assigned
+  implicitly via for loops and list comprehensions ([issue #2](/issues/2))
+
 # Approach
 
 The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the following:
