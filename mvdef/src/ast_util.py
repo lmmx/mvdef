@@ -213,13 +213,32 @@ def find_assigned_args(fd):
     """
     args_indiv = []  # Arguments assigned individually, e.g. x = 1
     args_multi = []  # Arguments assigned from a tuple, e.g. x, y = (1,2)
-    for a in fd.body:
+    for a in ast.walk(fd):
         if type(a) is ast.Assign:
+            # Handle explicit assignments from use of the equals symbol
             assert len(a.targets) == 1, "Expected 1 target per ast.Assign"
             if type(a.targets[0]) is ast.Name:
                 args_indiv.append(a.targets[0].id)
             elif type(a.targets[0]) is ast.Tuple:
                 args_multi.extend([x.id for x in a.targets[0].elts])
+        elif type(a) is ast.For:
+            # Handle implicit assignments (ctx = Store) within for loops
+            if type(a.target) is ast.Name:
+                args_indiv.append(a.target.id)
+            elif type(a.target) is ast.Tuple:
+                args_multi.extend([x.id for x in a.target.elts])
+            else:
+                raise ValueError(f"{a.target} lacks the expected ast.Name statements")
+        elif type(a) is ast.ListComp:
+            # Handle implicit assignments within list comprehensions
+            for g in a.generators:
+                assert type(g) is ast.comprehension, f"{a} not ast.comprehension type"
+                if type(g.target) is ast.Name:
+                    args_indiv.append(g.target.id)
+                elif type(g.target) is ast.Tuple:
+                    args_multi.extend([x.id for x in g.target.elts])
+                else:
+                    raise ValueError(f"{g.target} lacks expected ast.Name statements")
     assigned_args = args_indiv + args_multi
     return assigned_args
 
@@ -345,6 +364,8 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     defs = [n for n in trunk if type(n) == ast.FunctionDef]
     # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
+    if report_VERBOSE:
+        print("extra:", extra)
     import_annos = annotate_imports(imports, report=report)
     mvdef_names = get_def_names(mvdefs, defs, import_annos, report=report)
     if report_VERBOSE:
