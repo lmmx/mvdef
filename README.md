@@ -122,6 +122,8 @@ the process.
 
 # Changelog
 
+- version 0.2.2:
+  - fix bug where names assigned outside of definitions were causing errors
 - version 0.2.1:
   - fix error in support for walrus operator
 - version 0.2.0:

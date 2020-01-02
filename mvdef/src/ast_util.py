@@ -301,7 +301,7 @@ def get_nondef_names(unused, import_annos, report=True):
     return nondef_names
 
 
-def get_def_names(func_list, funcdefs, import_annos, report=True):
+def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True):
     imp_name_lines, imp_name_dicts = import_annos
     def_names = dict([(x, {}) for x in func_list])
     for m in func_list:
@@ -316,7 +316,8 @@ def get_def_names(func_list, funcdefs, import_annos, report=True):
                 if type(node) == ast.Name:
                     n_id = node.id
                     if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
-                        fd_names.add(n_id)
+                        if n_id not in extradef_names:
+                            fd_names.add(n_id)
         def_names[m] = dict([(x, {}) for x in sorted(fd_names)])
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
@@ -384,17 +385,20 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     defs = [n for n in trunk if type(n) == ast.FunctionDef]
     # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
+    # Omit names used outside of function definitions so as not to remove them
+    extradefs = get_extradef_names(extra)
+    print(extradefs)
     if report_VERBOSE:
         print("extra:", extra)
     import_annos = annotate_imports(imports, report=report)
-    mvdef_names = get_def_names(mvdefs, defs, import_annos, report=report)
+    mvdef_names = get_def_names(mvdefs, defs, import_annos, extradefs, report)
     if report_VERBOSE:
         print("mvdef names:")
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomvdefs = [f.name for f in defs if f.name not in mvdefs]
-    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, report=report)
+    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, extradefs, report)
     if report_VERBOSE:
         print("non-mvdef names:")
         pprint_def_names(nonmvdef_names)
@@ -404,8 +408,6 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     nomv_set = set().union(*[nonmvdef_names.get(x).keys() for x in nonmvdef_names])
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
     nondefs = get_nondef_names(unused_names, import_annos, report=report)
-    # Omit names used outside of function definitions so as not to remove them
-    extradefs = get_extradef_names(extra)
     # undef_names contains only those names that are imported but never used
     undef_names = dict([(x, nondefs.get(x)) for x in nondefs if x not in extradefs])
     if report_VERBOSE:
