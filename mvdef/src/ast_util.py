@@ -387,7 +387,6 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
     # Omit names used outside of function definitions so as not to remove them
     extradefs = get_extradef_names(extra)
-    print(extradefs)
     if report_VERBOSE:
         print("extra:", extra)
     import_annos = annotate_imports(imports, report=report)
@@ -411,6 +410,6 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     # undef_names contains only those names that are imported but never used
     undef_names = dict([(x, nondefs.get(x)) for x in nondefs if x not in extradefs])
     if report_VERBOSE:
-        print("non-def names (imported but not used in any function def):")
+        rint("non-def names (imported but not used in any function def):")
         pprint_def_names(nondefs, no_funcdef_list=True)
     return mvdef_names, nonmvdef_names, undef_names
