@@ -252,6 +252,12 @@ def find_assigned_args(fd):
             else:
                 assert len(a.args.args) == 1, "A lambda can't assign no names (can it?)"
                 args_indiv.append(a.args.args[0].arg)
+        elif type(a) is ast.NamedExpr:
+            # This is the walrus operator `:=` added in Python 3.8
+            assert type(a.target) is ast.Name, f"Expected a name for {a.target}"
+            args_indiv.append(a.target)
+            # I haven't seen a multiple assignment from a walrus operator, asked SO:
+            # https://stackoverflow.com/q/59567172/2668831
     assigned_args = args_indiv + args_multi
     return assigned_args
 

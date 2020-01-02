@@ -122,13 +122,15 @@ the process.
 
 # Changelog
 
+- version 0.2.0:
+  - added support for "walrus operator" named expression assignment
+- version 0.1.9:
+  - caught another type of implicit name assignment, this time from lambda expressions
+- version 0.1.8:
+  - resolved a bug in the code from 0.1.7 to catch all names, including nested tuples for multiple names
 - version 0.1.7:
   - resolved a bug arising from `mvdef.src.ast_util`⠶`get_def_names` not registering variables assigned
   implicitly via for loops and list comprehensions ([issue #2](/issues/2))
-- version 0.1.8:
-  - resolved a bug in the code from 0.1.7 to catch all names, including nested tuples for multiple names
-- version 0.1.9:
-  - caught another type of implicit name assignment, this time from lambda expressions
 
 # Approach
 
