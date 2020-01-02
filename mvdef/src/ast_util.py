@@ -226,7 +226,14 @@ def find_assigned_args(fd):
             if type(a.target) is ast.Name:
                 args_indiv.append(a.target.id)
             elif type(a.target) is ast.Tuple:
-                args_multi.extend([x.id for x in a.target.elts])
+                for x in a.target.elts:
+                    assert type(x) in [ast.Name, ast.Tuple], f"Unexpected target.elts"
+                    if type(x) is ast.Name:
+                        args_multi.append(x.id)
+                    else:  # type(x) is ast.Tuple
+                        for y in x.elts:
+                            assert type(y) is ast.Name, f"Unexpected target.elts tuple"
+                            args_multi.append(y.id)
             else:
                 raise ValueError(f"{a.target} lacks the expected ast.Name statements")
         elif type(a) is ast.ListComp:
@@ -289,13 +296,14 @@ def get_def_names(func_list, funcdefs, import_annos, report=True):
         fd_names = set()
         assert m in [f.name for f in funcdefs], f"No function '{m}' is defined"
         fd = funcdefs[[f.name for f in funcdefs].index(m)]
+        fd_ids = [f.name for f in funcdefs]
         fd_params = [a.arg for a in fd.args.args]
         assigned_args = find_assigned_args(fd)
         for ast_statement in fd.body:
             for node in list(ast.walk(ast_statement)):
                 if type(node) == ast.Name:
                     n_id = node.id
-                    if n_id not in dir(builtins) + fd_params + assigned_args:
+                    if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
                         fd_names.add(n_id)
         def_names[m] = dict([(x, {}) for x in sorted(fd_names)])
         # All names successfully found and can finish if remaining names are
