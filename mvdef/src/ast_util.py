@@ -246,6 +246,12 @@ def find_assigned_args(fd):
                     args_multi.extend([x.id for x in g.target.elts])
                 else:
                     raise ValueError(f"{g.target} lacks expected ast.Name statements")
+        elif type(a) is ast.Lambda:
+            if len(a.args.args) > 1:
+                args_multi.extend([r.arg for r in a.args.args])
+            else:
+                assert len(a.args.args) == 1, "A lambda can't assign no names (can it?)"
+                args_indiv.append(a.args.args[0].arg)
     assigned_args = args_indiv + args_multi
     return assigned_args
 
