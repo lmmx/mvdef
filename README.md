@@ -122,6 +122,8 @@ the process.
 
 # Changelog
 
+- version 0.2.1:
+  - fix error in support for walrus operator
 - version 0.2.0:
   - added support for "walrus operator" named expression assignment
 - version 0.1.9:
