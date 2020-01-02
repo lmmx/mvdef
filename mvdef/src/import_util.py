@@ -94,6 +94,10 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
                 al_endpos = al_n_tok.endpos
             else:
                 comma_tok = tko.find_token(al_n_tok, tok_type=53, tok_str=",")
+                if comma_tok.type == 0:
+                    # Due to an error in asttokens, sometimes tok_type is given as 54
+                    # although this should be an error (the failure tok_type is 0)
+                    comma_tok = tko.find_token(al_n_tok, tok_type=54, tok_str=",")
                 assert comma_tok.type > 0, f"Unable to find comma token"
                 al_endpos = comma_tok.endpos
         else:
@@ -104,6 +108,10 @@ def multilinify_import_stmt_str(import_stmt_str, indent_spaces=4, trailing_comma
                 al_endpos = al_as_tok.endpos
             else:
                 comma_tok = tko.find_token(al_as_tok, tok_type=53, tok_str=",")
+                if comma_tok.type == 0:
+                    # Due to an error in asttokens, sometimes tok_type is given as 54
+                    # although this should be an error (the failure tok_type is 0)
+                    comma_tok = tko.find_token(al_n_tok, tok_type=54, tok_str=",")
                 assert comma_tok.type > 0, f"Unable to find comma token"
                 al_endpos = comma_tok.endpos
         alias_chunk = import_stmt_str[al_startpos:al_endpos]

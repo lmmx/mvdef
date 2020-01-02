@@ -122,6 +122,9 @@ the process.
 
 # Changelog
 
+- version 0.2.4:
+  - fix bug relating to asttokens misannotating comma tokens' type as 54 (`ERRORTOKEN`) rather than 53
+  (`OP`), by just checking for comma tokens of type 54 matching the string `','`, will inform asttokens devs
 - version 0.2.2:
   - fix bug where names assigned outside of definitions were causing errors
 - version 0.2.1:
