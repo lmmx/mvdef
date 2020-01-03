@@ -5,7 +5,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
     an incrementing integer. If dry_run is True, all the checks for the possibility of
     creating the backup will be run, but no files will be opened or touched. (To report
     on the funcdef/import statements to be moved without having to adhere to these
-    requirements, don't call `src.backup.backup` before calling `src.ast_util.ast_parse`).
+    requirements, don't call `mvdef.backup.backup` before calling `mvdef.ast_util.ast_parse`).
     """
     fd = filepath.parent
     assert fd.exists() and fd.is_dir(), f"Can't backup {filepath}: {fd} doesn't exist"

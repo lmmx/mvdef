@@ -2,9 +2,9 @@ import ast
 from asttokens import ASTTokens
 import builtins
 from pathlib import Path
-from src.agenda_util import pprint_agenda
-from src.deprecations import pprint_def_names
-from src.import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
+from mvdef.agenda_util import pprint_agenda
+from mvdef.deprecations import pprint_def_names
+from mvdef.import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 
 
 def ast_parse(fp, mvdefs=[], transfers={}, report=True):
@@ -28,7 +28,7 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     If report is True, returns a string describing the changes
     to be made (if False, nothing is returned).
     
-    If backup is True, files will be changed in place by calling src.backup.backup
+    If backup is True, files will be changed in place by calling mvdef.backup.backup
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """

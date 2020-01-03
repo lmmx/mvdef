@@ -6,8 +6,8 @@ from argparse import ArgumentParser
 # Put the absolute path to the module directory on the system PATH:
 syspath.insert(0, str(Path(__file__).parent))
 
-from src.demo import main as run_demo
-from src.cli import main as run_cli
+from mvdef.demo import main as run_demo
+from mvdef.cli import main as run_cli
 
 parser = ArgumentParser(
     description="Move function definitions and associated import"

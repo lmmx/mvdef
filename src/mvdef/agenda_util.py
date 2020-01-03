@@ -1,4 +1,4 @@
-from src.colours import colour_str as colour
+from mvdef.colours import colour_str as colour
 
 
 def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):

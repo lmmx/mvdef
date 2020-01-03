@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from src.ast_tokens import get_defs, get_imports, get_tree
-from src.ast_util import annotate_imports
-from src.editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
-from src.import_util import get_import_stmt_str, get_module_srcs, count_imported_names
+from mvdef.ast_tokens import get_defs, get_imports, get_tree
+from mvdef.ast_util import annotate_imports
+from mvdef.editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
+from mvdef.import_util import get_import_stmt_str, get_module_srcs, count_imported_names
 
 
 def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):

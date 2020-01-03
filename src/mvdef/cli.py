@@ -1,9 +1,9 @@
-from src.transfer import parse_transfer
+from mvdef.transfer import parse_transfer
 
 
 def main(src_p, dst_p, mvdefs, dry_run, report, backup):
     if report:
-        print("--------------RUNNING src.cli⠶main()--------------")
+        print("--------------RUNNING mvdef.cli⠶main()--------------")
     src_parsed, dst_parsed = parse_transfer(
         src_p,
         dst_p,

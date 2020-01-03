@@ -3,7 +3,7 @@ from ast import Import as IType, ImportFrom as IFType
 from astor import to_source
 from asttokens import ASTTokens
 from collections import OrderedDict
-from src.colours import colour_str as colour
+from mvdef.colours import colour_str as colour
 from os import linesep as nl
 
 
@@ -172,7 +172,7 @@ def colour_imp_stmt(imp_stmt, lines):
 
     Lastly, I construct a colourful string representation of the import statement
     by using these start positions and re-retrieved end positions to pull out
-    and modify (using the `src.colours`⠶`colour_str` function) the names and asnames
+    and modify (using the `mvdef.colours`⠶`colour_str` function) the names and asnames
     (names are coloured red, asnames are coloured purple), and use string slicing
     to swap the ranges that the names and asnames were in in the original
     `nodestring` for these colourful replacements.

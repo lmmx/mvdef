@@ -1,4 +1,4 @@
-from src.io_util import terminal_whitespace
+from mvdef.io_util import terminal_whitespace
 from numpy import where
 from os import linesep as nl
 

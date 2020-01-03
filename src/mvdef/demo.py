@@ -1,11 +1,11 @@
-from src.__env__ import example_dir
-from src.transfer import parse_transfer
+from mvdef.__env__ import example_dir
+from mvdef.transfer import parse_transfer
 from example.test.test_demo import test_report as demotest
 
 
 def main(mvdefs, dry_run=True, report=True):
     if report:
-        print("--------------RUNNING src.demo⠶main()--------------")
+        print("--------------RUNNING mvdef.demo⠶main()--------------")
     # Step 1: declare src and dst .py file paths and back up the files
     src_p, dst_p = (example_dir / f"{n}.py" for n in ["demo_program", "new_file"])
     src_parsed, dst_parsed = parse_transfer(
