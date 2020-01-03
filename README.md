@@ -122,6 +122,8 @@ the process.
 
 # Changelog
 
+- version 0.2.6:
+  - unbreaking module by commenting out part of `__main__.py` causing an error...
 - version 0.2.5:
   - rearrange library following [this guide](https://blog.ionelmc.ro/2014/05/25/python-packaging/)
 - version 0.2.4:

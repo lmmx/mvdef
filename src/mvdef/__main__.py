@@ -28,12 +28,13 @@ if __name__ == "__main__":
 arg_l = parser.parse_args(argv)
 
 if not arg_l.demo:
-    src_path = Path(arg_l.src).absolute()
-    dst_path = Path(arg_l.dst).absolute()
-    mvdefs = arg_l.mvdef
-    dry_run = arg_l.dry_run
-    report = arg_l.report
-    backup = arg_l.backup
-    run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
+    pass
+    #src_path = Path(arg_l.src).absolute()
+    #dst_path = Path(arg_l.dst).absolute()
+    #mvdefs = arg_l.mvdef
+    #dry_run = arg_l.dry_run
+    #report = arg_l.report
+    #backup = arg_l.backup
+    #run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
 else:
     run_demo(mvdefs=["show_line"], dry_run=False, report=True)
