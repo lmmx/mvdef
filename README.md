@@ -122,6 +122,8 @@ the process.
 
 # Changelog
 
+- version 0.2.5:
+  - rearrange library following [this guide](https://blog.ionelmc.ro/2014/05/25/python-packaging/)
 - version 0.2.4:
   - fix bug relating to asttokens misannotating comma tokens' type as 54 (`ERRORTOKEN`) rather than 53
   (`OP`), by just checking for comma tokens of type 54 matching the string `','`, will inform asttokens devs
