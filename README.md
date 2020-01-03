@@ -122,7 +122,7 @@ the process.
 
 # Changelog
 
-- versions 0.2.6 - 0.2.8:
+- versions 0.2.6 - 0.2.9:
   - unbreaking module... trying to get module recognised by modifying `setup.py`...
 - version 0.2.5:
   - rearrange library following [this guide](https://blog.ionelmc.ro/2014/05/25/python-packaging/)
