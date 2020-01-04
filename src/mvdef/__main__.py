@@ -2,6 +2,7 @@ from sys import path as syspath
 from sys import argv
 from pathlib import Path
 from argparse import ArgumentParser
+import argcomplete
 
 # Put the absolute path to the module directory on the system PATH:
 syspath.insert(0, str(Path(__file__).parent))
@@ -25,6 +26,8 @@ parser.add_argument("-d", "--dry-run", action="store_true")
 if __name__ == "__main__":
     if argv[0].endswith("__main__.py"):
         argv = [a for a in argv if a != argv[0]]
+
+argcomplete.autocomplete(parser)
 arg_l = parser.parse_args(argv)
 
 if not arg_l.demo:
