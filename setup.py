@@ -42,6 +42,5 @@ setup(
         ],
     },
     install_requires=reqs,
-    include_package_data=True,
     python_requires=">=3",
 )
