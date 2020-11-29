@@ -3,9 +3,10 @@ from ast import Import as IType, ImportFrom as IFType
 from astor import to_source
 from asttokens import ASTTokens
 from collections import OrderedDict
-from mvdef.colours import colour_str as colour
+from .colours import colour_str as colour
 from os import linesep as nl
 
+__all__ = ["get_import_stmt_str", "multilinify_import_stmt_str", "colour_imp_stmt", "get_imported_name_sources", "get_module_srcs", "count_imported_names", "annotate_imports", "imp_def_subsets"]
 
 def get_import_stmt_str(alias_list, import_src=None, max_linechars=88):
     """

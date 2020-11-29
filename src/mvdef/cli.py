@@ -1,5 +1,6 @@
-from mvdef.transfer import parse_transfer
+from .transfer import parse_transfer
 
+__all__ = ["main"]
 
 def main(src_p, dst_p, mvdefs, dry_run, report, backup):
     if report:

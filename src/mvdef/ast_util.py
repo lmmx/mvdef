@@ -2,10 +2,11 @@ import ast
 from asttokens import ASTTokens
 import builtins
 from pathlib import Path
-from mvdef.agenda_util import pprint_agenda
-from mvdef.deprecations import pprint_def_names
-from mvdef.import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
+from .agenda_util import pprint_agenda
+from .deprecations import pprint_def_names
+from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 
+__all__ = ["ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
 def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     """

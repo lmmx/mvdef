@@ -1,5 +1,6 @@
 from os import linesep as nl
 
+__all__ = ["terminal_whitespace"]
 
 def terminal_whitespace(inputfile, from_file=True):
     """

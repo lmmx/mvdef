@@ -1,6 +1,6 @@
 from pathlib import Path
-from example import __path__ as example_dir
-from mvdef import __path__ as module_dir, __package__ as module_name
+from .example import __path__ as example_dir
+from . import __path__ as module_dir, __package__ as module_name
 
 try:
     assert len(module_dir) == 1

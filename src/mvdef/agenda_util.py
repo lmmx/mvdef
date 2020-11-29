@@ -1,5 +1,6 @@
-from mvdef.colours import colour_str as colour
+from .colours import colour_str as colour
 
+__all__ = ["pprint_agenda_desc", "pprint_agenda", "describe_def_name_dict"]
 
 def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):
     """

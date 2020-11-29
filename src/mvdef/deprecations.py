@@ -1,3 +1,5 @@
+__all__ = ["pprint_def_names"]
+
 def pprint_def_names(def_names, no_funcdef_list=False):
     if no_funcdef_list:
         print("  {")

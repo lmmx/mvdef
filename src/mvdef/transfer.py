@@ -1,7 +1,9 @@
-from mvdef.ast_util import ast_parse
-from mvdef.backup import backup
-from mvdef.colours import colour_str as colour
-from mvdef.editor import transfer_mvdefs
+from .ast_util import ast_parse
+from .backup import backup
+from .colours import colour_str as colour
+from .editor import transfer_mvdefs
+
+__all__ = ["parse_transfer"]
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(

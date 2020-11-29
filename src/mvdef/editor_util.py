@@ -1,7 +1,8 @@
-from mvdef.io_util import terminal_whitespace
+from .io_util import terminal_whitespace
 from numpy import where
 from os import linesep as nl
 
+__all__ = ["get_defrange", "get_defstring", "append_def_to_file", "get_def_lines", "excise_def_from_file", "excise_def_lines", "get_borders", "overwrite_import"]
 
 def get_defrange(def_node):
     """

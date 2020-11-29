@@ -1,9 +1,10 @@
 from collections import OrderedDict
-from mvdef.ast_tokens import get_defs, get_imports, get_tree
-from mvdef.ast_util import annotate_imports
-from mvdef.editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
-from mvdef.import_util import get_import_stmt_str, get_module_srcs, count_imported_names
+from .ast_tokens import get_defs, get_imports, get_tree
+from .ast_util import annotate_imports
+from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
+from .import_util import get_import_stmt_str, get_module_srcs, count_imported_names
 
+__all__ = ["transfer_mvdefs"]
 
 def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
     # Firstly annotate ASTs with the asttokens library
