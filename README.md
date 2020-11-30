@@ -1,26 +1,28 @@
 # mvdef
 
-# Summary
+## Summary
 
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
-# Installation
+## Installation
 
 mvdef is [available on PyPi](https://pypi.org/project/mvdef/): install it
-using `pip install mvdef`
+using `pip install mvdef`.
 
 After installing to your environment from PyPi, the `mvdef` command will be available
-on the command line. Type `mvdef -h` to get the following usage message.
+on the command line (to `__main__.py:main`).
 
-# Usage
+## Usage
+
+Run `mvdef -h` to get the following usage message.
 
 ```
-usage: mvdef [-h] [--demo] [-m MVDEF] [--src SRC] [--dst DST] [-r] [-b] [-d]
+usage: mvdef [-h] [--test] [-m MVDEF] [--src SRC] [--dst DST] [-r] [-b] [-d]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --demo
+  -t, --test
   -m MVDEF, --mvdef MVDEF
   --src SRC
   --dst DST
@@ -29,25 +31,28 @@ optional arguments:
   -d, --dry-run
 ```
 
-## Example usage
+### Example usage
 
-`mvdef -m func1 --src path/to/source_program.py --dst path/to/destination_program.py -rb`
+```sh
+mvdef -m func1 --src path/to/source_program.py --dst path/to/destination_program.py -rb
+```
 
-will move the funcdef named `func1` from `source_program.py` to `destination_program.py`,
-while reporting output (thanks to the `-r` flag) and making backups (thanks to the `-b` flag).
+will **m**ove the funcdef named `func1` from `source_program.py` to `destination_program.py`,
+while **r**eporting output (`-r`) and make **b**ackups (`-b`).
 
 - Further functions can be moved by adding more `-m` flags each followed by a function name,
 e.g. `mvdef -m func1 -m func2 -m func3` ...
 
-For instance to carry out the demo from the command line, run `mvdef --demo`, or equivalently:
+E.g. to carry out the demo from the command line, run `mvdef -trb`, or equivalently:
 
-`mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb`
+```sh
+mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb
+```
 
-If you feel like there would be a more concise or useful way of specifying command line
-arguments, please let me know by making a GitHub issue, however I chose not to just have
-anonymous parameters as over time it could get easy to forget which are which.
+To preview the demo without changing the files, use the flags `-trd` instead (`--test` + `--report` +
+`--dry-run`).
 
-# Motivation
+## Motivation
 
 My workflow typically involves a process of starting to work in one file,
 with one big function, and later **breaking out** that function into smaller
@@ -92,7 +97,7 @@ it can handle a simple case, and I began writing this on the basis that "if I'm 
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
 
-# Demo
+## Demo
 
 ![](mvdef/example/documentation/demo-success-screenshot-annotated.png)
 
@@ -101,13 +106,13 @@ forward".
   taking individual aliases from import statements, which then form new import statements
   in the destination file). The top right of the image displays a report of the 'agenda'
   which `mvdef` follows, alias by alias, to carry out these changes.
-- This demo can be reproduced by running `python -im mvdef --demo` from the main directory
+- This demo can be reproduced by running `python -im mvdef --test` from the main directory
   upon cloning this repository, and inspecting the source file (`demo_program.py`) and
   destination file (`new_file.py`) under `mvdef/example/`.
 - This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
   moving them back so as to overwrite the original files.
 
-# Project status and future plans
+## Project status and future plans
 
 - November 2019: This library is currently working only as a proof of concept, with a demo, and not
 yet working for code.
@@ -120,7 +125,7 @@ practice conventions for Python code style, as a tool callable on a Python file 
 change it in place, and reliable enough to trust it not mess up any of your files in
 the process.
 
-# Changelog
+## Changelog
 
 - versions 0.2.6 - 0.2.9:
   - unbreaking module... trying to get module recognised by modifying `setup.py`...
@@ -143,7 +148,7 @@ the process.
   - resolved a bug arising from `mvdef.src.ast_util`⠶`get_def_names` not registering variables assigned
   implicitly via for loops and list comprehensions ([issue #2](/issues/2))
 
-# Approach
+## Approach
 
 The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the following:
 
