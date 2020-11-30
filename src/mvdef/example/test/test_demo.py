@@ -1,5 +1,5 @@
 import numpy as np
-from example.demo_program import show_line, print_some_pi
+from ..demo_program import show_line, print_some_pi
 from os.path import sep
 
 
