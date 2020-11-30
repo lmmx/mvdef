@@ -5,6 +5,7 @@ from pathlib import Path
 from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
+from sys import stderr
 
 __all__ = ["ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
@@ -99,7 +100,7 @@ def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
     m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
     imported_names = get_imported_name_sources(trunk, report=report)
     if report:
-        print(f"• Determining edit agenda for {fp.name}:")
+        print(f"• Determining edit agenda for {fp.name}:", file=stderr)
     agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
     agenda = dict([(c, []) for c in agenda_categories])
     # mv_inames is mv_imports returned from imp_def_subsets, and so on
@@ -389,18 +390,18 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     # Omit names used outside of function definitions so as not to remove them
     extradefs = get_extradef_names(extra)
     if report_VERBOSE:
-        print("extra:", extra)
+        print("extra:", extra, file=stderr)
     import_annos = annotate_imports(imports, report=report)
     mvdef_names = get_def_names(mvdefs, defs, import_annos, extradefs, report)
     if report_VERBOSE:
-        print("mvdef names:")
+        print("mvdef names:", file=stderr)
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomvdefs = [f.name for f in defs if f.name not in mvdefs]
     nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, extradefs, report)
     if report_VERBOSE:
-        print("non-mvdef names:")
+        print("non-mvdef names:", file=stderr)
         pprint_def_names(nonmvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain unused_names

@@ -2,6 +2,7 @@ from .ast_util import ast_parse
 from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
+from sys import stderr
 
 __all__ = ["parse_transfer"]
 
@@ -43,7 +44,8 @@ def parse_transfer(
     src_edits = ast_parse(src_p, mvdefs=mvdefs, report=report)
     assert src_edits is not None, "The src file did not return a processed AST"
     if report:
-        print(f"⇒ Functions moving from {colour('light_gray', src_p)}: {mvdefs}")
+        print(f"⇒ Functions moving from {colour('light_gray', src_p)}: {mvdefs}",
+              file=stderr)
     transfers = dict([["take", src_edits.get("move")], ["echo", src_edits.get("copy")]])
     # Create the destination file if it doesn't exist, and if this isn't a dry run
     dst_extant = dst_p.exists() and dst_p.is_file()
@@ -55,14 +57,14 @@ def parse_transfer(
         # There is no destination file (it will be created)
         if report:
             print(
-                f"⇒ Functions will move to {colour('light_gray', dst_p)}"
-                + " (it's being created from them)"
-            )
+                (f"⇒ Functions will move to {colour('light_gray', dst_p)}"
+                  " (it's being created from them)"),
+            file=stderr)
     else:
         if report:
             print(f"⇒ Functions will move to {colour('light_gray', dst_p)}")
     if nochange:
-        print("DRY RUN: No files have been modified, skipping tests.")
+        print("DRY RUN: No files have been modified, skipping tests.", file=stderr)
         return src_edits, dst_edits
     else:
         # Edit the files (no longer pass imports or defs, will recompute AST)
@@ -75,8 +77,8 @@ def parse_transfer(
         except AssertionError as e:
             # TODO: implement backup restore
             print(
-                f"! {test_func} failed, indicating changes made by mvdef broke the"
-                + "program (if backups used, mvdefs will now attempt to restore)"
-            )
+                (f"! {test_func} failed, indicating changes made by mvdef broke the"
+                  "program (if backups used, mvdefs will now attempt to restore)"),
+            file=stderr)
             raise RuntimeError(e)
     return src_edits, dst_edits

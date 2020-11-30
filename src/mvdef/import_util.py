@@ -5,6 +5,7 @@ from asttokens import ASTTokens
 from collections import OrderedDict
 from .colours import colour_str as colour
 from os import linesep as nl
+from sys import stderr
 
 __all__ = ["get_import_stmt_str", "multilinify_import_stmt_str", "colour_imp_stmt", "get_imported_name_sources", "get_module_srcs", "count_imported_names", "annotate_imports", "imp_def_subsets"]
 
@@ -342,13 +343,13 @@ def annotate_imports(imports, report=True):
     assert len(imp_name_dict_list) == len(imports)
     assert sum([len(d) for d in imp_name_dict_list]) == len(imp_name_linedict)
     if report_VERBOSE:
-        print("The import name line dict is:")
+        print("The import name line dict is:", file=stderr)
         for ld in imp_name_linedict:
             # print(f"  {ld}: {imp_name_linedict.get(ld)}")
             pass
-        print("The import name dict list is:")
+        print("The import name dict list is:", file=stderr)
         for ln in imp_name_dict_list:
-            print(ln)
+            print(ln, file=stderr)
     return imp_name_linedict, imp_name_dict_list
 
 
@@ -374,7 +375,7 @@ def imp_def_subsets(mvdefs, nonmvdefs, report=True):
             f"mv_imports: {mv_imports}",
             f", nonmv_imports: {nonmv_imports}",
             f", mutual_imports: {mutual_imports}",
-            sep="",
+            sep="", file=stderr
         )
     all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
     all_def_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])

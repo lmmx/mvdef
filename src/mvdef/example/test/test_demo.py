@@ -1,7 +1,7 @@
 import numpy as np
 from ..demo_program import show_line, print_some_pi
 from os.path import sep
-
+from sys import stderr
 
 def test_show_line(n=4):
     plot_output = show_line(n, suppress_display=True)
@@ -61,5 +61,5 @@ def test_report(verbose=True):
     failing = list_failing_tests()
     assert failing is None, f"Tests failed for {failing}"
     if verbose:
-        print("✔ All tests pass")
+        print("✔ All tests pass", file=stderr)
     return
