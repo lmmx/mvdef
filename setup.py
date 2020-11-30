@@ -38,7 +38,7 @@ setup(
     setup_requires=["setuptools_scm"],
     entry_points={
         "console_scripts": [
-            "mvdefcli = mvdef.cli:main",
+            "mvdef = mvdef.__main__:main",
         ],
     },
     install_requires=reqs,
