@@ -6,10 +6,11 @@ from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 from sys import stderr
+from .debugging import debug_here
 
 __all__ = ["ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
-def ast_parse(fp, mvdefs=[], transfers={}, report=True):
+def ast_parse(fp, mvdefs=None, transfers=None, report=True):
     """
     Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
     a report of what changes would be required to move the mvdefs subset of all
@@ -25,7 +26,7 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     moved will be newly created.
 
     mvdefs should be given if the file is the source of moved functions, and left
-    empty (defaulting to value of []) if the file is the destination to move them to.
+    empty (default: `None` which --> `[]`) if the file is the destination to move them to.
     
     If report is True, returns a string describing the changes
     to be made (if False, nothing is returned).
@@ -34,6 +35,10 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """
+    if mvdefs is None:
+        mvdefs = []
+    if transfers is None:
+        transfers = {}
     extant = fp.exists() and fp.is_file()
     if extant:
         with open(fp, "r") as f:
@@ -43,10 +48,16 @@ def ast_parse(fp, mvdefs=[], transfers={}, report=True):
 
         # return imports, funcdefs
         edit_agenda = process_ast(fp, mvdefs, trunk, transfers, report)
+        pprint = debug_here()
+        #breakpoint()
+        #pprint(edit_agenda)
+        #pprint(mvdefs)
         return edit_agenda
     elif mvdefs == []:
-        # not extant so file doesn't exist (cannot produce a parsed AST)
-        # however mvdefs is [] so file must be dst, return value of None
+        # Not extant so file doesn't exist (cannot produce a parsed AST)
+        # however mvdefs is [] so file must be dst, return value of None.
+        # This will be picked up by the assert in SrcFile.validate_edits
+        # (but skipped for DstFile.validate_edits)
         return
     else:
         raise ValueError(f"Can't move {mvdefs} from {fp} – it doesn't exist!")
@@ -125,6 +136,9 @@ def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
         # Returning without transfers
         if report:
             pprint_agenda(agenda)
+        #pprint = debug_here()
+        #breakpoint()
+        #pprint(agenda)
         return agenda
     # elif report:
     #    if len(agenda.get("lose")) > 0:

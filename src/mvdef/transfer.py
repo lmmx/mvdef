@@ -3,8 +3,180 @@ from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
 from sys import stderr
+from .debugging import debug_here
 
 __all__ = ["parse_transfer"]
+
+class LinkedFile:
+    def __init__(self, path, report, nochange, use_backup, mvdefs):
+        self.path = path
+        self.report = report
+        self.nochange = nochange
+        self.use_backup = use_backup
+        self.mvdefs = mvdefs
+
+    def backup(self, dry_run):
+        assert backup(self.path, dry_run=dry_run)
+
+    @property
+    def edits(self):
+        return self._edits
+
+    @edits.setter
+    def edits(self, e):
+        self._edits = e
+    
+    @property
+    def path(self):
+        return self._p if hasattr(self, "_p") else None
+
+    @path.setter
+    def path(self, p):
+        self._p = p
+
+    @property
+    def report(self):
+        return self._report
+
+    @report.setter
+    def report(self, report):
+        self._report = report
+
+    @property
+    def nochange(self):
+        return self._nochange
+
+    @nochange.setter
+    def nochange(self, nochange):
+        self._nochange = nochange
+
+    @property
+    def use_backup(self):
+        return self._use_backup
+
+    @use_backup.setter
+    def use_backup(self, use_backup):
+        self._use_backup = use_backup
+
+    @property
+    def mvdefs(self):
+        return self._mvdefs
+
+    @mvdefs.setter
+    def mvdefs(self, mvdefs):
+        self._mvdefs = mvdefs
+
+
+    def ast_parse(self, transfers=None):
+        assert self.path
+        self.edits = ast_parse(self.path, self.mvdefs, transfers, self.report)
+        self.validate_edits()
+        if self.report:
+            self.report_edits()
+        return
+
+    def report_edits(self):
+        c_str = colour("light_gray", self.path)
+        if self.mvdefs: # SrcFile
+            print(f"⇒ Functions moving from {c_str}: {self.mvdefs}", file=stderr)
+        else: # DstFile
+            if self.edits:
+                print(f"⇒ Functions will move to {c_str}")
+            else:
+                # There is no destination file (it will be created)
+                print((f"⇒ Functions will move to {c_str}"
+                        " (it's being created from them)"), file=stderr)
+
+class SrcFile(LinkedFile):
+    def validate_edits(self):
+        e_msg = f"The {self.__class__.__name__} did not return a processed AST"
+        assert self.edits, e_msg
+
+class DstFile(LinkedFile):
+    def validate_edits(self):
+        pass # it's valid for there not to be a destination file and hence no processed AST
+
+    @property
+    def is_extant(self):
+        return self.path.exists() and self.path.is_file()
+
+    def ensure_exists(self):
+        if not self.is_extant and not self.nochange:
+            open(self.path, "w").close()
+
+class FileLink:
+    def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
+        self.mvdefs = mvdefs
+        self.set_link(src_p, dst_p, report, nochange, use_backup)
+        self.report = report
+        self.nochange = nochange
+        self.test_func = test_func # will run the test_func to check it works
+        self.use_backup = use_backup # will create backups if True
+        # Create edit agendas from the parsed AST of source and destination files
+        self.src.ast_parse() # populate self.src.edits
+        # Create the destination file if it doesn't exist, and if this isn't a dry run
+        self.dst.ensure_exists()
+        transfers = {"take": self.src.edits.get("move"), "echo": self.src.edits.get("copy")}
+        self.dst.ast_parse(transfers=transfers) # populate self.dst.edits
+
+    def set_link(self, src_p, dst_p, report, nochange, use_backup):
+        self.src = SrcFile(src_p, report, nochange, use_backup, mvdefs=self.mvdefs)
+        self.dst = DstFile(dst_p, report, nochange, use_backup, mvdefs=None)
+    
+    @property
+    def mvdefs(self):
+        return self._mvdefs
+
+    @mvdefs.setter
+    def mvdefs(self, mvdefs):
+        self._mvdefs = mvdefs
+
+    @property
+    def report(self):
+        return self._report
+
+    @report.setter
+    def report(self, report):
+        self._report = report
+
+    @property
+    def nochange(self):
+        return self._nochange
+
+    @nochange.setter
+    def nochange(self, nochange):
+        self._nochange = nochange
+
+    @property
+    def use_backup(self):
+        return self._use_backup
+
+    @use_backup.setter
+    def use_backup(self, use_backup):
+        self._use_backup = use_backup
+        if use_backup:
+            self.backup(dry_run=self.nochange)
+
+    @property
+    def test_func(self):
+        return self._test_func
+
+    @test_func.setter
+    def test_func(self, test_func):
+        if test_func is not None:
+            try:
+                test_func.__call__()
+            except AssertionError as e:
+                raise RuntimeError(f"! {test_func} failed, aborting mvdef execution.")
+        self._test_func = test_func
+
+    def backup(self, dry_run):
+        "Run individual backup checks for src and dst"
+        self.src.backup(dry_run=dry_run)
+        self.dst.backup(dry_run=dry_run)
+
+    def transfer_mvdefs(self):
+        transfer_mvdefs(self)
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(
@@ -32,43 +204,15 @@ def parse_transfer(
     # Backs up source and target to a hidden file, restorable in case of error,
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
-    if test_func is not None:
-        try:
-            test_func.__call__()
-        except AssertionError as e:
-            raise RuntimeError(f"! {test_func} failed, aborting mvdef execution.")
-    if use_backup:
-        assert backup(src_p, dry_run=nochange)
-        assert backup(dst_p, dry_run=nochange)
-    # Create edit agendas from the parsed AST of source and destination files
-    src_edits = ast_parse(src_p, mvdefs=mvdefs, report=report)
-    assert src_edits is not None, "The src file did not return a processed AST"
-    if report:
-        print(f"⇒ Functions moving from {colour('light_gray', src_p)}: {mvdefs}",
-              file=stderr)
-    transfers = dict([["take", src_edits.get("move")], ["echo", src_edits.get("copy")]])
-    # Create the destination file if it doesn't exist, and if this isn't a dry run
-    dst_extant = dst_p.exists() and dst_p.is_file()
-    if not dst_extant and not nochange:
-        with open(dst_p, "w") as f:
-            f.write("")
-    dst_edits = ast_parse(dst_p, transfers=transfers, report=report)
-    if dst_edits is None:
-        # There is no destination file (it will be created)
-        if report:
-            print(
-                (f"⇒ Functions will move to {colour('light_gray', dst_p)}"
-                  " (it's being created from them)"),
-            file=stderr)
-    else:
-        if report:
-            print(f"⇒ Functions will move to {colour('light_gray', dst_p)}")
+    link = FileLink(mvdefs, src_p, dst_p, report, nochange, test_func, use_backup)
+    #pprint = debug_here()
+    #breakpoint()
     if nochange:
         print("DRY RUN: No files have been modified, skipping tests.", file=stderr)
-        return src_edits, dst_edits
+        return link.src.edits, link.dst.edits
     else:
         # Edit the files (no longer pass imports or defs, will recompute AST)
-        transfer_mvdefs(src_p, dst_p, mvdefs, src_edits, dst_edits)
+        link.transfer_mvdefs()
     if test_func is None:
         return src_edits, dst_edits
     else:

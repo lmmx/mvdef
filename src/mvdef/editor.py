@@ -3,10 +3,16 @@ from .ast_tokens import get_defs, get_imports, get_tree
 from .ast_util import annotate_imports
 from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from .import_util import get_import_stmt_str, get_module_srcs, count_imported_names
+from .debugging import debug_here
 
 __all__ = ["transfer_mvdefs"]
 
-def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
+def transfer_mvdefs(link):
+    src_path = link.src.path
+    dst_path = link.dst.path
+    mvdefs = link.mvdefs
+    src_agenda = link.src.edits
+    dst_agenda = link.dst.edits
     # Firstly annotate ASTs with the asttokens library
     with open(src_path, "r") as f:
         src_lines = f.readlines()
@@ -289,6 +295,8 @@ def transfer_mvdefs(src_path, dst_path, mvdefs, src_agenda, dst_agenda):
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, src_lines)
     # Finish by writing line changes back to file (only if agenda shows edits made)
+    pprint = debug_here()
+    breakpoint()
     if len(src_rm_agenda) > 0:
         src_lines = "".join([line for line in src_lines if line is not None])
         with open(src_path, "w") as f:
