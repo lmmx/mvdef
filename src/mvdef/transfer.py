@@ -1,7 +1,9 @@
+from .ast_tokens import get_defs, get_imports, get_tree
 from .ast_util import ast_parse
 from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
+from .import_util import count_imported_names, get_module_srcs
 from sys import stderr
 from .debugging import debug_here
 
@@ -87,10 +89,77 @@ class LinkedFile:
                 print((f"⇒ Functions will move to {c_str}"
                         " (it's being created from them)"), file=stderr)
 
+    @property
+    def trunk(self):
+        if not hasattr(self, "_trunk"):
+            self.set_trunk()
+        return self._trunk
+
+    @trunk.setter
+    def trunk(self, trunk):
+        self._trunk = trunk
+
+    def set_trunk(self):
+        self.trunk = get_tree(self.path).body
+
+    @property
+    def lines(self):
+        if not hasattr(self, "_lines"):
+            self.readlines()
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines):
+        self._lines = lines
+    
+    def readlines(self):
+        with open(self.path, "r") as f:
+            self.lines = f.readlines()
+
+    @property
+    def imports(self):
+        if not hasattr(self, "_imports"):
+            self.imports = get_imports(self.trunk, trunk_only=True)
+        return self._imports
+
+    @imports.setter
+    def imports(self, imports):
+        self._imports = imports
+
+    @property
+    def import_counts(self):
+        if not hasattr(self, "_import_counts"):
+            self.import_counts = count_imported_names(self.imports)
+        return self._import_counts
+
+    @import_counts.setter
+    def import_counts(self, counts):
+        self._import_counts = counts
+
+    @property
+    def modules(self):
+        if not hasattr(self, "_modules"):
+            self.modules = get_module_srcs(self.imports)
+        return self._modules
+
+    @modules.setter
+    def modules(self, modules):
+        self._modules = modules
+
 class SrcFile(LinkedFile):
     def validate_edits(self):
         e_msg = f"The {self.__class__.__name__} did not return a processed AST"
         assert self.edits, e_msg
+
+    @property
+    def defs_to_move(self):
+        if not hasattr(self, "_defs_to_move"):
+            self.defs_to_move = get_defs(self.trunk, self.mvdefs)
+        return self._defs_to_move
+    
+    @defs_to_move.setter
+    def defs_to_move(self, defs):
+        self._defs_to_move = defs
 
 class DstFile(LinkedFile):
     def validate_edits(self):
