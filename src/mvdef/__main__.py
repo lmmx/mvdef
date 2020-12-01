@@ -27,7 +27,7 @@ def main():
     parser.add_argument("dst")
     #parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-m", "--mv", action="append")
-    parser.add_argument("-r", "--report", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-b", "--backup", action="store_true")
     parser.add_argument("-d", "--dry-run", action="store_true")
 
@@ -37,7 +37,7 @@ def main():
     #demo = arg_l.test
     mvdefs = arg_l.mv
     dry_run = arg_l.dry_run
-    report = arg_l.report
+    report = arg_l.verbose
     backup = arg_l.backup
 
     src_path = Path(arg_l.src).absolute()

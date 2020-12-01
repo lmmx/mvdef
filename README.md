@@ -18,7 +18,7 @@ on the command line (to `__main__.py:main`).
 Run `mvdef -h` to get the following usage message.
 
 ```
-usage: mvdef [-h] [-m MV] [-r] [-b] [-d] src dst
+usage: mvdef [-h] [-m MV] [-v] [-b] [-d] src dst
 
 Move function definitions and associated import statements from one file to another within a
 library.
@@ -30,7 +30,7 @@ positional arguments:
 optional arguments:
   -h, --help      show this help message and exit
   -m MV, --mv MV
-  -r, --report
+  -v, --verbose
   -b, --backup
   -d, --dry-run
 ```
@@ -67,11 +67,11 @@ DRY RUN: No files have been modified, skipping tests.
 #### Outline
 
 ```sh
-mvdef -m func1 source.py destination.py -rb
+mvdef -m func1 source.py destination.py -vb
 ```
 
 will **m**ove the funcdef named `func1` from `source.py` to `destination.py`,
-while **r**eporting output (`-r`) and make **b**ackups (`-b`).
+while **v**erbosely reporting results (`-v`) and making **b**ackups (`-b`).
 
 - Further functions can be moved by adding more `-m` flags each followed by a function name,
 e.g. `mvdef -m func1 -m func2 -m func3` ...
@@ -92,7 +92,7 @@ def hello():
 To move the `hello` funcdef to the blank file `world.py`, we run:
 
 ```sh
-mvdef -m hello hello.py world.py -r
+mvdef -m hello hello.py world.py -v
 ```
 ⇣
 ```STDOUT
@@ -114,7 +114,7 @@ The package comes with a built-in demo, accessed with the `--demo` flag.
 source code repo (or wherever the package is installed to):
 
 ```sh
-mvdef -m show_line mvdef/example/demo_program.py mvdef/example/new_file.py -rd
+mvdef -m show_line mvdef/example/demo_program.py mvdef/example/new_file.py -vd
 ```
 
 In previous versions it was possible to preview the demo and change the files, but
@@ -129,7 +129,7 @@ Here's what that looked like:
   taking individual aliases from import statements, which then form new import statements
   in the destination file). The top right of the image displays a report of the 'agenda'
   which `mvdef` follows, alias by alias, to carry out these changes.
-- This demo can be reproduced by running `python -im mvdef --test` from the main directory
+- This demo can be reproduced by running `python -im mvdef --demo` from the main directory
   upon cloning this repository, and inspecting the source file (`demo_program.py`) and
   destination file (`new_file.py`) under `mvdef/example/`.
 - This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
