@@ -18,39 +18,123 @@ on the command line (to `__main__.py:main`).
 Run `mvdef -h` to get the following usage message.
 
 ```
-usage: mvdef [-h] [--test] [-m MVDEF] [--src SRC] [--dst DST] [-r] [-b] [-d]
+usage: mvdef [-h] [-m MV] [-r] [-b] [-d] src dst
+
+Move function definitions and associated import statements from one file to another within a
+library.
+
+positional arguments:
+  src
+  dst
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -t, --test
-  -m MVDEF, --mvdef MVDEF
-  --src SRC
-  --dst DST
+  -h, --help      show this help message and exit
+  -m MV, --mv MV
   -r, --report
   -b, --backup
   -d, --dry-run
 ```
 
-### Example usage
+Not documented in this usage: `mvdef --demo` will display a (dry run) demo of the output
+from moving a function from one file to another.
 
-```sh
-mvdef -m func1 --src path/to/source_program.py --dst path/to/destination_program.py -rb
+- The following is displayed in colour in the terminal, using ANSI codes.
+
+```STDOUT
+--------------RUNNING mvdef.demo⠶main()--------------
+✔ All tests pass
+• Determining edit agenda for demo_program.py:
+ ⇢ MOVE  ⇢ (import 2:0 on line 3) plt ⇒ <matplotlib.pyplot>
+ ⇢ MOVE  ⇢ (import 1:0 on line 2) arange ⇒ <numpy.arange>
+⇠  KEEP ⇠  (import 1:1 on line 2) pi ⇒ <numpy.pi>
+⇠  KEEP ⇠  (import 3:1 on line 4) pathsep ⇒ <os.path.sep>
+⇠⇢ COPY ⇠⇢ (import 0:0 on line 1) np ⇒ <numpy>
+ ✘ LOSE ✘  (import 3:2 on line 4) islink ⇒ <os.path.islink>
+ ✘ LOSE ✘  (import 3:0 on line 4) aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ⇒ <os.path.basename>
+⇒ Functions moving from
+/home/ubuntu/.local/lib/python3.8/site-packages/mvdef/example/demo_program.py: ['show_line']
+• Determining edit agenda for new_file.py:
+ ⇢ TAKE  ⇢ (import 2:0 on line 3) plt ⇒ <matplotlib.pyplot>
+ ⇢ TAKE  ⇢ (import 1:0 on line 2) arange ⇒ <numpy.arange>
+⇠  STAY ⇠  (import 0:0 on line 1) np ⇒ <numpy>
+⇒ Functions will move to /home/ubuntu/.local/lib/python3.8/site-packages/mvdef/example/new_file.py
+DRY RUN: No files have been modified, skipping tests.
+------------------COMPLETE--------------------------
 ```
 
-will **m**ove the funcdef named `func1` from `source_program.py` to `destination_program.py`,
+### Example usage
+
+#### Outline
+
+```sh
+mvdef -m func1 source.py destination.py -rb
+```
+
+will **m**ove the funcdef named `func1` from `source.py` to `destination.py`,
 while **r**eporting output (`-r`) and make **b**ackups (`-b`).
 
 - Further functions can be moved by adding more `-m` flags each followed by a function name,
 e.g. `mvdef -m func1 -m func2 -m func3` ...
+  - (The `-m` flags can go anywhere but I find it more natural to place them first,
+    so the command reads "move {this function} from {this file} to {this file}")
 
-E.g. to carry out the demo from the command line, run `mvdef -trb`, or equivalently:
+#### A simple case study
 
-```sh
-mvdef -m show_line --src mvdef/example/demo_program.py --dst mvdef/example/new_file.py -rb
+Consider the file `hello.py`:
+
+```py
+from pprint import pprint
+
+def hello():
+    pprint("hi")
 ```
 
-To preview the demo without changing the files, use the flags `-trd` instead (`--test` + `--report` +
-`--dry-run`).
+To move the `hello` funcdef to the blank file `world.py`, we run:
+
+```sh
+mvdef -m hello hello.py world.py -r
+```
+⇣
+```STDOUT
+--------------RUNNING mvdef.cli⠶main()--------------
+• Determining edit agenda for hello.py:
+ ⇢ MOVE  ⇢ (import 0:0 on line 1) pprint ⇒ <pprint.pprint>
+⇒ Functions moving from /home/ubuntu/stuff/simple_with_import_edit/hello.py: ['hello']
+• Determining edit agenda for world.py:
+ ⇢ TAKE  ⇢ (import 0:0 on line 1) pprint ⇒ <pprint.pprint>
+⇒ Functions will move to /home/ubuntu/stuff/simple_with_import_edit/world.py
+------------------COMPLETE--------------------------
+```
+
+### Demo usage
+
+The package comes with a built-in demo, accessed with the `--demo` flag.
+
+`mvdef --demo` is equivalent to running the following within the `mvdef`
+source code repo (or wherever the package is installed to):
+
+```sh
+mvdef -m show_line mvdef/example/demo_program.py mvdef/example/new_file.py -rd
+```
+
+In previous versions it was possible to preview the demo and change the files, but
+I'm going to implement a test suite instead for this purpose.
+
+Here's what that looked like:
+
+![](src/mvdef/example/documentation/demo-success-screenshot-annotated.png)
+
+- **Above:** the function `show_line` is moved from the source file (_left_) to the
+  destination file (_right_), taking along import statements (or more precisely,
+  taking individual aliases from import statements, which then form new import statements
+  in the destination file). The top right of the image displays a report of the 'agenda'
+  which `mvdef` follows, alias by alias, to carry out these changes.
+- This demo can be reproduced by running `python -im mvdef --test` from the main directory
+  upon cloning this repository, and inspecting the source file (`demo_program.py`) and
+  destination file (`new_file.py`) under `mvdef/example/`.
+- This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
+  moving them back so as to overwrite the original files.
+
 
 ## Motivation
 
@@ -97,21 +181,6 @@ it can handle a simple case, and I began writing this on the basis that "if I'm 
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
 
-## Demo
-
-![](mvdef/example/documentation/demo-success-screenshot-annotated.png)
-
-- **Above:** the function `show_line` is moved from the source file (_left_) to the
-  destination file (_right_), taking along import statements (or more precisely,
-  taking individual aliases from import statements, which then form new import statements
-  in the destination file). The top right of the image displays a report of the 'agenda'
-  which `mvdef` follows, alias by alias, to carry out these changes.
-- This demo can be reproduced by running `python -im mvdef --test` from the main directory
-  upon cloning this repository, and inspecting the source file (`demo_program.py`) and
-  destination file (`new_file.py`) under `mvdef/example/`.
-- This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
-  moving them back so as to overwrite the original files.
-
 ## Project status and future plans
 
 - November 2019: This library is currently working only as a proof of concept, with a demo, and not
@@ -127,6 +196,8 @@ the process.
 
 ## Changelog
 
+- versions 0.3.0 - 0.5.0:
+  - returned to development 10 months later, added entry-point for CLI, big OOP refactor
 - versions 0.2.6 - 0.2.9:
   - unbreaking module... trying to get module recognised by modifying `setup.py`...
 - version 0.2.5:
