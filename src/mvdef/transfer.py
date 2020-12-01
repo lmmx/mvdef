@@ -214,7 +214,7 @@ def parse_transfer(
         # Edit the files (no longer pass imports or defs, will recompute AST)
         link.transfer_mvdefs()
     if test_func is None:
-        return src_edits, dst_edits
+        return link.src.edits, link.dst.edits
     else:
         try:
             test_func.__call__()
@@ -225,4 +225,4 @@ def parse_transfer(
                   "program (if backups used, mvdefs will now attempt to restore)"),
             file=stderr)
             raise RuntimeError(e)
-    return src_edits, dst_edits
+    return link.src.edits, link.dst.edits

@@ -295,8 +295,8 @@ def transfer_mvdefs(link):
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, src_lines)
     # Finish by writing line changes back to file (only if agenda shows edits made)
-    pprint = debug_here()
-    breakpoint()
+    #pprint = debug_here()
+    #breakpoint()
     if len(src_rm_agenda) > 0:
         src_lines = "".join([line for line in src_lines if line is not None])
         with open(src_path, "w") as f:
