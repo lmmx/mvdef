@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from .import_util import get_import_stmt_str
 from .debugging import debug_here
@@ -12,25 +11,17 @@ def transfer_mvdefs(link):
     # "copy" entries in link.src.edits are mirrored by "echo" entries in link.dst.edits,
     # while all "move" entries in link.src.edits are mirrored as "take" in link.dst.edits
     # -------------------------------------------------------------------------------
-    # Convert lose list of info dicts into OrderedDict of to-be-removed names/info
-    dst_rm_agenda = OrderedDict([list(a.items())[0] for a in link.dst.edits.get("lose")])
-    # Merge take/echo lists of info dicts into OrderedDict of received names/info
-    dst_rcv_agenda = link.dst.edits.get("take") + link.dst.edits.get("echo")
-    dst_rcv_agenda = OrderedDict([list(a.items())[0] for a in (dst_rcv_agenda)])
-    # Merge lose/move lists of info dicts into OrderedDict of to-be-removed names/info
-    src_rm_agenda = link.src.edits.get("move") + link.src.edits.get("lose")
-    src_rm_agenda = OrderedDict([list(a.items())[0] for a in (src_rm_agenda)])
-    #
+    # (The code that was here is now in the property methods of `SrcFile` and `DstFile`)
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
     removed_import_n = []
-    for rm_i in dst_rm_agenda:
+    for rm_i in link.dst.rm_agenda:
         # Remove rm_i (imported name marked "lose") from the destination file using
         # the line numbers of `link.dst.trunk`, computed as `link.dst.imports` by `get_imports`
         # (a destructive operation, so line numbers of `link.dst.trunk` no longer valid),
         # if the removal of the imported name leaves no other imports on a line,
         # otherwise shorten that line by removing the import alias(es) marked "lose"
-        dst_info = dst_rm_agenda.get(rm_i)
+        dst_info = link.dst.rm_agenda.get(rm_i)
         imp_src_ending = dst_info.get("import").split(".")[-1]
         # Retrieve the index of the line in import list
         rm_i_n = dst_info.get("n")
@@ -49,11 +40,10 @@ def transfer_mvdefs(link):
             for i in range(*imp_linerange):
                 link.dst.lines[i] = None
             dst_info["shorten"] = None
-    to_shorten = []
-    for rm_i in dst_rm_agenda:
-        if dst_rm_agenda.get(rm_i).get("shorten") is not None:
-            to_shorten.append((rm_i, dst_rm_agenda.get(rm_i)))
-    to_shorten = OrderedDict(to_shorten)
+    to_shorten = {}
+    for rm_i in link.dst.rm_agenda:
+        if link.dst.rm_agenda.get(rm_i).get("shorten") is not None:
+            to_shorten.update({rm_i: link.dst.rm_agenda.get(rm_i)})
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -85,10 +75,10 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
     #
-    for rc_i in dst_rcv_agenda:
+    for rc_i in link.dst.rcv_agenda:
         # Transfer mv_i into the destination file: receive "move" as "take"
         # Transfer cp_i into the destination file: receive "copy" as "echo"
-        dst_info = dst_rcv_agenda.get(rc_i)
+        dst_info = link.dst.rcv_agenda.get(rc_i)
         imp_src_ending = dst_info.get("import").split(".")[-1]
         # Use name/asname to retrieve the index of the line in import list to get
         # the module which is at the same index in the list of src modules:
@@ -111,11 +101,10 @@ def transfer_mvdefs(link):
             # This means `rc_i` is an ast.Import statement, not ImportFrom
             # (PEP8 recommends separate imports, so do not extend another)
             dst_info["extend"] = None
-    to_extend = []
-    for rc_i in dst_rcv_agenda:
-        if dst_rcv_agenda.get(rc_i).get("extend") is not None:
-            to_extend.append((rc_i, dst_rcv_agenda.get(rc_i)))
-    to_extend = OrderedDict(to_extend)
+    to_extend = {}
+    for rc_i in link.dst.rcv_agenda:
+        if link.dst.rcv_agenda.get(rc_i).get("extend") is not None:
+            to_extend.update({rc_i: link.dst.rcv_agenda.get(rc_i)})
     n_to_extend = set([to_extend.get(x).get("n") for x in to_extend])
     # Group all names being added as extensions that are of a common import statement
     for n in n_to_extend:
@@ -151,8 +140,8 @@ def transfer_mvdefs(link):
         last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
     ins_imp_stmts = []  # Collect import statements to insert after the last one
     seen_multimodule_imports = set()
-    for rc_i in dst_rcv_agenda:
-        dst_info = dst_rcv_agenda.get(rc_i)
+    for rc_i in link.dst.rcv_agenda:
+        dst_info = link.dst.rcv_agenda.get(rc_i)
         if rc_i in seen_multimodule_imports or dst_info.get("extend") is not None:
             continue
         imp_src = dst_info.get("import")
@@ -166,12 +155,12 @@ def transfer_mvdefs(link):
         else:
             rc_i_name, rc_i_as = imp_src, rc_i
         alias_list = [(rc_i_name, rc_i_as)]
-        for r in dst_rcv_agenda:
-            r_src_module = link.src.modules[dst_rcv_agenda.get(r).get("n")]
+        for r in link.dst.rcv_agenda:
+            r_src_module = link.src.modules[link.dst.rcv_agenda.get(r).get("n")]
             if r == rc_i or None in [rc_i_module, r_src_module]: continue
             if r_src_module == rc_i_module:
                 seen_multimodule_imports.add(r)
-                r_dst_info = dst_rcv_agenda.get(r)
+                r_dst_info = link.dst.rcv_agenda.get(r)
                 r_imp_src = r_dst_info.get("import")
                 r_imp_src_ending = r_imp_src.split(".")[-1]
                 r_n = r_dst_info.get("n")
@@ -219,13 +208,13 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
-    for rm_i in src_rm_agenda:
+    for rm_i in link.src.rm_agenda:
         # Remove rm_i (imported name marked "move"/"lose") from the source file using
         # the line numbers of `link.src.trunk`, computed as `link.src.imports` by `get_imports`
         # (a destructive operation, so line numbers of `link.src.trunk` no longer valid),
         # if the removal of the imported name leaves no other imports on a line,
         # otherwise shorten that line by removing the import alias(es) marked "lose"
-        src_info = src_rm_agenda.get(rm_i)
+        src_info = link.src.rm_agenda.get(rm_i)
         imp_src_ending = src_info.get("import").split(".")[-1]
         # Retrieve the index of the line in import list
         rm_i_n = src_info.get("n")
@@ -244,11 +233,10 @@ def transfer_mvdefs(link):
             for i in range(*imp_linerange):
                 link.src.lines[i] = None
             src_info["shorten"] = None
-    to_shorten = []
-    for rm_i in src_rm_agenda:
-        if src_rm_agenda.get(rm_i).get("shorten") is not None:
-            to_shorten.append((rm_i, src_rm_agenda.get(rm_i)))
-    to_shorten = OrderedDict(to_shorten)
+    to_shorten = {}
+    for rm_i in link.src.rm_agenda:
+        if link.src.rm_agenda.get(rm_i).get("shorten") is not None:
+            to_shorten.update({rm_i: link.src.rm_agenda.get(rm_i)})
     n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in n_to_short:
@@ -279,11 +267,11 @@ def transfer_mvdefs(link):
     # Finish by writing line changes back to file (only if agenda shows edits made)
     #pprint = debug_here()
     #breakpoint()
-    if len(src_rm_agenda) > 0:
+    if len(link.src.rm_agenda) > 0:
         link.src.lines = "".join([line for line in link.src.lines if line is not None])
         with open(link.src.path, "w") as f:
             f.write(link.src.lines)
-    if len(dst_rcv_agenda) + len(dst_rm_agenda) > 0:
+    if len(link.dst.rcv_agenda) + len(link.dst.rm_agenda) > 0:
         link.dst.lines = "".join([line for line in link.dst.lines if line is not None])
         with open(link.dst.path, "w") as f:
             f.write(link.dst.lines)

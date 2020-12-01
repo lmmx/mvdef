@@ -5,6 +5,7 @@ import argcomplete
 
 from .demo import main as run_demo
 from .cli import main as run_cli
+from .transfer import parse_transfer, FileLink
 
 argv = argv[1:] # omit the call to mvdef
 
@@ -14,6 +15,7 @@ def demo():
     """
     run_demo(mvdefs=["show_line"], dry_run=True, report=True)
 
+DEBUG_STATE = True
 
 def main():
     if "--demo" in argv:
@@ -42,7 +44,15 @@ def main():
 
     src_path = Path(arg_l.src).absolute()
     dst_path = Path(arg_l.dst).absolute()
-    run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
-
+    if DEBUG_STATE:
+        print(f"RAN run_cli({src_path=}, {dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}")
+        print("This was equivalent to a parse_transfer call with result `pt_result`")
+        global pt_result, link
+        # N.B. nochange is an internal synonym for dry_run (i.e. its user-facing name)
+        pt_result = parse_transfer(src_path, dst_path, mvdefs, None, report, dry_run, backup)
+        # in turn pt_result is just a wrapper on
+        link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
+    else:
+        run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
 if __name__ == "__main__":
     main()

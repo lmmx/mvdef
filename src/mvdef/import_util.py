@@ -2,7 +2,6 @@ import ast
 from ast import Import as IType, ImportFrom as IFType
 from astor import to_source
 from asttokens import ASTTokens
-from collections import OrderedDict
 from .colours import colour_str as colour
 from os import linesep as nl
 from sys import stderr
@@ -308,21 +307,21 @@ def annotate_imports(imports, report=True):
                                   statement importing the name. Note that it may
                                   not correspond to the line number on which the
                                   name is given, only to the import function call.
-      imp_name_dict_list: List of one OrderedDict per import statement, whose keys
+      imp_name_dict_list: List of one dict per import statement, whose keys
                           are the full import path (with multi-part paths conjoined
                           by a period `.`) and the values of which are the names
                           that these import paths are imported as (either the asname
                           or else just the terminal part of the import path). The
-                          OrderedDict preserves the per-line order of the imported
+                          dict preserves the per-line order of the imported
                           names.
     """
     report_VERBOSE = False  # Silencing debug print statements
     # This dictionary gives the import line it's on for cross-ref with either
     # the imports list above or the per-line imported_name_dict
     imp_name_linedict = dict()  # Stores all names and their asnames
-    imp_name_dict_list = []  # Stores one OrderedDict per AST import statement
+    imp_name_dict_list = []  # Stores one dict per AST import statement
     for imp_no, imp_line in enumerate(imports):
-        imp_name_dict = OrderedDict()
+        imp_name_dict = dict()
         for imported_names in imp_line.names:
             name, asname = imported_names.name, imported_names.asname
             if type(imp_line) == IFType:

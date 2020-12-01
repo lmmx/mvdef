@@ -7,7 +7,7 @@ from .import_util import count_imported_names, get_module_srcs
 from sys import stderr
 from .debugging import debug_here
 
-__all__ = ["parse_transfer"]
+__all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
 class LinkedFile:
     def __init__(self, path, report, nochange, use_backup, mvdefs):
@@ -161,6 +161,20 @@ class SrcFile(LinkedFile):
     def defs_to_move(self, defs):
         self._defs_to_move = defs
 
+    @property
+    def rm_agenda(self):
+        if not hasattr(self, "_rm_agenda"):
+            # Merge lose/move lists of info dicts into dict of to-be-removed names/info
+            self.rm_agenda = dict([[*a.items()][0] for a in (
+                self.edits.get("move") + self.edits.get("lose") 
+            )])
+        return self._rm_agenda
+
+    @rm_agenda.setter
+    def rm_agenda(self, agenda):
+        self._rm_agenda = agenda
+
+
 class DstFile(LinkedFile):
     def validate_edits(self):
         pass # it's valid for there not to be a destination file and hence no processed AST
@@ -172,6 +186,30 @@ class DstFile(LinkedFile):
     def ensure_exists(self):
         if not self.is_extant and not self.nochange:
             open(self.path, "w").close()
+
+    @property
+    def rcv_agenda(self):
+        if not hasattr(self, "_rcv_agenda"):
+            # Merge take/echo lists of info dicts into dict of received names/info
+            self.rcv_agenda = dict([[*a.items()][0] for a in (
+                self.edits.get("take") + self.edits.get("echo") 
+            )])
+        return self._rcv_agenda
+
+    @rcv_agenda.setter
+    def rcv_agenda(self, agenda):
+        self._rcv_agenda = agenda
+
+    @property
+    def rm_agenda(self):
+        if not hasattr(self, "_rm_agenda"):
+            # Convert lose list of info dicts into dict of to-be-removed names/info
+            self.rm_agenda = dict([[*a.items()][0] for a in self.edits.get("lose")])
+        return self._rm_agenda
+
+    @rm_agenda.setter
+    def rm_agenda(self, agenda):
+        self._rm_agenda = agenda
 
 class FileLink:
     def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
