@@ -17,6 +17,8 @@ class LinkedFile:
         self.use_backup = use_backup
         self.mvdefs = mvdefs
 
+    is_edited = False
+
     def backup(self, dry_run):
         assert backup(self.path, dry_run=dry_run)
 
@@ -70,6 +72,7 @@ class LinkedFile:
 
 
     def ast_parse(self, transfers=None):
+        "Create edit agendas from the parsed AST of source and destination files"
         assert self.path
         self.edits = ast_parse(self.path, self.mvdefs, transfers, self.report)
         self.validate_edits()
@@ -161,13 +164,16 @@ class SrcFile(LinkedFile):
     def defs_to_move(self, defs):
         self._defs_to_move = defs
 
+    def set_rm_agenda(self):
+        "Merge lose/move lists of info dicts into dict of to-be-removed names/info"
+        self.rm_agenda = dict([[*a.items()][0] for a in (
+            self.edits.get("move") + self.edits.get("lose") 
+        )])
+
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            # Merge lose/move lists of info dicts into dict of to-be-removed names/info
-            self.rm_agenda = dict([[*a.items()][0] for a in (
-                self.edits.get("move") + self.edits.get("lose") 
-            )])
+            self.set_rm_agenda()
         return self._rm_agenda
 
     @rm_agenda.setter
@@ -184,27 +190,34 @@ class DstFile(LinkedFile):
         return self.path.exists() and self.path.is_file()
 
     def ensure_exists(self):
+        "Create the destination file if it doesn't exist, and if this isn't a dry run"
         if not self.is_extant and not self.nochange:
             open(self.path, "w").close()
+
+    def set_rcv_agenda(self):
+        "Merge take/echo lists of info dicts into dict of received names/info"
+        self.rcv_agenda = dict([[*a.items()][0] for a in (
+            self.edits.get("take") + self.edits.get("echo") 
+        )])
 
     @property
     def rcv_agenda(self):
         if not hasattr(self, "_rcv_agenda"):
-            # Merge take/echo lists of info dicts into dict of received names/info
-            self.rcv_agenda = dict([[*a.items()][0] for a in (
-                self.edits.get("take") + self.edits.get("echo") 
-            )])
+            self.set_rcv_agenda()
         return self._rcv_agenda
 
     @rcv_agenda.setter
     def rcv_agenda(self, agenda):
         self._rcv_agenda = agenda
 
+    def set_rm_agenda(self):
+        "Convert lose list of info dicts into dict of to-be-removed names/info"
+        self.rm_agenda = dict([[*a.items()][0] for a in self.edits.get("lose")])
+
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            # Convert lose list of info dicts into dict of to-be-removed names/info
-            self.rm_agenda = dict([[*a.items()][0] for a in self.edits.get("lose")])
+            self.set_rm_agenda()
         return self._rm_agenda
 
     @rm_agenda.setter
@@ -219,9 +232,7 @@ class FileLink:
         self.nochange = nochange
         self.test_func = test_func # will run the test_func to check it works
         self.use_backup = use_backup # will create backups if True
-        # Create edit agendas from the parsed AST of source and destination files
         self.src.ast_parse() # populate self.src.edits
-        # Create the destination file if it doesn't exist, and if this isn't a dry run
         self.dst.ensure_exists()
         transfers = {"take": self.src.edits.get("move"), "echo": self.src.edits.get("copy")}
         self.dst.ast_parse(transfers=transfers) # populate self.dst.edits

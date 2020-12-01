@@ -1,4 +1,4 @@
-from sys import argv
+from sys import argv, stderr
 from pathlib import Path
 from argparse import ArgumentParser
 import argcomplete
@@ -15,28 +15,30 @@ def demo():
     """
     run_demo(mvdefs=["show_line"], dry_run=True, report=True)
 
-DEBUG_STATE = True
+DEBUG_STATE = False
 
 def main():
     if "--demo" in argv:
         demo()
         return
+    elif "--debug" in argv:
+        argv.remove("--debug")
+        DEBUG_STATE = True
+
     parser = ArgumentParser(
         description="Move function definitions and associated import"
         + " statements from one file to another within a library."
     )
     parser.add_argument("src")
     parser.add_argument("dst")
-    #parser.add_argument("-t", "--test", action="store_true")
     parser.add_argument("-m", "--mv", action="append")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-b", "--backup", action="store_true")
     parser.add_argument("-d", "--dry-run", action="store_true")
 
     argcomplete.autocomplete(parser)
-    arg_l = parser.parse_args(argv)
+    arg_l = parser.parse_args(argv) # pass explicitly to allow above debug override
 
-    #demo = arg_l.test
     mvdefs = arg_l.mv
     dry_run = arg_l.dry_run
     report = arg_l.verbose
@@ -45,13 +47,11 @@ def main():
     src_path = Path(arg_l.src).absolute()
     dst_path = Path(arg_l.dst).absolute()
     if DEBUG_STATE:
-        print(f"RAN run_cli({src_path=}, {dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}")
-        print("This was equivalent to a parse_transfer call with result `pt_result`")
-        global pt_result, link
-        # N.B. nochange is an internal synonym for dry_run (i.e. its user-facing name)
-        pt_result = parse_transfer(src_path, dst_path, mvdefs, None, report, dry_run, backup)
-        # in turn pt_result is just a wrapper on
+        global link
         link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
+        print(f"An equivalent `link` to that computed in `run_cli({src_path=}, "
+        "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
+        "to the global namespace.", file=stderr)
     else:
         run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
 if __name__ == "__main__":

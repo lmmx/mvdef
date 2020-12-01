@@ -11,7 +11,11 @@ def transfer_mvdefs(link):
     # "copy" entries in link.src.edits are mirrored by "echo" entries in link.dst.edits,
     # while all "move" entries in link.src.edits are mirrored as "take" in link.dst.edits
     # -------------------------------------------------------------------------------
-    # (The code that was here is now in the property methods of `SrcFile` and `DstFile`)
+    # The code that was here is now in the property methods of `SrcFile` and `DstFile`.
+    #
+    # The `edits` attribute of `link.src` and `link.dst` are now used to create the
+    # `src.rm_agenda`, `dst.rcv_agenda`, and `dst.rm_agenda` upon first access of the
+    # property (implicitly), and this access takes place in the following function:
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
     removed_import_n = []
@@ -195,6 +199,8 @@ def transfer_mvdefs(link):
         def_startline, def_endline = get_defrange(mvdef)
         deflines = link.src.lines[def_startline:def_endline]
         link.dst.lines += get_def_lines(deflines, link.dst.lines)
+        if not link.dst.is_edited:
+            link.dst.is_edited = True
     # -------- Line number preservation no longer needed, only now modify src -------
     # Iterate through funcdefs in reverse line number order (i.e. upward from bottom)
     # using the line numbers of `link.src.trunk`, computed as `link.src.defs_to_move` by
@@ -205,6 +211,8 @@ def transfer_mvdefs(link):
     for mvdef in sorted(link.src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def_lines(mvdef, link.src.lines)
+        if not link.src.is_edited:
+            link.src.is_edited = True
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
@@ -264,14 +272,18 @@ def transfer_mvdefs(link):
         else:
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, link.src.lines)
-    # Finish by writing line changes back to file (only if agenda shows edits made)
-    #pprint = debug_here()
-    #breakpoint()
-    if len(link.src.rm_agenda) > 0:
+    # Finish by writing line changes back to file (only if agenda shows edits made
+    # or the `is_edited` flag was set in steps 3 or 4)
+    if not link.src.is_edited and link.src.rm_agenda:
+        link.src.is_edited = True
+    if not link.dst.is_edited and (link.dst.rcv_agenda or link.dst.rm_agenda):
+        link.dst.is_edited = True
+
+    if link.src.is_edited:
         link.src.lines = "".join([line for line in link.src.lines if line is not None])
         with open(link.src.path, "w") as f:
             f.write(link.src.lines)
-    if len(link.dst.rcv_agenda) + len(link.dst.rm_agenda) > 0:
+    if link.dst.is_edited:
         link.dst.lines = "".join([line for line in link.dst.lines if line is not None])
         with open(link.dst.path, "w") as f:
             f.write(link.dst.lines)
