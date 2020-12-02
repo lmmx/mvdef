@@ -7,9 +7,9 @@ from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 from sys import stderr
 
-__all__ = ["run_ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
+__all__ = ["retrieve_ast_agenda", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
-def run_ast_parse(linkfile, transfers=None):
+def retrieve_ast_agenda(linkfile, transfers=None):
     """
     Build and parse the Abstract Syntax Tree (AST) of a Python file, and either return
     a report of what changes would be required to move the mvdefs subset of all
@@ -37,10 +37,9 @@ def run_ast_parse(linkfile, transfers=None):
     if linkfile.is_extant:
         with open(linkfile.path, "r") as f:
             fc = f.read()
-            # a = ast
             trunk = ast.parse(fc).body
 
-        # return imports, funcdefs
+        print("Next running process_ast from retrieve_ast_agenda")
         linkfile.edits = linkfile.process_ast(trunk, transfers)
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
@@ -54,6 +53,7 @@ def run_ast_parse(linkfile, transfers=None):
     else:
         msg = f"Can't move {linkfile.mvdefs=} from {linkfile.path=} – it doesn't exist!"
         raise ValueError(msg)
+    print("Finished processing in retrieve_ast_agenda")
 
 
 def process_ast(linkfile, trunk, transfers=None):
@@ -70,7 +70,7 @@ def process_ast(linkfile, trunk, transfers=None):
       trunk:      Tree body of the file's AST, which will be separated into
                   function definitions, import statements, and anything else.
       transfers:  List of transfers already determined to be made from the src
-                  to the dst file (from the first call to run_ast_parse)
+                  to the dst file (from the first call to ast_parse)
       report:     Whether to print a report during the program (default: True)
 
     -------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ def process_ast(linkfile, trunk, transfers=None):
     # elif linkfile.report:
     #    if len(agenda.get("lose")) > 0:
     #        print("• Resolving edit agenda conflicts:")
-    # i is 'ready made' from a previous call to run_ast_parse, and just needs reporting
+    # i is 'ready made' from a previous call to ast_parse, and just needs reporting
     for i in transfers.get("take"):
         k, i_dict = list(i.items())[0]
         agenda.get("take").append({k: i_dict})

@@ -17,6 +17,7 @@ def transfer_mvdefs(link):
     # property (implicitly), and this access takes place in the following function:
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
+    print("Step 1: Remove imports marked dst⠶lose")
     removed_import_n = []
     for rm_i in link.dst.rm_agenda:
         # Remove rm_i (imported name marked "lose") from the destination file using
@@ -78,6 +79,7 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
     #
+    print("Step 2: Add imports marked dst⠶{move,copy}")
     for rc_i in link.dst.rcv_agenda:
         # Transfer mv_i into the destination file: receive "move" as "take"
         # Transfer cp_i into the destination file: receive "copy" as "echo"
@@ -188,6 +190,7 @@ def transfer_mvdefs(link):
     #
     # --------- STEP 3: COPY FUNCTION DEFINITIONS {MVDEFS} FROM SRC TO DST ---------
     #
+    print("Step 3: copy function definitions {mvdefs} from src to dst")
     for mvdef in link.src.defs_to_move:
         # Transfer mvdef into the destination file: receive mvdef
         # mvdef is an ast.FunctionDefinition node with start/end position annotations
@@ -207,6 +210,7 @@ def transfer_mvdefs(link):
     #
     # --------- STEP 4: REMOVE FUNCTION DEFINITIONS {MVDEFS} FROM SRC ---------
     #
+    print("Step 4: Remove function definitions {mvdefs} from src")
     for mvdef in sorted(link.src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def_lines(mvdef, link.src.lines)
@@ -215,6 +219,7 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
+    print("Step 5: Remove imports marked src⠶{move,lose}")
     for rm_i in link.src.rm_agenda:
         # Remove rm_i (imported name marked "move"/"lose") from the source file using
         # the line numbers of `link.src.trunk`, computed as `link.src.imports` by `get_imports`
