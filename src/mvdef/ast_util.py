@@ -10,17 +10,17 @@ from .debugging import debug_here
 
 __all__ = ["ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
-def ast_parse(fp, mvdefs=None, transfers=None, report=True):
+def ast_parse(linkfile, transfers=None):
     """
-    Build and arse the Abstract Syntax Tree (AST) of a Python file, and either return
+    Build and parse the Abstract Syntax Tree (AST) of a Python file, and either return
     a report of what changes would be required to move the mvdefs subset of all
     function definitions out of it, or a report of the imports and funcdefs in general
-    if no mvdefs is provided (taken to indicate that the file is the target funcdefs
+    if no `linkfile.mvdefs` is provided (taken to indicate that the file is the target funcdefs
     are moving to), or make changes to the file (either newly creating one if no such
     file exists, or editing in place according to the reported import statement
     differences).
 
-    If the Python file `fp` doesn't exist (which can be checked directly as it's a
+    If the Python file `linkfile.path` doesn't exist (which can be checked directly as it's a
     Path object), it's being newly created by the move and obviously no report can
     be made on it: it has no funcdefs and no import statements, so all the ones being
     moved will be newly created.
@@ -28,43 +28,39 @@ def ast_parse(fp, mvdefs=None, transfers=None, report=True):
     mvdefs should be given if the file is the source of moved functions, and left
     empty (default: `None` which --> `[]`) if the file is the destination to move them to.
     
-    If report is True, returns a string describing the changes
+    If `linkfile.report` is True, returns a string describing the changes
     to be made (if False, nothing is returned).
     
-    If backup is True, files will be changed in place by calling mvdef.backup.backup
+    If backup is True, files will be changed in place by calling `mvdef.backup.backup`
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """
-    if mvdefs is None:
-        mvdefs = []
-    if transfers is None:
-        transfers = {}
-    extant = fp.exists() and fp.is_file()
+    mvdefs = linkfile.mvdefs
+    extant = linkfile.path.exists() and linkfile.path.is_file()
     if extant:
-        with open(fp, "r") as f:
+        with open(linkfile.path, "r") as f:
             fc = f.read()
             # a = ast
             trunk = ast.parse(fc).body
 
         # return imports, funcdefs
-        edit_agenda = process_ast(fp, mvdefs, trunk, transfers, report)
-        pprint = debug_here()
-        #breakpoint()
-        #pprint(edit_agenda)
-        #pprint(mvdefs)
+        edit_agenda = process_ast(linkfile.path, mvdefs, trunk, transfers, linkfile.report)
         return edit_agenda
-    elif mvdefs == []:
-        # Not extant so file doesn't exist (cannot produce a parsed AST)
-        # however mvdefs is [] so file must be dst, return value of None.
+    elif type(linkfile).__name__ == "DstFile":
+        # An `isinstance` call would require a circular import, hence the __name__ check
+        #
+        # Not extant so file doesn't exist (cannot produce a parsed AST) however the
+        # linkfile is the destination (no `mvdefs` to remove), so return None.
         # This will be picked up by the assert in SrcFile.validate_edits
         # (but skipped for DstFile.validate_edits)
+        assert mvdefs is None, "Unexpected mvdefs list for non-extant DstFile"
         return
     else:
-        raise ValueError(f"Can't move {mvdefs} from {fp} – it doesn't exist!")
-    return
+        msg = f"Can't move {mvdefs=} from {linkfile.path=} – it doesn't exist!"
+        raise ValueError(msg)
 
 
-def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
+def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
     """
     Handle the hand-off to dedicated functions to go from the mvdefs of functions
     to move, first deriving lists of imported names which belong to the mvdefs and
@@ -108,6 +104,10 @@ def process_ast(fp, mvdefs, trunk, transfers={}, report=True):
     of Python file changes.
     """
     # get_edit_agenda(m_names, nm_names, rm_names, transfers, report=True)
+    if mvdefs is None:
+        mvdefs = []
+    if transfers is None:
+        transfers = {}
     m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
     imported_names = get_imported_name_sources(trunk, report=report)
     if report:

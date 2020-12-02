@@ -74,7 +74,7 @@ class LinkedFile:
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
         assert self.path
-        self.edits = ast_parse(self.path, self.mvdefs, transfers, self.report)
+        self.edits = ast_parse(self, transfers)
         self.validate_edits()
         if self.report:
             self.report_edits()
