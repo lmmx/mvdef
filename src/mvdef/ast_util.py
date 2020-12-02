@@ -297,7 +297,8 @@ def get_nondef_names(unused, import_annos, report=True):
     # nondef_names is a dictionary keyed by the unused names (which were imported)
     nondef_names = dict([(x, {}) for x in unused])
     unknowns = [n for n in unused if n not in imp_name_lines]
-    assert unknowns == [], f"These names could not be sourced: {unknowns}"
+    if unknowns:
+        raise ValueError(f"These names could not be sourced: {unknowns}")
     # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
     # These refs will lead to import statements being copied and/or moved
     uu_imp_refs = dict([[n, imp_name_lines.get(n)] for n in unused])
@@ -339,7 +340,8 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
         unknowns = [n for n in fd_names if n not in imp_name_lines]
-        assert unknowns == [], f"These names could not be sourced: {unknowns}"
+        if unknowns:
+            raise ValueError(f"These names could not be sourced: {unknowns}")
         # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
         # These refs will lead to import statements being copied and/or moved
         mv_imp_refs = dict([(n, imp_name_lines.get(n)) for n in fd_names])

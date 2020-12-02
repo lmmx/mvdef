@@ -232,10 +232,18 @@ class FileLink:
         self.nochange = nochange
         self.test_func = test_func # will run the test_func to check it works
         self.use_backup = use_backup # will create backups if True
-        self.src.ast_parse() # populate self.src.edits
+        try:
+            self.src.ast_parse() # populate self.src.edits
+        except Exception as e:
+            self.src.edits = e
+            return
         self.dst.ensure_exists()
         transfers = {"take": self.src.edits.get("move"), "echo": self.src.edits.get("copy")}
-        self.dst.ast_parse(transfers=transfers) # populate self.dst.edits
+        try:
+            self.dst.ast_parse(transfers=transfers) # populate self.dst.edits
+        except Exception as e:
+            self.dst.edits = e
+            return
 
     def set_link(self, src_p, dst_p, report, nochange, use_backup):
         self.src = SrcFile(src_p, report, nochange, use_backup, mvdefs=self.mvdefs)
@@ -323,6 +331,16 @@ def parse_transfer(
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
     link = FileLink(mvdefs, src_p, dst_p, report, nochange, test_func, use_backup)
+    edits = link.src.edits, link.dst.edits
+    # Raise any error encountered when building the AST
+    if isinstance(link.src.edits, Exception):
+        global src_err_link
+        src_err_link = link
+        raise link.src.edits
+    elif isinstance(link.dst.edits, Exception):
+        global dst_err_link
+        dst_err_link = link
+        raise link.dst.edits
     #pprint = debug_here()
     #breakpoint()
     if nochange:

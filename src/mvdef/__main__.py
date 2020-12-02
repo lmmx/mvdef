@@ -53,6 +53,15 @@ def main():
         if DEBUGGING_MODE:
             global link
             link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
+            # Raise any error encountered when building the AST
+            if isinstance(link.src.edits, Exception):
+                global src_err_link
+                src_err_link = link
+                raise link.src.edits
+            elif isinstance(link.dst.edits, Exception):
+                global dst_err_link
+                dst_err_link = link
+                raise link.dst.edits
             print(f"An equivalent `link` to that computed in `run_cli({src_path=}, "
             "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
             "to the global namespace.", file=stderr)
