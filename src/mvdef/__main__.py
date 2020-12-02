@@ -18,6 +18,7 @@ def demo():
 DEBUG_STATE = False
 
 def main():
+    global DEBUG_STATE
     if "--demo" in argv:
         demo()
         return
