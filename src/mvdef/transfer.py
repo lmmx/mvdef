@@ -1,11 +1,10 @@
 from .ast_tokens import get_defs, get_imports, get_tree
-from .ast_util import run_ast_parse
+from .ast_util import run_ast_parse, process_ast
 from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
 from .import_util import count_imported_names, get_module_srcs
 from sys import stderr
-from .debugging import debug_here
 
 __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
@@ -75,6 +74,7 @@ class LinkedFile:
         return self.path.exists() and self.path.is_file()
 
     run_ast_parse = run_ast_parse
+    process_ast = process_ast
 
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
@@ -333,7 +333,6 @@ def parse_transfer(
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
     link = FileLink(mvdefs, src_p, dst_p, report, nochange, test_func, use_backup)
-    edits = link.src.edits, link.dst.edits
     # Raise any error encountered when building the AST
     if isinstance(link.src.edits, Exception):
         global src_err_link
@@ -343,8 +342,6 @@ def parse_transfer(
         global dst_err_link
         dst_err_link = link
         raise link.dst.edits
-    #pprint = debug_here()
-    #breakpoint()
     if nochange:
         print("DRY RUN: No files have been modified, skipping tests.", file=stderr)
         return link.src.edits, link.dst.edits

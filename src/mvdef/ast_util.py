@@ -6,7 +6,6 @@ from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 from sys import stderr
-from .debugging import debug_here
 
 __all__ = ["run_ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
@@ -42,8 +41,7 @@ def run_ast_parse(linkfile, transfers=None):
             trunk = ast.parse(fc).body
 
         # return imports, funcdefs
-        edit_agenda = process_ast(linkfile.path, linkfile.mvdefs, trunk, transfers, linkfile.report)
-        linkfile.edits = edit_agenda
+        linkfile.edits = linkfile.process_ast(trunk, transfers)
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
         #
@@ -58,7 +56,7 @@ def run_ast_parse(linkfile, transfers=None):
         raise ValueError(msg)
 
 
-def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
+def process_ast(linkfile, trunk, transfers=None):
     """
     Handle the hand-off to dedicated functions to go from the mvdefs of functions
     to move, first deriving lists of imported names which belong to the mvdefs and
@@ -102,18 +100,14 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
     of Python file changes.
     """
     # get_edit_agenda(m_names, nm_names, rm_names, transfers, report=True)
-    if mvdefs is None:
-        mvdefs = []
-    if transfers is None:
-        transfers = {}
-    m_names, nm_names, rm_names = parse_mv_funcs(mvdefs, trunk, report=report)
-    imported_names = get_imported_name_sources(trunk, report=report)
-    if report:
-        print(f"• Determining edit agenda for {fp.name}:", file=stderr)
+    m_names, nm_names, rm_names = parse_mv_funcs(linkfile, trunk)
+    imported_names = get_imported_name_sources(trunk, report=linkfile.report)
+    if linkfile.report:
+        print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
     agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
-    agenda = dict([(c, []) for c in agenda_categories])
+    agenda = {c: [] for c in agenda_categories}
     # mv_inames is mv_imports returned from imp_def_subsets, and so on
-    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=report)
+    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=linkfile.report)
     # Iterate over each imported name, i, in the subset of import names to move
     for i in mv_imps:
         assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
@@ -130,15 +124,12 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
     for i in rm_names:
         i_dict = rm_names.get(i)
         agenda.get("lose").append({i: i_dict})
-    if transfers == {}:
-        # Returning without transfers
-        if report:
+    if not transfers:
+        # Returning without transfers if None (would also catch empty dict `{}`)
+        if linkfile.report:
             pprint_agenda(agenda)
-        #pprint = debug_here()
-        #breakpoint()
-        #pprint(agenda)
         return agenda
-    # elif report:
+    # elif linkfile.report:
     #    if len(agenda.get("lose")) > 0:
     #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to run_ast_parse, and just needs reporting
@@ -187,7 +178,7 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
                 # This means that the same name is being used by a different function
                 raise ValueError(
                     f"Cannot move imported name '{k}', it is already "
-                    + f"in use in {fp.name} ({take_imp_src} clashes with {imp_src})"
+                    + f"in use in {linkfile.path.name} ({take_imp_src} clashes with {imp_src})"
                 )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
@@ -206,7 +197,7 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
                 # This means that the same name is being used by a different function
                 raise ValueError(
                     f"Cannot move imported name '{k}', it is already "
-                    + f"in use in {fp.name} ({echo_imp_src} clashes with {imp_src})"
+                    + f"in use in {linkfile.path.name} ({echo_imp_src} clashes with {imp_src})"
                 )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
@@ -215,7 +206,7 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
             agenda.get("stay").append({k: i_dict})
             e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(i_dict)
             del agenda.get("echo")[e_k_i]
-    if report:
+    if linkfile.report:
         pprint_agenda(agenda)
     return agenda
 
@@ -359,7 +350,7 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
     return def_names
 
 
-def parse_mv_funcs(mvdefs, trunk, report=True):
+def parse_mv_funcs(linkfile, trunk):
     """
     mvdefs:  the list of functions to move (string list of function names)
     trunk:   AST body for the file (via `ast.parse(fc).body`)
@@ -396,6 +387,9 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     are accessed as `nondef_names.get(k)` for `k` in `unused_names`. This access
     is handed off to the helper function `get_nondef_names`.
     """
+    mvdefs = linkfile.mvdefs
+    if mvdefs is None:
+        mvdefs = []
     report_VERBOSE = False  # Silencing debug print statements
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
@@ -406,15 +400,15 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     extradefs = get_extradef_names(extra)
     if report_VERBOSE:
         print("extra:", extra, file=stderr)
-    import_annos = annotate_imports(imports, report=report)
-    mvdef_names = get_def_names(mvdefs, defs, import_annos, extradefs, report)
+    import_annos = annotate_imports(imports, report=linkfile.report)
+    mvdef_names = get_def_names(mvdefs, defs, import_annos, extradefs, linkfile.report)
     if report_VERBOSE:
         print("mvdef names:", file=stderr)
         pprint_def_names(mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomvdefs = [f.name for f in defs if f.name not in mvdefs]
-    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, extradefs, report)
+    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, extradefs, linkfile.report)
     if report_VERBOSE:
         print("non-mvdef names:", file=stderr)
         pprint_def_names(nonmvdef_names)
@@ -423,7 +417,7 @@ def parse_mv_funcs(mvdefs, trunk, report=True):
     mv_set = set().union(*[mvdef_names.get(x).keys() for x in mvdef_names])
     nomv_set = set().union(*[nonmvdef_names.get(x).keys() for x in nonmvdef_names])
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
-    nondefs = get_nondef_names(unused_names, import_annos, report=report)
+    nondefs = get_nondef_names(unused_names, import_annos, report=linkfile.report)
     # undef_names contains only those names that are imported but never used
     undef_names = dict([(x, nondefs.get(x)) for x in nondefs if x not in extradefs])
     if report_VERBOSE:
