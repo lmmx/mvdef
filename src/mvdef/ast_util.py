@@ -322,7 +322,8 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
     def_names = dict([(x, {}) for x in func_list])
     for m in func_list:
         fd_names = set()
-        assert m in [f.name for f in funcdefs], f"No function '{m}' is defined"
+        if m not in [f.name for f in funcdefs]:
+            raise NameError(f"No function '{m}' is defined")
         fd = funcdefs[[f.name for f in funcdefs].index(m)]
         fd_ids = [f.name for f in funcdefs]
         fd_params = [a.arg for a in fd.args.args]

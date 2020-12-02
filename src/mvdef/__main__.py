@@ -15,16 +15,18 @@ def demo():
     """
     run_demo(mvdefs=["show_line"], dry_run=True, report=True)
 
-DEBUG_STATE = False
-
 def main():
-    global DEBUG_STATE
+    DEBUGGING_MODE = False
+    HIDE_TRACEBACKS = True
     if "--demo" in argv:
         demo()
         return
     elif "--debug" in argv:
         argv.remove("--debug")
-        DEBUG_STATE = True
+        DEBUGGING_MODE = True
+    if "--show-tracebacks" in argv:
+        argv.remove("--show-tracebacks")
+        HIDE_TRACEBACKS = False
 
     parser = ArgumentParser(
         description="Move function definitions and associated import"
@@ -47,13 +49,19 @@ def main():
 
     src_path = Path(arg_l.src).absolute()
     dst_path = Path(arg_l.dst).absolute()
-    if DEBUG_STATE:
-        global link
-        link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
-        print(f"An equivalent `link` to that computed in `run_cli({src_path=}, "
-        "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
-        "to the global namespace.", file=stderr)
-    else:
-        run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
+    try:
+        if DEBUGGING_MODE:
+            global link
+            link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
+            print(f"An equivalent `link` to that computed in `run_cli({src_path=}, "
+            "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
+            "to the global namespace.", file=stderr)
+        else:
+            run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
+    except Exception as e:
+        if HIDE_TRACEBACKS:
+            print(f"{type(e).__name__} ⠶ {e}")
+        else:
+            raise e
 if __name__ == "__main__":
     main()
