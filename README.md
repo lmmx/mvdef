@@ -42,22 +42,23 @@ from moving a function from one file to another.
 
 ```STDOUT
 --------------RUNNING mvdef.demo⠶main()--------------
+{'foo': 1, 'bar': 2}
+hello//human, welcome to spin.systems
 ✔ All tests pass
 • Determining edit agenda for demo_program.py:
- ⇢ MOVE  ⇢ (import 2:0 on line 3) plt ⇒ <matplotlib.pyplot>
- ⇢ MOVE  ⇢ (import 1:0 on line 2) arange ⇒ <numpy.arange>
-⇠  KEEP ⇠  (import 1:1 on line 2) pi ⇒ <numpy.pi>
+ ⇢ MOVE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
+ ⇢ MOVE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
+ ⇢ MOVE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
 ⇠  KEEP ⇠  (import 3:1 on line 4) pathsep ⇒ <os.path.sep>
-⇠⇢ COPY ⇠⇢ (import 0:0 on line 1) np ⇒ <numpy>
+⇠  KEEP ⇠  (import 2:0 on line 3) req ⇒ <urllib.request>
+ ✘ LOSE ✘  (import 3:0 on line 4) bname ⇒ <os.path.basename>
  ✘ LOSE ✘  (import 3:2 on line 4) islink ⇒ <os.path.islink>
- ✘ LOSE ✘  (import 3:0 on line 4) aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ⇒ <os.path.basename>
-⇒ Functions moving from
-/home/ubuntu/.local/lib/python3.8/site-packages/mvdef/example/demo_program.py: ['show_line']
+⇒ Functions moving from /home/louis/dev/mvdef/src/mvdef/example/demo_program.py: ['pprint_dict']
 • Determining edit agenda for new_file.py:
- ⇢ TAKE  ⇢ (import 2:0 on line 3) plt ⇒ <matplotlib.pyplot>
- ⇢ TAKE  ⇢ (import 1:0 on line 2) arange ⇒ <numpy.arange>
-⇠  STAY ⇠  (import 0:0 on line 1) np ⇒ <numpy>
-⇒ Functions will move to /home/ubuntu/.local/lib/python3.8/site-packages/mvdef/example/new_file.py
+ ⇢ TAKE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
+ ⇢ TAKE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
+ ⇢ TAKE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
+⇒ Functions will move to /home/louis/dev/mvdef/src/mvdef/example/new_file.py
 DRY RUN: No files have been modified, skipping tests.
 ------------------COMPLETE--------------------------
 ```
@@ -114,18 +115,11 @@ The package comes with a built-in demo, accessed with the `--demo` flag.
 source code repo (or wherever the package is installed to):
 
 ```sh
-mvdef -m show_line mvdef/example/demo_program.py mvdef/example/new_file.py -vd
+mvdef -m pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -vd
 ```
 
-In previous versions it was possible to preview the demo and change the files, but
-I'm going to implement a test suite instead for this purpose.
-
-Here's what that looked like:
-
-![](src/mvdef/example/documentation/demo-success-screenshot-annotated.png)
-
-- **Above:** the function `show_line` is moved from the source file (_left_) to the
-  destination file (_right_), taking along import statements (or more precisely,
+- The function `pprint_dict` is moved from the source file to the
+  destination file, taking along import statements (or more precisely,
   taking individual aliases from import statements, which then form new import statements
   in the destination file). The top right of the image displays a report of the 'agenda'
   which `mvdef` follows, alias by alias, to carry out these changes.

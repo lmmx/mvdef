@@ -1,3 +1,3 @@
-import numpy as np
+import functools as ft
 
-variable_outside_a_definition = np.int(3)
+double_line_print = ft.partial(print, end="\n\n")

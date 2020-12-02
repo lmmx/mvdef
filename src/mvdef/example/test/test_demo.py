@@ -1,40 +1,33 @@
 import numpy as np
-from ..demo_program import show_line, print_some_pi
+from ..demo_program import pprint_dict, print_some_url
 from os.path import sep
 from sys import stderr
 
-def test_show_line(n=4):
-    plot_output = show_line(n, suppress_display=True)
-    assert type(plot_output) is list and len(plot_output) == 1
-    l = plot_output[0]
-    plot_path = l.get_path()
-    ext = plot_path.get_extents()
-    assert np.array_equal(ext.p0, np.array([0.0, 0.0]))
-    assert np.array_equal(ext.p1, np.array([float(n), float(n)]))
+def test_pprint_dict(d={"foo": 1, "bar": 2}):
+    pprint_output = pprint_dict(d, return_string=True)
+    assert pprint_output == "{'foo': 1, 'bar': 2}"
     return True
 
 
-def test_print_some_pi(n=2):
-    output = print_some_pi(n, suppress_print=True)
-    assert output == sep.join(["hey", "hi"]) + ", 2 pi = 6.283185307179586"
+def test_print_some_url(url="https://spin.systems"):
+    output = print_some_url(url, return_string=True)
+    assert output == "hello//human, welcome to spin.systems"
     return True
 
 
 def get_test_failures():
     exceptions = []
     try:
-        assert test_show_line(), "Test failed: show_line"
+        test_pprint_dict()
     except AssertionError as e:
-        exceptions.append(e)
+        msg = "Test failed: pprint_dict"
+        exceptions.append(AssertionError(msg))
     try:
-        assert test_print_some_pi(), "Test failed: print_some_pi"
+        test_print_some_url()
     except AssertionError as e:
-        exceptions.append(e)
-    if exceptions is []:
-        return None
-    else:
-        return exceptions
-
+        msg = "Test failed: print_some_url"
+        exceptions.append(AssertionError(msg))
+    return exceptions if exceptions else None
 
 def list_failing_tests():
     """
@@ -43,13 +36,12 @@ def list_failing_tests():
     of the functions doing the testing, but the ones they test).
     """
     exceptions = get_test_failures()
-    if exceptions == []:
-        return
-    else:
+    if exceptions:
         failed_funcs = []
         for e in exceptions:
-            if e.startswith("Test failed:"):
-                fail_func = e.split(":")[1][1:]
+            e_msg = getattr(e, "message", str(e))
+            if e_msg.startswith("Test failed:"):
+                fail_func = e_msg.split(":")[1][1:]
                 failed_funcs.append(fail_func)
         return failed_funcs
 

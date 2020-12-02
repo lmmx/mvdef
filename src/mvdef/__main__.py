@@ -11,9 +11,9 @@ argv = argv[1:] # omit the call to mvdef
 
 def demo():
     """
-    mvdef -d show_line mvdef/example/demo_program.py mvdef/example/new_file.py -rb
+    mvdef -d pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -rb
     """
-    run_demo(mvdefs=["show_line"], dry_run=True, report=True)
+    run_demo(mvdefs=["pprint_dict"], dry_run=True, report=True)
 
 def main():
     DEBUGGING_MODE = False

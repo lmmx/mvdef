@@ -285,7 +285,7 @@ class FileLink:
             try:
                 test_func.__call__()
             except AssertionError as e:
-                raise RuntimeError(f"! {test_func} failed, aborting mvdef execution.")
+                raise RuntimeError(f"! '{test_func.__name__}' failed, aborting mvdef execution.")
         self._test_func = test_func
 
     def backup(self, dry_run):
@@ -339,7 +339,7 @@ def parse_transfer(
         except AssertionError as e:
             # TODO: implement backup restore
             print(
-                (f"! {test_func} failed, indicating changes made by mvdef broke the"
+                (f"! '{test_func.__name__}' failed, indicating changes made by mvdef broke the"
                   "program (if backups used, mvdefs will now attempt to restore)"),
             file=stderr)
             raise RuntimeError(e)

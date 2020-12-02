@@ -1,29 +1,25 @@
-import numpy as np
-from numpy import arange, pi
-import matplotlib.pyplot as plt
+import functools as ft
+from pprint import pprint, pformat
+import urllib.request as req
 from os.path import (
-    basename as aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,
+    basename as bname,
     sep as pathsep,
     islink,
 )
 
 
-def show_line(n=4, suppress_display=False):
-    assert type(n) in (int, np.typeDict["int"]), f"n must be an integer, {n} is not"
-    assert n > 0, "Please provide a positive integer, {n} is not"
-    l = arange(0, n + 1)
-    if suppress_display:
-        return plt.plot(l)
-    plt.plot(l)
-    plt.show()
-    return
+def pprint_dict(d, return_string=True):
+    dict_pprint = ft.partial(pprint, sort_dicts = False)
+    dict_pprint(d) # trivial use of a partial function
+    if return_string:
+        dict_pformat = ft.partial(pformat, sort_dicts = False)
+        return dict_pformat(d)
 
 
-def print_some_pi(n=2, suppress_print=False):
-    assert type(n) in (int, np.typeDict["int"]), f"n must be an integer, {n} is not"
-    message = f"hey{pathsep}hi"
-    output = f"{message}, {n} pi = {n * pi}"
-    if suppress_print:
-        return output
+def print_some_url(url, return_string=True):
+    message = f"hello{pathsep*2}human"
+    loc = req.urlsplit(url).netloc
+    output = f"{message}, welcome to {loc}"
     print(output)
-    return
+    if return_string:
+        return output
