@@ -8,9 +8,9 @@ from .import_util import get_imported_name_sources, annotate_imports, imp_def_su
 from sys import stderr
 from .debugging import debug_here
 
-__all__ = ["ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
+__all__ = ["run_ast_parse", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
 
-def ast_parse(linkfile, transfers=None):
+def run_ast_parse(linkfile, transfers=None):
     """
     Build and parse the Abstract Syntax Tree (AST) of a Python file, and either return
     a report of what changes would be required to move the mvdefs subset of all
@@ -35,17 +35,15 @@ def ast_parse(linkfile, transfers=None):
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
     """
-    mvdefs = linkfile.mvdefs
-    extant = linkfile.path.exists() and linkfile.path.is_file()
-    if extant:
+    if linkfile.is_extant:
         with open(linkfile.path, "r") as f:
             fc = f.read()
             # a = ast
             trunk = ast.parse(fc).body
 
         # return imports, funcdefs
-        edit_agenda = process_ast(linkfile.path, mvdefs, trunk, transfers, linkfile.report)
-        return edit_agenda
+        edit_agenda = process_ast(linkfile.path, linkfile.mvdefs, trunk, transfers, linkfile.report)
+        linkfile.edits = edit_agenda
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
         #
@@ -53,10 +51,10 @@ def ast_parse(linkfile, transfers=None):
         # linkfile is the destination (no `mvdefs` to remove), so return None.
         # This will be picked up by the assert in SrcFile.validate_edits
         # (but skipped for DstFile.validate_edits)
-        assert mvdefs is None, "Unexpected mvdefs list for non-extant DstFile"
-        return
+        assert linkfile.mvdefs is None, "Unexpected mvdefs list for non-extant DstFile"
+        linkfile.edits = None
     else:
-        msg = f"Can't move {mvdefs=} from {linkfile.path=} – it doesn't exist!"
+        msg = f"Can't move {linkfile.mvdefs=} from {linkfile.path=} – it doesn't exist!"
         raise ValueError(msg)
 
 
@@ -74,7 +72,7 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
       trunk:      Tree body of the file's AST, which will be separated into
                   function definitions, import statements, and anything else.
       transfers:  List of transfers already determined to be made from the src
-                  to the dst file (from the first call to ast_parse)
+                  to the dst file (from the first call to run_ast_parse)
       report:     Whether to print a report during the program (default: True)
 
     -------------------------------------------------------------------------------
@@ -143,7 +141,7 @@ def process_ast(fp, mvdefs, trunk, transfers=None, report=True):
     # elif report:
     #    if len(agenda.get("lose")) > 0:
     #        print("• Resolving edit agenda conflicts:")
-    # i is 'ready made' from a previous call to ast_parse, and just needs reporting
+    # i is 'ready made' from a previous call to run_ast_parse, and just needs reporting
     for i in transfers.get("take"):
         k, i_dict = list(i.items())[0]
         agenda.get("take").append({k: i_dict})

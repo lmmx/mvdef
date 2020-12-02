@@ -1,5 +1,5 @@
 from .ast_tokens import get_defs, get_imports, get_tree
-from .ast_util import ast_parse
+from .ast_util import run_ast_parse
 from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
@@ -70,27 +70,20 @@ class LinkedFile:
     def mvdefs(self, mvdefs):
         self._mvdefs = mvdefs
 
+    @property
+    def is_extant(self):
+        return self.path.exists() and self.path.is_file()
+
+    run_ast_parse = run_ast_parse
 
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
-        assert self.path
-        self.edits = ast_parse(self, transfers)
+        assert self.path, f"'{type(self).__name__}.path' not set"
+        self.run_ast_parse(transfers)
         self.validate_edits()
         if self.report:
             self.report_edits()
         return
-
-    def report_edits(self):
-        c_str = colour("light_gray", self.path)
-        if self.mvdefs: # SrcFile
-            print(f"⇒ Functions moving from {c_str}: {self.mvdefs}", file=stderr)
-        else: # DstFile
-            if self.edits:
-                print(f"⇒ Functions will move to {c_str}")
-            else:
-                # There is no destination file (it will be created)
-                print((f"⇒ Functions will move to {c_str}"
-                        " (it's being created from them)"), file=stderr)
 
     @property
     def trunk(self):
@@ -180,14 +173,14 @@ class SrcFile(LinkedFile):
     def rm_agenda(self, agenda):
         self._rm_agenda = agenda
 
+    def report_edits(self):
+        c_str = colour("light_gray", self.path)
+        print(f"⇒ Functions moving from {c_str}: {self.mvdefs}", file=stderr)
+
 
 class DstFile(LinkedFile):
     def validate_edits(self):
         pass # it's valid for there not to be a destination file and hence no processed AST
-
-    @property
-    def is_extant(self):
-        return self.path.exists() and self.path.is_file()
 
     def ensure_exists(self):
         "Create the destination file if it doesn't exist, and if this isn't a dry run"
@@ -223,6 +216,15 @@ class DstFile(LinkedFile):
     @rm_agenda.setter
     def rm_agenda(self, agenda):
         self._rm_agenda = agenda
+
+    def report_edits(self):
+        c_str = colour("light_gray", self.path)
+        if self.edits:
+            print(f"⇒ Functions will move to {c_str}")
+        else:
+            # There is no destination file (it will be created)
+            print((f"⇒ Functions will move to {c_str}"
+                    " (it's being created from them)"), file=stderr)
 
 class FileLink:
     def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
