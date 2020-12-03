@@ -1,7 +1,7 @@
 from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from .import_util import get_import_stmt_str
 
-__all__ = ["nix_surplus_imports", "shorten_imports", "transfer_mvdefs"]
+__all__ = ["nix_surplus_imports", "shorten_imports", "receive_imports", "transfer_mvdefs"]
 
 
 def nix_surplus_imports(f, record_removed_import_n=False):
@@ -78,27 +78,7 @@ def shorten_imports(f, record_removed_import_n=False):
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, f.lines)
 
-
-def transfer_mvdefs(link):
-    ## Firstly annotate ASTs with the asttokens library
-    # ------------------------- First move the imports ------------------------------
-    # Do not need to handle "copy", "keep", or "stay" edit_agenda entries,
-    # "copy" entries in link.src.edits are mirrored by "echo" entries in link.dst.edits,
-    # while all "move" entries in link.src.edits are mirrored as "take" in link.dst.edits
-    # -------------------------------------------------------------------------------
-    # The code that was here is now in the property methods of `SrcFile` and `DstFile`.
-    #
-    # The `edits` attribute of `link.src` and `link.dst` are now used to create the
-    # `src.rm_agenda`, `dst.rcv_agenda`, and `dst.rm_agenda` upon first access of the
-    # property (implicitly), and this access takes place in the following function:
-    # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
-    #
-    link.dst.nix_surplus_imports(record_removed_import_n=True)
-    link.dst.shorten_imports(record_removed_import_n=True)
-    #
-    # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
-    #
-    #print("Step 2: Add imports marked dst⠶{move,copy}")
+def receive_imports(link):
     for rc_i in link.dst.rcv_agenda: # sets rcv_agenda
         # Transfer mv_i into the destination file: receive "move" as "take"
         # Transfer cp_i into the destination file: receive "copy" as "echo"
@@ -201,7 +181,30 @@ def transfer_mvdefs(link):
         imp_stmt_str = get_import_stmt_str(alias_list, rc_i_module)
         link.dst._ins_imp_stmts.append(imp_stmt_str)
     link.dst.lines = link.dst.lines[:link.dst.last_imp_end] + link.dst._ins_imp_stmts + link.dst.lines[link.dst.last_imp_end:]
-    # sets .lines
+    # sets dst.lines
+
+def transfer_mvdefs(link):
+    ## Firstly annotate ASTs with the asttokens library
+    # ------------------------- First move the imports ------------------------------
+    # Do not need to handle "copy", "keep", or "stay" edit_agenda entries,
+    # "copy" entries in link.src.edits are mirrored by "echo" entries in link.dst.edits,
+    # while all "move" entries in link.src.edits are mirrored as "take" in link.dst.edits
+    # -------------------------------------------------------------------------------
+    # The code that was here is now in the property methods of `SrcFile` and `DstFile`.
+    #
+    # The `edits` attribute of `link.src` and `link.dst` are now used to create the
+    # `src.rm_agenda`, `dst.rcv_agenda`, and `dst.rm_agenda` upon first access of the
+    # property (implicitly), and this access takes place in the following function:
+    # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
+    #
+    link.dst.nix_surplus_imports(record_removed_import_n=True)
+    link.dst.shorten_imports(record_removed_import_n=True)
+    #
+    # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
+    #
+    #print("Step 2: Add imports marked dst⠶{move,copy}")
+    # TODO: refactor as:
+    link.receive_imports()
     # ------------------------------------------------------------------------------
     # Postpone the extension/addition of import statements (do all at once so as to
     # retain meaningful line numbers, as changing one at a time would ruin index)
