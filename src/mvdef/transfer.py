@@ -2,7 +2,7 @@ from .ast_tokens import get_defs, get_imports, get_tree
 from .ast_util import retrieve_ast_agenda, process_ast
 from .backup import backup
 from .colours import colour_str as colour
-from .editor import transfer_mvdefs
+from .editor import nix_surplus_imports, shorten_imports, transfer_mvdefs
 from .import_util import count_imported_names, get_module_srcs
 #from .traceback_util import pprint_stack_trace
 from sys import stderr
@@ -200,6 +200,8 @@ class SrcFile(LinkedFile):
         c_str = colour("light_gray", self.path)
         print(f"⇒ Functions moving from {c_str}: {self.mvdefs}", file=stderr)
 
+    nix_surplus_imports = nix_surplus_imports
+    shorten_imports = shorten_imports
 
 class DstFile(LinkedFile):
     def validate_edits(self):
@@ -254,6 +256,9 @@ class DstFile(LinkedFile):
             # There is no destination file (it will be created)
             print((f"⇒ Functions will move to {c_str}"
                     " (it's being created from them)"), file=stderr)
+
+    nix_surplus_imports = nix_surplus_imports
+    shorten_imports = shorten_imports
 
 class FileLink:
     def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):

@@ -1,7 +1,83 @@
 from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from .import_util import get_import_stmt_str
 
-__all__ = ["transfer_mvdefs"]
+__all__ = ["nix_surplus_imports", "shorten_imports", "transfer_mvdefs"]
+
+
+def nix_surplus_imports(f, record_removed_import_n=False):
+    "Step 1 part 1 (dst: removed_import_n); step 5 part 1 (src: no removed_import_n)"
+    #print("Step 1: Remove imports marked dst⠶lose")
+    #print("Step 5: Remove imports marked src⠶{move,lose}")
+    f.removed_import_n = []
+    for rm_i in f.rm_agenda: # sets .rm_agenda
+        # Remove rm_i (imported name marked "lose" for dst, or marked "move"/"lose" for
+        # dst) from the destination or source file using the line numbers of `f.trunk`,
+        # computed as `dst.imports` by `get_imports`
+        # (a destructive operation, so line numbers of `f.trunk` no longer valid),
+        # if the removal of the imported name leaves no other imports on a line,
+        # otherwise shorten that line by removing the import alias(es) marked "lose"
+        info = f.rm_agenda.get(rm_i)
+        imp_src_ending = info.get("import").split(".")[-1]
+        # Retrieve the index of the line in import list
+        rm_i_n = info.get("n")
+        rm_i_linecount = f.import_counts[rm_i_n]
+        if rm_i_linecount > 1:
+            # This means there is ≥1 other import alias in the import statement
+            # for this name, so remove it from it (i.e. "shorten" the statement.
+            info["shorten"] = info.get("n_i")
+        else:
+            # This means there is nothing from this module being imported yet, so
+            # must remove entire import statement (i.e. delete entire line range)
+            if record_removed_import_n:
+                # f is DstFile
+                f.removed_import_n.append(rm_i_n)
+            else:
+                # f is SrcFile
+                info["shorten"] = None
+            imp_startline = f.imports[rm_i_n].first_token.start[0]
+            imp_endline = f.imports[rm_i_n].last_token.end[0]
+            imp_linerange = [imp_startline - 1, imp_endline]
+            for i in range(*imp_linerange):
+                f.lines[i] = None
+            info["shorten"] = None
+
+
+def shorten_imports(f, record_removed_import_n=False):
+    "Step 1 part 2 (dst: removed_import_n); step 5 part 2 (src: no removed_import_n)"
+    f.to_shorten = {}
+    for rm_i in f.rm_agenda:
+        if f.rm_agenda.get(rm_i).get("shorten") is not None:
+            f.to_shorten.update({rm_i: f.rm_agenda.get(rm_i)})
+    f.n_to_short = set([f.to_shorten.get(x).get("n") for x in f.to_shorten])
+    # Group all names being shortened that are of a common import statement
+    for n in f.n_to_short:
+        names_to_short = [x for x in f.to_shorten if f.to_shorten.get(x).get("n") == n]
+        n_i_to_short = [f.to_shorten.get(a).get("n_i") for a in names_to_short]
+        # Rewrite `f.imports[n]` with all aliases except those in `names_to_short`
+        imp_module = f.modules[n]
+        pre_imp = f.imports[n]
+        shortened_alias_list = [(a.name, a.asname) for a in pre_imp.names]
+        # Proceed backwards from the end to the start, permitting deletions by index
+        for (name, asname) in shortened_alias_list[::-1]:
+            if asname is None and name not in names_to_short:
+                continue
+            elif asname is not None and asname not in names_to_short:
+                continue
+            del_i = shortened_alias_list.index((name, asname))
+            del shortened_alias_list[del_i]
+        if len(shortened_alias_list) == 0:
+            if record_removed_import_n:
+                # All dst import aliases were removed, so remove entire import statement
+                f.removed_import_n.append(n)
+            imp_startline = pre_imp.first_token.start[0]
+            imp_endline = pre_imp.last_token.end[0]
+            imp_linerange = [imp_startline - 1, imp_endline]
+            for i in range(*imp_linerange):
+                f.lines[i] = None
+        else:
+            imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
+            overwrite_import(pre_imp, imp_stmt_str, f.lines)
+
 
 def transfer_mvdefs(link):
     ## Firstly annotate ASTs with the asttokens library
@@ -17,65 +93,8 @@ def transfer_mvdefs(link):
     # property (implicitly), and this access takes place in the following function:
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
-    #print("Step 1: Remove imports marked dst⠶lose")
-    removed_import_n = []
-    for rm_i in link.dst.rm_agenda: # sets .rm_agenda
-        # Remove rm_i (imported name marked "lose") from the destination file using
-        # the line numbers of `link.dst.trunk`, computed as `link.dst.imports` by `get_imports`
-        # (a destructive operation, so line numbers of `link.dst.trunk` no longer valid),
-        # if the removal of the imported name leaves no other imports on a line,
-        # otherwise shorten that line by removing the import alias(es) marked "lose"
-        dst_info = link.dst.rm_agenda.get(rm_i)
-        imp_src_ending = dst_info.get("import").split(".")[-1]
-        # Retrieve the index of the line in import list
-        rm_i_n = dst_info.get("n")
-        rm_i_linecount = link.dst.import_counts[rm_i_n]
-        if rm_i_linecount > 1:
-            # This means there is ≥1 other import alias in the import statement
-            # for this name, so remove it from it (i.e. "shorten" the statement.
-            dst_info["shorten"] = dst_info.get("n_i")
-        else:
-            # This means there is nothing from this module being imported yet, so
-            # must remove entire import statement (i.e. delete entire line range)
-            removed_import_n.append(rm_i_n)
-            imp_startline = link.dst.imports[rm_i_n].first_token.start[0]
-            imp_endline = link.dst.imports[rm_i_n].last_token.end[0]
-            imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(*imp_linerange):
-                link.dst.lines[i] = None
-            dst_info["shorten"] = None
-    to_shorten = {}
-    for rm_i in link.dst.rm_agenda:
-        if link.dst.rm_agenda.get(rm_i).get("shorten") is not None:
-            to_shorten.update({rm_i: link.dst.rm_agenda.get(rm_i)})
-    n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
-    # Group all names being shortened that are of a common import statement
-    for n in n_to_short:
-        names_to_short = [x for x in to_shorten if to_shorten.get(x).get("n") == n]
-        n_i_to_short = [to_shorten.get(a).get("n_i") for a in names_to_short]
-        # Rewrite `link.dst.imports[n]` with all aliases except those in `names_to_short`
-        imp_module = link.dst.modules[n]
-        pre_imp = link.dst.imports[n]
-        shortened_alias_list = [(a.name, a.asname) for a in pre_imp.names]
-        # Proceed backwards from the end to the start, permitting deletions by index
-        for (name, asname) in shortened_alias_list[::-1]:
-            if asname is None and name not in names_to_short:
-                continue
-            elif asname not in names_to_short:
-                continue
-            del_i = shortened_alias_list.index((name, asname))
-            del shortened_alias_list[del_i]
-        if len(shortened_alias_list) == 0:
-            # All import aliases were removed, so remove the entire import statement
-            removed_import_n.append(n)
-            imp_startline = pre_imp.first_token.start[0]
-            imp_endline = pre_imp.last_token.end[0]
-            imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(*imp_linerange):
-                link.dst.lines[i] = None
-        else:
-            imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
-            overwrite_import(pre_imp, imp_stmt_str, link.dst.lines)
+    link.dst.nix_surplus_imports(record_removed_import_n=True)
+    link.dst.shorten_imports(record_removed_import_n=True)
     #
     # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
     #
@@ -106,20 +125,20 @@ def transfer_mvdefs(link):
             # This means `rc_i` is an ast.Import statement, not ImportFrom
             # (PEP8 recommends separate imports, so do not extend another)
             dst_info["extend"] = None
-    to_extend = {}
+    link.dst.to_extend = {}
     for rc_i in link.dst.rcv_agenda:
         if link.dst.rcv_agenda.get(rc_i).get("extend") is not None:
-            to_extend.update({rc_i: link.dst.rcv_agenda.get(rc_i)})
-    n_to_extend = set([to_extend.get(x).get("n") for x in to_extend])
+            link.dst.to_extend.update({rc_i: link.dst.rcv_agenda.get(rc_i)})
+    link.dst.n_to_extend = set([link.dst.to_extend.get(x).get("n") for x in link.dst.to_extend])
     # Group all names being added as extensions that are of a common import statement
-    for n in n_to_extend:
-        names_to_extend = [x for x in to_extend if to_extend.get(x).get("n") == n]
+    for n in link.dst.n_to_extend:
+        names_to_extend = [x for x in link.dst.to_extend if link.dst.to_extend.get(x).get("n") == n]
         # Rewrite `link.dst.imports[n]` to include the aliases in `names_to_extend`
         imp_module = link.dst.modules[n]
         pre_imp = link.dst.imports[n]
         extended_alias_list = [(a.name, a.asname) for a in pre_imp.names]
         for rc_i in names_to_extend:
-            dst_info = to_extend.get(rc_i)
+            dst_info = link.dst.to_extend.get(rc_i)
             imp_src = dst_info.get("import")
             imp_src_ending = imp_src.split(".")[-1]
             if rc_i == imp_src_ending:
@@ -136,19 +155,19 @@ def transfer_mvdefs(link):
     #
     # Firstly, find the insertion point for new import statements by re-processing
     # the list of lines (default to start of file if it has no import statements)
-    import_n = [n for n, _ in enumerate(link.dst.imports) if n not in removed_import_n]
+    link.dst.import_n = [n for n, _ in enumerate(link.dst.imports) if n not in link.dst.removed_import_n]
     # sets .imports ⇢ sets .trunk
-    if len(import_n) == 0:
+    if len(link.dst.import_n) == 0:
         # Place any new import statements at the start of the file, as none exist yet
-        last_imp_end = 0  # 1-based index logic: this means "before the first line"
+        link.dst.last_imp_end = 0  # 1-based index logic: this means "before the first line"
     else:
-        last_import = link.dst.imports[import_n[-1]]
-        last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
-    ins_imp_stmts = []  # Collect import statements to insert after the last one
-    seen_multimodule_imports = set()
+        last_import = link.dst.imports[link.dst.import_n[-1]]
+        link.dst.last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
+    link.dst._ins_imp_stmts = []  # Collect import statements to insert after the last one
+    link.dst._seen_multimodule_imports = set()
     for rc_i in link.dst.rcv_agenda:
         dst_info = link.dst.rcv_agenda.get(rc_i)
-        if rc_i in seen_multimodule_imports or dst_info.get("extend") is not None:
+        if rc_i in link.dst._seen_multimodule_imports or dst_info.get("extend") is not None:
             continue
         imp_src = dst_info.get("import")
         imp_src_ending = imp_src.split(".")[-1]
@@ -165,7 +184,7 @@ def transfer_mvdefs(link):
             r_src_module = link.src.modules[link.dst.rcv_agenda.get(r).get("n")]
             if r == rc_i or None in [rc_i_module, r_src_module]: continue
             if r_src_module == rc_i_module:
-                seen_multimodule_imports.add(r)
+                link.dst._seen_multimodule_imports.add(r)
                 r_dst_info = link.dst.rcv_agenda.get(r)
                 r_imp_src = r_dst_info.get("import")
                 r_imp_src_ending = r_imp_src.split(".")[-1]
@@ -180,8 +199,8 @@ def transfer_mvdefs(link):
                 alias_list.append((rc_i_name, rc_i_as))
         # Create the Import or ImportFrom statement
         imp_stmt_str = get_import_stmt_str(alias_list, rc_i_module)
-        ins_imp_stmts.append(imp_stmt_str)
-    link.dst.lines = link.dst.lines[:last_imp_end] + ins_imp_stmts + link.dst.lines[last_imp_end:]
+        link.dst._ins_imp_stmts.append(imp_stmt_str)
+    link.dst.lines = link.dst.lines[:link.dst.last_imp_end] + link.dst._ins_imp_stmts + link.dst.lines[link.dst.last_imp_end:]
     # sets .lines
     # ------------------------------------------------------------------------------
     # Postpone the extension/addition of import statements (do all at once so as to
@@ -193,6 +212,8 @@ def transfer_mvdefs(link):
     # --------- STEP 3: COPY FUNCTION DEFINITIONS {MVDEFS} FROM SRC TO DST ---------
     #
     #print("Step 3: copy function definitions {mvdefs} from src to dst")
+    # TODO: refactor as:
+    # link.copy_src_defs_to_dst()
     for mvdef in link.src.defs_to_move: # sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
         # Transfer mvdef into the destination file: receive mvdef
         # mvdef is an ast.FunctionDefinition node with start/end position annotations
@@ -212,6 +233,8 @@ def transfer_mvdefs(link):
     #
     # --------- STEP 4: REMOVE FUNCTION DEFINITIONS {MVDEFS} FROM SRC ---------
     #
+    # TODO: refactor as:
+    # link.src.removed_copied_defs()
     #print("Step 4: Remove function definitions {mvdefs} from src")
     for mvdef in sorted(link.src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
@@ -221,63 +244,8 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
-    #print("Step 5: Remove imports marked src⠶{move,lose}")
-    for rm_i in link.src.rm_agenda: # sets .rm_agenda
-        # Remove rm_i (imported name marked "move"/"lose") from the source file using
-        # the line numbers of `link.src.trunk`, computed as `link.src.imports` by `get_imports`
-        # (a destructive operation, so line numbers of `link.src.trunk` no longer valid),
-        # if the removal of the imported name leaves no other imports on a line,
-        # otherwise shorten that line by removing the import alias(es) marked "lose"
-        src_info = link.src.rm_agenda.get(rm_i)
-        imp_src_ending = src_info.get("import").split(".")[-1]
-        # Retrieve the index of the line in import list
-        rm_i_n = src_info.get("n")
-        rm_i_linecount = link.src.import_counts[rm_i_n]
-        if rm_i_linecount > 1:
-            # This means there is ≥1 other import alias in the import statement
-            # for this name, so remove it from it (i.e. "shorten" the statement.
-            src_info["shorten"] = src_info.get("n_i")
-        else:
-            # This means there is nothing from this module being imported yet, so
-            # must remove entire import statement (i.e. delete entire line range)
-            src_info["shorten"] = None
-            imp_startline = link.src.imports[rm_i_n].first_token.start[0]
-            imp_endline = link.src.imports[rm_i_n].last_token.end[0]
-            imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(*imp_linerange):
-                link.src.lines[i] = None
-            src_info["shorten"] = None
-    to_shorten = {}
-    for rm_i in link.src.rm_agenda:
-        if link.src.rm_agenda.get(rm_i).get("shorten") is not None:
-            to_shorten.update({rm_i: link.src.rm_agenda.get(rm_i)})
-    n_to_short = set([to_shorten.get(x).get("n") for x in to_shorten])
-    # Group all names being shortened that are of a common import statement
-    for n in n_to_short:
-        names_to_short = [x for x in to_shorten if to_shorten.get(x).get("n") == n]
-        n_i_to_short = [to_shorten.get(a).get("n_i") for a in names_to_short]
-        # Rewrite `link.src.imports[n]` with all aliases except those in `names_to_short`
-        imp_module = link.src.modules[n]
-        pre_imp = link.src.imports[n]
-        shortened_alias_list = [(a.name, a.asname) for a in pre_imp.names]
-        # Proceed backwards from the end to the start, permitting deletions by index
-        for (name, asname) in shortened_alias_list[::-1]:
-            if asname is None and name not in names_to_short:
-                continue
-            elif asname is not None and asname not in names_to_short:
-                continue
-            del_i = shortened_alias_list.index((name, asname))
-            del shortened_alias_list[del_i]
-        if len(shortened_alias_list) == 0:
-            # All import aliases were removed, so remove the entire import statement
-            imp_startline = pre_imp.first_token.start[0]
-            imp_endline = pre_imp.last_token.end[0]
-            imp_linerange = [imp_startline - 1, imp_endline]
-            for i in range(*imp_linerange):
-                link.src.lines[i] = None
-        else:
-            imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
-            overwrite_import(pre_imp, imp_stmt_str, link.src.lines)
+    link.src.nix_surplus_imports()
+    link.src.shorten_imports()
     # Finish by writing line changes back to file (only if agenda shows edits made
     # or the `is_edited` flag was set in steps 3 or 4)
     if not link.src.is_edited and link.src.rm_agenda:
