@@ -39,7 +39,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
             fc = f.read()
             trunk = ast.parse(fc).body
 
-        print("Next running process_ast from retrieve_ast_agenda")
+        #print("Next running process_ast from retrieve_ast_agenda")
         linkfile.edits = linkfile.process_ast(trunk, transfers)
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
@@ -53,7 +53,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
     else:
         msg = f"Can't move {linkfile.mvdefs=} from {linkfile.path=} – it doesn't exist!"
         raise ValueError(msg)
-    print("Finished processing in retrieve_ast_agenda")
+    #print("Finished processing in retrieve_ast_agenda")
 
 
 def process_ast(linkfile, trunk, transfers=None):

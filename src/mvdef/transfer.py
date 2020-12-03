@@ -4,7 +4,9 @@ from .backup import backup
 from .colours import colour_str as colour
 from .editor import transfer_mvdefs
 from .import_util import count_imported_names, get_module_srcs
+#from .traceback_util import pprint_stack_trace
 from sys import stderr
+from traceback import print_stack, extract_stack, format_list
 
 __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
@@ -88,7 +90,9 @@ class LinkedFile:
     @property
     def trunk(self):
         if not hasattr(self, "_trunk"):
-            print(f"SETTING TRUNK ON {self}")
+            #print(f"SETTING TRUNK ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.set_trunk()
         return self._trunk
 
@@ -102,7 +106,9 @@ class LinkedFile:
     @property
     def lines(self):
         if not hasattr(self, "_lines"):
-            print(f"SETTING LINES ON {self}")
+            #print(f"SETTING LINES ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.readlines()
         return self._lines
 
@@ -117,7 +123,9 @@ class LinkedFile:
     @property
     def imports(self):
         if not hasattr(self, "_imports"):
-            print(f"SETTING IMPORTS ON {self}")
+            #print(f"SETTING IMPORTS ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.imports = get_imports(self.trunk, trunk_only=True)
         return self._imports
 
@@ -128,7 +136,9 @@ class LinkedFile:
     @property
     def import_counts(self):
         if not hasattr(self, "_import_counts"):
-            print(f"SETTING IMPORT_COUNTS ON {self}")
+            #print(f"SETTING IMPORT_COUNTS ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.import_counts = count_imported_names(self.imports)
         return self._import_counts
 
@@ -139,7 +149,9 @@ class LinkedFile:
     @property
     def modules(self):
         if not hasattr(self, "_modules"):
-            print(f"SETTING MODULES ON {self}")
+            #print(f"SETTING MODULES ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.modules = get_module_srcs(self.imports)
         return self._modules
 
@@ -155,7 +167,9 @@ class SrcFile(LinkedFile):
     @property
     def defs_to_move(self):
         if not hasattr(self, "_defs_to_move"):
-            print(f"SETTING DEFS_TO_MOVE ON {self}")
+            #print(f"SETTING DEFS_TO_MOVE ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.defs_to_move = get_defs(self.trunk, self.mvdefs)
         return self._defs_to_move
     
@@ -172,7 +186,9 @@ class SrcFile(LinkedFile):
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            print(f"SETTING RM_AGENDA ON {self}")
+            #print(f"SETTING RM_AGENDA ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -203,7 +219,9 @@ class DstFile(LinkedFile):
     @property
     def rcv_agenda(self):
         if not hasattr(self, "_rcv_agenda"):
-            print(f"SETTING RCV_AGENDA ON {self}")
+            #print(f"SETTING RCV_AGENDA ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.set_rcv_agenda()
         return self._rcv_agenda
 
@@ -218,7 +236,9 @@ class DstFile(LinkedFile):
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            print(f"SETTING RM_AGENDA ON {self}")
+            #print(f"SETTING RM_AGENDA ON {self}")
+            #stack = extract_stack()
+            #pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -238,23 +258,23 @@ class DstFile(LinkedFile):
 class FileLink:
     def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
         self.mvdefs = mvdefs
-        print("Setting link")
+        #print("Setting link")
         self.set_link(src_p, dst_p, report, nochange, use_backup)
         self.report = report
         self.nochange = nochange
         self.test_func = test_func # will run the test_func to check it works
         self.use_backup = use_backup # will create backups if True
         try:
-            print("Running link.src.ast_parse()")
+            #print("Running link.src.ast_parse()")
             self.src.ast_parse() # populate self.src.edits
         except Exception as e:
             self.src.edits = e
             return
-        print("Running link.dst.ensure_exists")
+        #print("Running link.dst.ensure_exists")
         self.dst.ensure_exists()
         transfers = {"take": self.src.edits.get("move"), "echo": self.src.edits.get("copy")}
         try:
-            print("Running link.dst.ast_parse(transfers)")
+            #print("Running link.dst.ast_parse(transfers)")
             self.dst.ast_parse(transfers=transfers) # populate self.dst.edits
         except Exception as e:
             self.dst.edits = e
@@ -354,13 +374,13 @@ def parse_transfer(
         global dst_err_link
         dst_err_link = link
         raise link.dst.edits
-    print("Finished checking agenda: no exceptions found")
+    #print("Finished checking agenda: no exceptions found")
     if nochange:
         print("DRY RUN: No files have been modified, skipping tests.", file=stderr)
         return link.src.edits, link.dst.edits
     else:
         # Edit the files (no longer pass imports or defs, will recompute AST)
-        print("Transferring mvdefs over the link")
+        #print("Transferring mvdefs over the link")
         link.transfer_mvdefs()
     if test_func is None:
         return link.src.edits, link.dst.edits

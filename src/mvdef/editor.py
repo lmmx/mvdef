@@ -17,9 +17,9 @@ def transfer_mvdefs(link):
     # property (implicitly), and this access takes place in the following function:
     # ----------------- STEP 1: REMOVE IMPORTS MARKED DST⠶LOSE ----------------------
     #
-    print("Step 1: Remove imports marked dst⠶lose")
+    #print("Step 1: Remove imports marked dst⠶lose")
     removed_import_n = []
-    for rm_i in link.dst.rm_agenda:
+    for rm_i in link.dst.rm_agenda: # sets .rm_agenda
         # Remove rm_i (imported name marked "lose") from the destination file using
         # the line numbers of `link.dst.trunk`, computed as `link.dst.imports` by `get_imports`
         # (a destructive operation, so line numbers of `link.dst.trunk` no longer valid),
@@ -79,8 +79,8 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 2: ADD IMPORTS MARKED DST⠶{MOVE,COPY} --------------------
     #
-    print("Step 2: Add imports marked dst⠶{move,copy}")
-    for rc_i in link.dst.rcv_agenda:
+    #print("Step 2: Add imports marked dst⠶{move,copy}")
+    for rc_i in link.dst.rcv_agenda: # sets rcv_agenda
         # Transfer mv_i into the destination file: receive "move" as "take"
         # Transfer cp_i into the destination file: receive "copy" as "echo"
         dst_info = link.dst.rcv_agenda.get(rc_i)
@@ -137,6 +137,7 @@ def transfer_mvdefs(link):
     # Firstly, find the insertion point for new import statements by re-processing
     # the list of lines (default to start of file if it has no import statements)
     import_n = [n for n, _ in enumerate(link.dst.imports) if n not in removed_import_n]
+    # sets .imports ⇢ sets .trunk
     if len(import_n) == 0:
         # Place any new import statements at the start of the file, as none exist yet
         last_imp_end = 0  # 1-based index logic: this means "before the first line"
@@ -181,6 +182,7 @@ def transfer_mvdefs(link):
         imp_stmt_str = get_import_stmt_str(alias_list, rc_i_module)
         ins_imp_stmts.append(imp_stmt_str)
     link.dst.lines = link.dst.lines[:last_imp_end] + ins_imp_stmts + link.dst.lines[last_imp_end:]
+    # sets .lines
     # ------------------------------------------------------------------------------
     # Postpone the extension/addition of import statements (do all at once so as to
     # retain meaningful line numbers, as changing one at a time would ruin index)
@@ -190,8 +192,8 @@ def transfer_mvdefs(link):
     #
     # --------- STEP 3: COPY FUNCTION DEFINITIONS {MVDEFS} FROM SRC TO DST ---------
     #
-    print("Step 3: copy function definitions {mvdefs} from src to dst")
-    for mvdef in link.src.defs_to_move:
+    #print("Step 3: copy function definitions {mvdefs} from src to dst")
+    for mvdef in link.src.defs_to_move: # sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
         # Transfer mvdef into the destination file: receive mvdef
         # mvdef is an ast.FunctionDefinition node with start/end position annotations
         # using the line numbers of `link.src.trunk`, computed as
@@ -210,7 +212,7 @@ def transfer_mvdefs(link):
     #
     # --------- STEP 4: REMOVE FUNCTION DEFINITIONS {MVDEFS} FROM SRC ---------
     #
-    print("Step 4: Remove function definitions {mvdefs} from src")
+    #print("Step 4: Remove function definitions {mvdefs} from src")
     for mvdef in sorted(link.src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def_lines(mvdef, link.src.lines)
@@ -219,8 +221,8 @@ def transfer_mvdefs(link):
     #
     # --------------- STEP 5: REMOVE IMPORTS MARKED SRC⠶{MOVE,LOSE} ----------------
     #
-    print("Step 5: Remove imports marked src⠶{move,lose}")
-    for rm_i in link.src.rm_agenda:
+    #print("Step 5: Remove imports marked src⠶{move,lose}")
+    for rm_i in link.src.rm_agenda: # sets .rm_agenda
         # Remove rm_i (imported name marked "move"/"lose") from the source file using
         # the line numbers of `link.src.trunk`, computed as `link.src.imports` by `get_imports`
         # (a destructive operation, so line numbers of `link.src.trunk` no longer valid),
