@@ -2,7 +2,7 @@ from .ast_tokens import get_defs, get_imports, get_tree
 from .ast_util import retrieve_ast_agenda, process_ast
 from .backup import backup
 from .colours import colour_str as colour
-from .editor import nix_surplus_imports, shorten_imports, receive_imports, transfer_mvdefs
+from .editor import nix_surplus_imports, shorten_imports, receive_imports, copy_src_defs_to_dst, remove_copied_defs, transfer_mvdefs
 from .import_util import count_imported_names, get_module_srcs
 #from .traceback_util import pprint_stack_trace
 from sys import stderr
@@ -202,6 +202,7 @@ class SrcFile(LinkedFile):
 
     nix_surplus_imports = nix_surplus_imports
     shorten_imports = shorten_imports
+    remove_copied_defs = remove_copied_defs
 
 class DstFile(LinkedFile):
     def validate_edits(self):
@@ -342,6 +343,7 @@ class FileLink:
         self.dst.backup(dry_run=dry_run)
 
     receive_imports = receive_imports
+    copy_src_defs_to_dst = copy_src_defs_to_dst
     transfer_mvdefs = transfer_mvdefs
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
