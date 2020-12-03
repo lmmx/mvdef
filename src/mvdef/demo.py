@@ -4,6 +4,7 @@ from .example.test.test_demo import test_report as demotest
 
 __all__ = ["main"]
 
+
 def main(mvdefs, dry_run=True, report=True):
     if report:
         print("--------------RUNNING mvdef.demo⠶main()--------------")

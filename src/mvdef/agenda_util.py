@@ -2,6 +2,7 @@ from .colours import colour_str as colour
 
 __all__ = ["pprint_agenda_desc", "pprint_agenda", "describe_def_name_dict"]
 
+
 def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):
     """
     Pretty print an edit agenda entry according to the agenda category.
@@ -42,7 +43,7 @@ def describe_def_name_dict(name, name_dict):
     with import statement indexes, line number, and import source path. These
     fields are instantiated within `get_def_names`, which in turn is assigned to
     the variable `mvdef_names` within `parse_mv_funcs`.
-    
+
     The output of `parse_mv_funcs` gets passed to `process_ast`, which iterates over
     the subsets within the output of `parse_mv_funcs`, at which stage it's
     necessary to produce a nice readable output, calling `describe_mvdef_name_dict`.

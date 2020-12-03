@@ -7,13 +7,15 @@ from .demo import main as run_demo
 from .cli import main as run_cli
 from .transfer import parse_transfer, FileLink
 
-argv = argv[1:] # omit the call to mvdef
+argv = argv[1:]  # omit the call to mvdef
+
 
 def demo():
     """
     mvdef -d pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -rb
     """
     run_demo(mvdefs=["pprint_dict"], dry_run=True, report=True)
+
 
 def main():
     DEBUGGING_MODE = False
@@ -40,7 +42,7 @@ def main():
     parser.add_argument("-d", "--dry-run", action="store_true")
 
     argcomplete.autocomplete(parser)
-    arg_l = parser.parse_args(argv) # pass explicitly to allow above debug override
+    arg_l = parser.parse_args(argv)  # pass explicitly to allow above debug override
 
     mvdefs = arg_l.mv
     dry_run = arg_l.dry_run
@@ -62,9 +64,12 @@ def main():
                 global dst_err_link
                 dst_err_link = link
                 raise link.dst.edits
-            print(f"An equivalent `link` to that computed in `run_cli({src_path=}, "
-            "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
-            "to the global namespace.", file=stderr)
+            print(
+                f"An equivalent `link` to that computed in `run_cli({src_path=}, "
+                "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
+                "to the global namespace.",
+                file=stderr,
+            )
         else:
             run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
     except Exception as e:
@@ -72,5 +77,7 @@ def main():
             print(f"{type(e).__name__} ⠶ {e}")
         else:
             raise e
+
+
 if __name__ == "__main__":
     main()

@@ -3,6 +3,7 @@ from ..demo_program import pprint_dict, print_some_url
 from os.path import sep
 from sys import stderr
 
+
 def test_pprint_dict(d={"foo": 1, "bar": 2}):
     pprint_output = pprint_dict(d, return_string=True)
     assert pprint_output == "{'foo': 1, 'bar': 2}"
@@ -28,6 +29,7 @@ def get_test_failures():
         msg = "Test failed: print_some_url"
         exceptions.append(AssertionError(msg))
     return exceptions if exceptions else None
+
 
 def list_failing_tests():
     """

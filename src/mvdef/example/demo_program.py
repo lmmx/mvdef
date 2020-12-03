@@ -9,10 +9,10 @@ from os.path import (
 
 
 def pprint_dict(d, return_string=True):
-    dict_pprint = ft.partial(pprint, sort_dicts = False)
-    dict_pprint(d) # trivial use of a partial function
+    dict_pprint = ft.partial(pprint, sort_dicts=False)
+    dict_pprint(d)  # trivial use of a partial function
     if return_string:
-        dict_pformat = ft.partial(pformat, sort_dicts = False)
+        dict_pformat = ft.partial(pformat, sort_dicts=False)
         return dict_pformat(d)
 
 

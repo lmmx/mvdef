@@ -2,7 +2,17 @@ from .io_util import terminal_whitespace
 from numpy import where
 from os import linesep as nl
 
-__all__ = ["get_defrange", "get_defstring", "append_def_to_file", "get_def_lines", "excise_def_from_file", "excise_def_lines", "get_borders", "overwrite_import"]
+__all__ = [
+    "get_defrange",
+    "get_defstring",
+    "append_def_to_file",
+    "get_def_lines",
+    "excise_def_from_file",
+    "excise_def_lines",
+    "get_borders",
+    "overwrite_import",
+]
+
 
 def get_defrange(def_node):
     """
@@ -63,7 +73,7 @@ def excise_def_from_file(def_node, py_path, return_def=True):
     If `return_def` is True, modify the file at `py_path` to remove the lines from
     `def_node.first_token.start[0]` to `def_node.last_token.end[0]`, and return the
     string read from the lines from `py_path` which contained it (i.e. a "cut" operation).
-    
+
     If `return_def` is False, modify the file at `py_path` to remove the lines that
     contain the function called `def_name`, return `None` (i.e. a delete operation).
     """

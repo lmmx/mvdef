@@ -7,7 +7,16 @@ from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports, imp_def_subsets
 from sys import stderr
 
-__all__ = ["retrieve_ast_agenda", "process_ast", "find_assigned_args", "get_extradef_names", "get_nondef_names", "get_def_names", "parse_mv_funcs"]
+__all__ = [
+    "retrieve_ast_agenda",
+    "process_ast",
+    "find_assigned_args",
+    "get_extradef_names",
+    "get_nondef_names",
+    "get_def_names",
+    "parse_mv_funcs",
+]
+
 
 def retrieve_ast_agenda(linkfile, transfers=None):
     """
@@ -26,10 +35,10 @@ def retrieve_ast_agenda(linkfile, transfers=None):
 
     mvdefs should be given if the file is the source of moved functions, and left
     empty (default: `None` which --> `[]`) if the file is the destination to move them to.
-    
+
     If `linkfile.report` is True, returns a string describing the changes
     to be made (if False, nothing is returned).
-    
+
     If backup is True, files will be changed in place by calling `mvdef.backup.backup`
     (obviously, be careful switching this setting off if report is True, as any
     changes made cannot be restored afterwards from this backup file).
@@ -39,7 +48,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
             fc = f.read()
             trunk = ast.parse(fc).body
 
-        #print("Next running process_ast from retrieve_ast_agenda")
+        # print("Next running process_ast from retrieve_ast_agenda")
         linkfile.edits = linkfile.process_ast(trunk, transfers)
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
@@ -53,7 +62,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
     else:
         msg = f"Can't move {linkfile.mvdefs=} from {linkfile.path=} – it doesn't exist!"
         raise ValueError(msg)
-    #print("Finished processing in retrieve_ast_agenda")
+    # print("Finished processing in retrieve_ast_agenda")
 
 
 def process_ast(linkfile, trunk, transfers=None):
@@ -74,7 +83,7 @@ def process_ast(linkfile, trunk, transfers=None):
       report:     Whether to print a report during the program (default: True)
 
     -------------------------------------------------------------------------------
-    
+
     First, given the lists of mvdef names (m_names) and non-mvdef names
     (nm_names), construct the subsets:
 
@@ -107,7 +116,9 @@ def process_ast(linkfile, trunk, transfers=None):
     agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
     agenda = {c: [] for c in agenda_categories}
     # mv_inames is mv_imports returned from imp_def_subsets, and so on
-    mv_imps, nm_imps, mu_imps = imp_def_subsets(m_names, nm_names, report=linkfile.report)
+    mv_imps, nm_imps, mu_imps = imp_def_subsets(
+        m_names, nm_names, report=linkfile.report
+    )
     # Iterate over each imported name, i, in the subset of import names to move
     for i in mv_imps:
         assert i in set().union(*[m_names.get(k) for k in m_names]), f"{i} not found"
@@ -375,7 +386,7 @@ def parse_mv_funcs(linkfile, trunk):
               may not be located there in the file for multi-line imports).
       import: The path of the import statement, which may contain multiple
               parts conjoined by `.` (e.g. `matplotlib.pyplot`)
-    
+
     I.e. the dictionary with entries accessed as `mvdef_names.get(m).get(k)`
     for `m` in `mvdefs` and `k` in the subset of AST-identified imported names
     in the function with  if f.name not in mvdefs name `m` in the list of
@@ -408,7 +419,9 @@ def parse_mv_funcs(linkfile, trunk):
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
     nomvdefs = [f.name for f in defs if f.name not in mvdefs]
-    nonmvdef_names = get_def_names(nomvdefs, defs, import_annos, extradefs, linkfile.report)
+    nonmvdef_names = get_def_names(
+        nomvdefs, defs, import_annos, extradefs, linkfile.report
+    )
     if report_VERBOSE:
         print("non-mvdef names:", file=stderr)
         pprint_def_names(nonmvdef_names)

@@ -1,7 +1,14 @@
 from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
 from .import_util import get_import_stmt_str
 
-__all__ = ["nix_surplus_imports", "shorten_imports", "receive_imports", "copy_src_defs_to_dst", "remove_copied_defs", "transfer_mvdefs"]
+__all__ = [
+    "nix_surplus_imports",
+    "shorten_imports",
+    "receive_imports",
+    "copy_src_defs_to_dst",
+    "remove_copied_defs",
+    "transfer_mvdefs",
+]
 
 
 def nix_surplus_imports(self, record_removed_import_n=False):
@@ -11,10 +18,10 @@ def nix_surplus_imports(self, record_removed_import_n=False):
     Bound as a method of `SrcFile`/`DstFile` classes, and used within `transfer_mvdefs`
     in step 1 part 1 (dst: removed_import_n) & step 5 part 1 (src: no removed_import_n).
     """
-    #print("Step 1: Remove imports marked dst⠶lose")
-    #print("Step 5: Remove imports marked src⠶{move,lose}")
+    # print("Step 1: Remove imports marked dst⠶lose")
+    # print("Step 5: Remove imports marked src⠶{move,lose}")
     self.removed_import_n = []
-    for rm_i in self.rm_agenda: # sets .rm_agenda
+    for rm_i in self.rm_agenda:  # sets .rm_agenda
         # Remove rm_i (imported name marked "lose" for dst, or marked "move"/"lose" for
         # dst) from the destination or source file using the line numbers of `self.trunk`,
         # computed as `dst.imports` by `get_imports`
@@ -63,7 +70,9 @@ def shorten_imports(self, record_removed_import_n=False):
     self.n_to_short = set([self.to_shorten.get(x).get("n") for x in self.to_shorten])
     # Group all names being shortened that are of a common import statement
     for n in self.n_to_short:
-        names_to_short = [x for x in self.to_shorten if self.to_shorten.get(x).get("n") == n]
+        names_to_short = [
+            x for x in self.to_shorten if self.to_shorten.get(x).get("n") == n
+        ]
         n_i_to_short = [self.to_shorten.get(a).get("n_i") for a in names_to_short]
         # Rewrite `self.imports[n]` with all aliases except those in `names_to_short`
         imp_module = self.modules[n]
@@ -90,14 +99,15 @@ def shorten_imports(self, record_removed_import_n=False):
             imp_stmt_str = get_import_stmt_str(shortened_alias_list, imp_module)
             overwrite_import(pre_imp, imp_stmt_str, self.lines)
 
+
 def receive_imports(link):
     """
     Receive imports marked in the `link.dst.rcv_agenda`.
 
     Bound as a method of the `FileLink` class, and used in step 2 of `transfer_mvdefs`.
     """
-    #print("Step 2: Add imports marked dst⠶{move,copy}")
-    for rc_i in link.dst.rcv_agenda: # sets rcv_agenda
+    # print("Step 2: Add imports marked dst⠶{move,copy}")
+    for rc_i in link.dst.rcv_agenda:  # sets rcv_agenda
         # Transfer mv_i into the destination file: receive "move" as "take"
         # Transfer cp_i into the destination file: receive "copy" as "echo"
         dst_info = link.dst.rcv_agenda.get(rc_i)
@@ -127,10 +137,14 @@ def receive_imports(link):
     for rc_i in link.dst.rcv_agenda:
         if link.dst.rcv_agenda.get(rc_i).get("extend") is not None:
             link.dst.to_extend.update({rc_i: link.dst.rcv_agenda.get(rc_i)})
-    link.dst.n_to_extend = set([link.dst.to_extend.get(x).get("n") for x in link.dst.to_extend])
+    link.dst.n_to_extend = set(
+        [link.dst.to_extend.get(x).get("n") for x in link.dst.to_extend]
+    )
     # Group all names being added as extensions that are of a common import statement
     for n in link.dst.n_to_extend:
-        names_to_extend = [x for x in link.dst.to_extend if link.dst.to_extend.get(x).get("n") == n]
+        names_to_extend = [
+            x for x in link.dst.to_extend if link.dst.to_extend.get(x).get("n") == n
+        ]
         # Rewrite `link.dst.imports[n]` to include the aliases in `names_to_extend`
         imp_module = link.dst.modules[n]
         pre_imp = link.dst.imports[n]
@@ -153,19 +167,27 @@ def receive_imports(link):
     #
     # Firstly, find the insertion point for new import statements by re-processing
     # the list of lines (default to start of file if it has no import statements)
-    link.dst.import_n = [n for n, _ in enumerate(link.dst.imports) if n not in link.dst.removed_import_n]
+    link.dst.import_n = [
+        n for n, _ in enumerate(link.dst.imports) if n not in link.dst.removed_import_n
+    ]
     # sets .imports ⇢ sets .trunk
     if len(link.dst.import_n) == 0:
         # Place any new import statements at the start of the file, as none exist yet
-        link.dst.last_imp_end = 0  # 1-based index logic: this means "before the first line"
+        link.dst.last_imp_end = (
+            0  # 1-based index logic: this means "before the first line"
+        )
     else:
         last_import = link.dst.imports[link.dst.import_n[-1]]
         link.dst.last_imp_end = last_import.last_token.end[0]  # Leave in 1-based index
-    link.dst._ins_imp_stmts = []  # Collect import statements to insert after the last one
+    # Collect import statements to insert after the last one
+    link.dst._ins_imp_stmts = []
     link.dst._seen_multimodule_imports = set()
     for rc_i in link.dst.rcv_agenda:
         dst_info = link.dst.rcv_agenda.get(rc_i)
-        if rc_i in link.dst._seen_multimodule_imports or dst_info.get("extend") is not None:
+        if (
+            rc_i in link.dst._seen_multimodule_imports
+            or dst_info.get("extend") is not None
+        ):
             continue
         imp_src = dst_info.get("import")
         imp_src_ending = imp_src.split(".")[-1]
@@ -180,7 +202,8 @@ def receive_imports(link):
         alias_list = [(rc_i_name, rc_i_as)]
         for r in link.dst.rcv_agenda:
             r_src_module = link.src.modules[link.dst.rcv_agenda.get(r).get("n")]
-            if r == rc_i or None in [rc_i_module, r_src_module]: continue
+            if r == rc_i or None in [rc_i_module, r_src_module]:
+                continue
             if r_src_module == rc_i_module:
                 link.dst._seen_multimodule_imports.add(r)
                 r_dst_info = link.dst.rcv_agenda.get(r)
@@ -198,8 +221,13 @@ def receive_imports(link):
         # Create the Import or ImportFrom statement
         imp_stmt_str = get_import_stmt_str(alias_list, rc_i_module)
         link.dst._ins_imp_stmts.append(imp_stmt_str)
-    link.dst.lines = link.dst.lines[:link.dst.last_imp_end] + link.dst._ins_imp_stmts + link.dst.lines[link.dst.last_imp_end:]
+    link.dst.lines = (
+        link.dst.lines[: link.dst.last_imp_end]
+        + link.dst._ins_imp_stmts
+        + link.dst.lines[link.dst.last_imp_end :]
+    )
     # sets dst.lines
+
 
 def copy_src_defs_to_dst(link):
     """
@@ -212,14 +240,16 @@ def copy_src_defs_to_dst(link):
 
     Bound as a method of the `FileLink` class, and used in step 3 of `transfer_mvdefs`.
     """
-    #print("Step 3: copy function definitions {mvdefs} from src to dst")
-    for mvdef in link.src.defs_to_move: # sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
+    # print("Step 3: copy function definitions {mvdefs} from src to dst")
+    # The following line sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
+    for mvdef in link.src.defs_to_move:
         # Transfer mvdef into the destination file: receive mvdef
         def_startline, def_endline = get_defrange(mvdef)
         deflines = link.src.lines[def_startline:def_endline]
         link.dst.lines += get_def_lines(deflines, link.dst.lines)
         if not link.dst.is_edited:
             link.dst.is_edited = True
+
 
 def remove_copied_defs(src):
     """
@@ -228,12 +258,15 @@ def remove_copied_defs(src):
 
     Bound as a method of the `SrcFile` class, and used within `transfer_mvdefs`.
     """
-    #print("Step 4: Remove function definitions {mvdefs} from src")
-    for mvdef in sorted(src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True):
+    # print("Step 4: Remove function definitions {mvdefs} from src")
+    for mvdef in sorted(
+        src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True
+    ):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def_lines(mvdef, src.lines)
         if not src.is_edited:
             src.is_edited = True
+
 
 def transfer_mvdefs(link):
     ## Firstly annotate ASTs with the asttokens library

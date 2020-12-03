@@ -1,5 +1,6 @@
 __all__ = ["backup"]
 
+
 def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
     """
     Given a filename, copy it to a backup before making changes and confirm success to

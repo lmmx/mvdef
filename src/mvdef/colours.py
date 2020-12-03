@@ -1,11 +1,19 @@
 from platform import system as platform
 
-__all__ = ["get_colour_codes", "get_effect_codes", "colour_str", "effect_str", "underline", "colour_effect_str"]
+__all__ = [
+    "get_colour_codes",
+    "get_effect_codes",
+    "colour_str",
+    "effect_str",
+    "underline",
+    "colour_effect_str",
+]
+
 
 def get_colour_codes(colour=None):
     """
     Return a dictionary of ANSI colour codes if no colour specified,
-    if a colour is given then check it is in the list of keys and 
+    if a colour is given then check it is in the list of keys and
     return a start and end ANSI code.
     """
     cols = [

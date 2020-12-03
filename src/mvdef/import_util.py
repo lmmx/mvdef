@@ -6,7 +6,17 @@ from .colours import colour_str as colour
 from os import linesep as nl
 from sys import stderr
 
-__all__ = ["get_import_stmt_str", "multilinify_import_stmt_str", "colour_imp_stmt", "get_imported_name_sources", "get_module_srcs", "count_imported_names", "annotate_imports", "imp_def_subsets"]
+__all__ = [
+    "get_import_stmt_str",
+    "multilinify_import_stmt_str",
+    "colour_imp_stmt",
+    "get_imported_name_sources",
+    "get_module_srcs",
+    "count_imported_names",
+    "annotate_imports",
+    "imp_def_subsets",
+]
+
 
 def get_import_stmt_str(alias_list, import_src=None, max_linechars=88):
     """
@@ -139,7 +149,7 @@ def colour_imp_stmt(imp_stmt, lines):
     For an import statement within an asttokens-annotated AST, which comes with
     all subnodes annotated with first and last token start/end positional information,
     access all the tokens corresponding to the import statement name(s) and asname(s).
-    
+
     Do this using a list of lines (i.e. a list of strings, each of which is a line),
     the subset of which corresponding to the import statement `imp_stmt` are given
     by its `first_token.start` and `last_token.end` attributes (in each case, the
@@ -374,7 +384,8 @@ def imp_def_subsets(mvdefs, nonmvdefs, report=True):
             f"mv_imports: {mv_imports}",
             f", nonmv_imports: {nonmv_imports}",
             f", mutual_imports: {mutual_imports}",
-            sep="", file=stderr
+            sep="",
+            file=stderr,
         )
     all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
     all_def_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])

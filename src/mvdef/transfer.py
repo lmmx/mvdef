@@ -2,13 +2,22 @@ from .ast_tokens import get_defs, get_imports, get_tree
 from .ast_util import retrieve_ast_agenda, process_ast
 from .backup import backup
 from .colours import colour_str as colour
-from .editor import nix_surplus_imports, shorten_imports, receive_imports, copy_src_defs_to_dst, remove_copied_defs, transfer_mvdefs
+from .editor import (
+    nix_surplus_imports,
+    shorten_imports,
+    receive_imports,
+    copy_src_defs_to_dst,
+    remove_copied_defs,
+    transfer_mvdefs,
+)
 from .import_util import count_imported_names, get_module_srcs
-#from .traceback_util import pprint_stack_trace
+
+# from .traceback_util import pprint_stack_trace
 from sys import stderr
 from traceback import print_stack, extract_stack, format_list
 
 __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
+
 
 class LinkedFile:
     def __init__(self, path, report, nochange, use_backup, mvdefs):
@@ -30,7 +39,7 @@ class LinkedFile:
     @edits.setter
     def edits(self, e):
         self._edits = e
-    
+
     @property
     def path(self):
         return self._p if hasattr(self, "_p") else None
@@ -76,12 +85,12 @@ class LinkedFile:
         return self.path.exists() and self.path.is_file()
 
     retrieve_ast_agenda = retrieve_ast_agenda
-    process_ast = process_ast # called by `retrieve_ast_agenda`
+    process_ast = process_ast  # called by `retrieve_ast_agenda`
 
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
         assert self.path, f"'{type(self).__name__}.path' not set"
-        self.retrieve_ast_agenda(transfers) # parse AST, populate the edits property
+        self.retrieve_ast_agenda(transfers)  # parse AST, populate the edits property
         self.validate_edits()
         if self.report:
             self.report_edits()
@@ -90,9 +99,9 @@ class LinkedFile:
     @property
     def trunk(self):
         if not hasattr(self, "_trunk"):
-            #print(f"SETTING TRUNK ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING TRUNK ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.set_trunk()
         return self._trunk
 
@@ -106,16 +115,16 @@ class LinkedFile:
     @property
     def lines(self):
         if not hasattr(self, "_lines"):
-            #print(f"SETTING LINES ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING LINES ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.readlines()
         return self._lines
 
     @lines.setter
     def lines(self, lines):
         self._lines = lines
-    
+
     def readlines(self):
         with open(self.path, "r") as f:
             self.lines = f.readlines()
@@ -123,9 +132,9 @@ class LinkedFile:
     @property
     def imports(self):
         if not hasattr(self, "_imports"):
-            #print(f"SETTING IMPORTS ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING IMPORTS ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.imports = get_imports(self.trunk, trunk_only=True)
         return self._imports
 
@@ -136,9 +145,9 @@ class LinkedFile:
     @property
     def import_counts(self):
         if not hasattr(self, "_import_counts"):
-            #print(f"SETTING IMPORT_COUNTS ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING IMPORT_COUNTS ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.import_counts = count_imported_names(self.imports)
         return self._import_counts
 
@@ -149,15 +158,16 @@ class LinkedFile:
     @property
     def modules(self):
         if not hasattr(self, "_modules"):
-            #print(f"SETTING MODULES ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING MODULES ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.modules = get_module_srcs(self.imports)
         return self._modules
 
     @modules.setter
     def modules(self, modules):
         self._modules = modules
+
 
 class SrcFile(LinkedFile):
     def validate_edits(self):
@@ -167,28 +177,28 @@ class SrcFile(LinkedFile):
     @property
     def defs_to_move(self):
         if not hasattr(self, "_defs_to_move"):
-            #print(f"SETTING DEFS_TO_MOVE ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING DEFS_TO_MOVE ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.defs_to_move = get_defs(self.trunk, self.mvdefs)
         return self._defs_to_move
-    
+
     @defs_to_move.setter
     def defs_to_move(self, defs):
         self._defs_to_move = defs
 
     def set_rm_agenda(self):
         "Merge lose/move lists of info dicts into dict of to-be-removed names/info"
-        self.rm_agenda = dict([[*a.items()][0] for a in (
-            self.edits.get("move") + self.edits.get("lose") 
-        )])
+        self.rm_agenda = dict(
+            [[*a.items()][0] for a in (self.edits.get("move") + self.edits.get("lose"))]
+        )
 
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            #print(f"SETTING RM_AGENDA ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING RM_AGENDA ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -204,9 +214,10 @@ class SrcFile(LinkedFile):
     shorten_imports = shorten_imports
     remove_copied_defs = remove_copied_defs
 
+
 class DstFile(LinkedFile):
     def validate_edits(self):
-        pass # it's valid for there not to be a destination file and hence no processed AST
+        pass  # it's valid for there not to be a destination file and hence no processed AST
 
     def ensure_exists(self):
         "Create the destination file if it doesn't exist, and if this isn't a dry run"
@@ -215,16 +226,16 @@ class DstFile(LinkedFile):
 
     def set_rcv_agenda(self):
         "Merge take/echo lists of info dicts into dict of received names/info"
-        self.rcv_agenda = dict([[*a.items()][0] for a in (
-            self.edits.get("take") + self.edits.get("echo") 
-        )])
+        self.rcv_agenda = dict(
+            [[*a.items()][0] for a in (self.edits.get("take") + self.edits.get("echo"))]
+        )
 
     @property
     def rcv_agenda(self):
         if not hasattr(self, "_rcv_agenda"):
-            #print(f"SETTING RCV_AGENDA ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING RCV_AGENDA ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.set_rcv_agenda()
         return self._rcv_agenda
 
@@ -239,9 +250,9 @@ class DstFile(LinkedFile):
     @property
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
-            #print(f"SETTING RM_AGENDA ON {self}")
-            #stack = extract_stack()
-            #pprint_stack_trace(stack)
+            # print(f"SETTING RM_AGENDA ON {self}")
+            # stack = extract_stack()
+            # pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -255,33 +266,39 @@ class DstFile(LinkedFile):
             print(f"⇒ Functions will move to {c_str}")
         else:
             # There is no destination file (it will be created)
-            print((f"⇒ Functions will move to {c_str}"
-                    " (it's being created from them)"), file=stderr)
+            print(
+                (f"⇒ Functions will move to {c_str} (it's being created from them)"),
+                file=stderr,
+            )
 
     nix_surplus_imports = nix_surplus_imports
     shorten_imports = shorten_imports
 
+
 class FileLink:
     def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
         self.mvdefs = mvdefs
-        #print("Setting link")
+        # print("Setting link")
         self.set_link(src_p, dst_p, report, nochange, use_backup)
         self.report = report
         self.nochange = nochange
-        self.test_func = test_func # will run the test_func to check it works
-        self.use_backup = use_backup # will create backups if True
+        self.test_func = test_func  # will run the test_func to check it works
+        self.use_backup = use_backup  # will create backups if True
         try:
-            #print("Running link.src.ast_parse()")
-            self.src.ast_parse() # populate self.src.edits
+            # print("Running link.src.ast_parse()")
+            self.src.ast_parse()  # populate self.src.edits
         except Exception as e:
             self.src.edits = e
             return
-        #print("Running link.dst.ensure_exists")
+        # print("Running link.dst.ensure_exists")
         self.dst.ensure_exists()
-        transfers = {"take": self.src.edits.get("move"), "echo": self.src.edits.get("copy")}
+        transfers = {
+            "take": self.src.edits.get("move"),
+            "echo": self.src.edits.get("copy"),
+        }
         try:
-            #print("Running link.dst.ast_parse(transfers)")
-            self.dst.ast_parse(transfers=transfers) # populate self.dst.edits
+            # print("Running link.dst.ast_parse(transfers)")
+            self.dst.ast_parse(transfers=transfers)  # populate self.dst.edits
         except Exception as e:
             self.dst.edits = e
             return
@@ -289,7 +306,7 @@ class FileLink:
     def set_link(self, src_p, dst_p, report, nochange, use_backup):
         self.src = SrcFile(src_p, report, nochange, use_backup, mvdefs=self.mvdefs)
         self.dst = DstFile(dst_p, report, nochange, use_backup, mvdefs=None)
-    
+
     @property
     def mvdefs(self):
         return self._mvdefs
@@ -334,7 +351,9 @@ class FileLink:
             try:
                 test_func.__call__()
             except AssertionError as e:
-                raise RuntimeError(f"! '{test_func.__name__}' failed, aborting mvdef execution.")
+                raise RuntimeError(
+                    f"! '{test_func.__name__}' failed, aborting mvdef execution."
+                )
         self._test_func = test_func
 
     def backup(self, dry_run):
@@ -345,6 +364,7 @@ class FileLink:
     receive_imports = receive_imports
     copy_src_defs_to_dst = copy_src_defs_to_dst
     transfer_mvdefs = transfer_mvdefs
+
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(
@@ -382,13 +402,13 @@ def parse_transfer(
         global dst_err_link
         dst_err_link = link
         raise link.dst.edits
-    #print("Finished checking agenda: no exceptions found")
+    # print("Finished checking agenda: no exceptions found")
     if nochange:
         print("DRY RUN: No files have been modified, skipping tests.", file=stderr)
         return link.src.edits, link.dst.edits
     else:
         # Edit the files (no longer pass imports or defs, will recompute AST)
-        #print("Transferring mvdefs over the link")
+        # print("Transferring mvdefs over the link")
         link.transfer_mvdefs()
     if test_func is None:
         return link.src.edits, link.dst.edits
@@ -398,8 +418,11 @@ def parse_transfer(
         except AssertionError as e:
             # TODO: implement backup restore
             print(
-                (f"! '{test_func.__name__}' failed, indicating changes made by mvdef broke the"
-                  "program (if backups used, mvdefs will now attempt to restore)"),
-            file=stderr)
+                (
+                    f"! '{test_func.__name__}' failed, indicating changes made by mvdef broke the"
+                    "program (if backups used, mvdefs will now attempt to restore)"
+                ),
+                file=stderr,
+            )
             raise RuntimeError(e)
     return link.src.edits, link.dst.edits
