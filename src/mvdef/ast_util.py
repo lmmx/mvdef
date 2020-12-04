@@ -252,8 +252,8 @@ def find_assigned_args(fd):
                             args_multi.append(y.id)
             else:
                 raise ValueError(f"{a.target} lacks the expected ast.Name statements")
-        elif type(a) is ast.ListComp:
-            # Handle implicit assignments within list comprehensions
+        elif type(a) in (ast.ListComp, ast.SetComp, ast.GeneratorExp, ast.DictComp):
+            # Handle implicit assignments within comprehensions
             for g in a.generators:
                 assert type(g) is ast.comprehension, f"{a} not ast.comprehension type"
                 if type(g.target) is ast.Name:
