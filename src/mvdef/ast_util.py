@@ -85,7 +85,6 @@ class EditItem(dict):
     def __init__(self, key, value):
         super().__init__({key: value})
 
-
 def process_ast(linkfile, trunk, transfers=None):
     """
     Handle the hand-off to dedicated functions to go from the mvdefs of functions
@@ -129,10 +128,8 @@ def process_ast(linkfile, trunk, transfers=None):
     describes how it would be possible to carry out the required edits at the level
     of Python file changes.
     """
-    # get_edit_agenda(linkfile.mvdef_names, linkfile.nonmvdef_names, rm_names, transfers, report=True)
     linkfile.parse_mv_funcs(trunk) # sets: (mvdef_names, nonmvdef_names, undef_names)
     # as linkfile.mvdef_names, linkfile.nonmvdef_names, linkfile.undef_names
-    #m_names, nm_names, rm_names = linkfile.mvdef_names, linkfile.nonmvdef_names, linkfile.undef_names
     imported_names = get_imported_name_sources(trunk, report=linkfile.report)
     if linkfile.report:
         print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
@@ -308,9 +305,8 @@ def get_extradef_names(extra_nodes):
 def get_nondef_names(unused, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
     # nondef_names is a dictionary keyed by the unused names (which were imported)
-    nondef_names = dict([(x, {}) for x in unused])
-    unknowns = [n for n in unused if n not in imp_name_lines]
-    if unknowns:
+    nondef_names = NameDict(unused)
+    if unknowns := [n for n in unused if n not in imp_name_lines]:
         raise ValueError(f"These names could not be sourced: {unknowns}")
     # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
     # These refs will lead to import statements being copied and/or moved
@@ -331,9 +327,43 @@ def get_nondef_names(unused, import_annos, report=True):
     return nondef_names
 
 
+class NameDict(dict):
+    def __init__(self, func_list):
+        super().__init__({f: {} for f in func_list})
+
+    def add_entry(self, def_name, def_name_info_dict):
+        if self.get(def_name):
+            raise ValueError(f"{self.get(def_name)=} already exists!")
+        self[def_name] = def_name_info_dict
+
+    def add_subentry(self, def_name, import_name, import_name_info_dict):
+        if self.get(def_name).get(import_name):
+            raise ValueError(f"{self.get(def_name).get(import_name)=} already exists!")
+        self[def_name][import_name] = import_name_info_dict
+
+
+class NameEntryDict(dict):
+    # can only be used for `get_def_names`, the others are not consistent enough
+    # even though they are dicts with the same keys...
+    def __init__(self, names, values=None, sort=False):
+        if values:
+            if sort:
+                raise NotImplementedError("Sorting not coded for key-val pairs")
+            super().__init__(dict(zip(names,values)))
+        else:
+            if type(names) is dict:
+                if sort:
+                    raise NotImplementedError("Sorting not coded for dicts")
+                super().__init__(names) # simples
+                return
+            elif sort:
+                names = sorted(names)
+            super().__init__({n: {} for n in names})
+
+
 def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True):
     imp_name_lines, imp_name_dicts = import_annos
-    def_names = dict([(x, {}) for x in func_list])
+    def_names = NameDict(func_list)
     for m in func_list:
         fd_names = set()
         if m not in [f.name for f in funcdefs]:
@@ -349,7 +379,7 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
                     if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
                         if n_id not in extradef_names:
                             fd_names.add(n_id)
-        def_names[m] = dict([(x, {}) for x in sorted(fd_names)])
+        def_names[m] = NameEntryDict(fd_names, sort=True)
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
         unknowns = [n for n in fd_names if n not in imp_name_lines]
@@ -365,12 +395,14 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
             assert n_i >= 0, f"Movable name {k} not found in import name dict"
             # Store index in case of multiple imports per import statement line
             mv_imp_refs.get(k)["n_i"] = n_i
-            fd_name_entry = def_names.get(m).get(k)
             n = mv_imp_refs.get(k).get("n")
-            fd_name_entry["n"] = n
-            fd_name_entry["n_i"] = n_i
-            fd_name_entry["line"] = mv_imp_refs.get(k).get("line")
-            fd_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
+            new_entry = NameEntryDict({
+                "n": n,
+                "n_i": n_i,
+                "line": mv_imp_refs.get(k).get("line"),
+                "import": list(imp_name_dicts[n].keys())[n_i]
+            })
+            def_names.add_subentry(m, k, new_entry)
     return def_names
 
 
