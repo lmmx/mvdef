@@ -49,7 +49,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
             trunk = ast.parse(fc).body
 
         # print("Next running process_ast from retrieve_ast_agenda")
-        linkfile.edits = linkfile.process_ast(trunk, transfers)
+        linkfile.process_ast(trunk, transfers) # sets linkfile.edits
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
         #
@@ -63,6 +63,27 @@ def retrieve_ast_agenda(linkfile, transfers=None):
         msg = f"Can't move {linkfile.mvdefs=} from {linkfile.path=} – it doesn't exist!"
         raise ValueError(msg)
     # print("Finished processing in retrieve_ast_agenda")
+
+
+class EditAgenda(dict):
+    def __init__(self):
+        super().__init__({c: [] for c in self.categories})
+
+    categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
+
+    def add_entry(self, category, key_val_pair):
+        if category not in self.categories:
+            raise ValueError(f"{category} is not a valid agenda category")
+        entry = EditItem(*key_val_pair)
+        self.get(category).append(entry)
+
+    def remove_entry(self, category, entry_value):
+        index_key = [list(x.values())[0] for x in self.get(category)].index(entry_value)
+        del self.get(category)[index_key]
+
+class EditItem(dict):
+    def __init__(self, key, value):
+        super().__init__({key: value})
 
 
 def process_ast(linkfile, trunk, transfers=None):
@@ -115,71 +136,65 @@ def process_ast(linkfile, trunk, transfers=None):
     imported_names = get_imported_name_sources(trunk, report=linkfile.report)
     if linkfile.report:
         print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
-    agenda_categories = ["move", "keep", "copy", "lose", "take", "echo", "stay"]
-    agenda = {c: [] for c in agenda_categories}
+    linkfile.edits = EditAgenda()
     linkfile.imp_def_subsets() # sets mv_imports, nonmv_imports, mutual_imports
     # Iterate over each imported name, i, in the subset of import names to move
-    # TODO: refactor the below into a class method on `LinkedFile`, to avoid repetition
     for i in linkfile.mv_imports:
         assert i in set().union(*[linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names]), f"{i} not found"
         i_dict = [linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names if i in linkfile.mvdef_names.get(k)][0].get(i)
-        agenda.get("move").append({i: i_dict})
+        linkfile.edits.add_entry(category="move", key_val_pair=(i, i_dict))
     for i in linkfile.nonmv_imports:
         assert i in set().union(*[linkfile.nonmvdef_names.get(k) for k in linkfile.nonmvdef_names]), f"{i} not found"
         i_dict = [linkfile.nonmvdef_names.get(k) for k in linkfile.nonmvdef_names if i in linkfile.nonmvdef_names.get(k)][0].get(i)
-        agenda.get("keep").append({i: i_dict})
+        linkfile.edits.add_entry(category="keep", key_val_pair=(i, i_dict))
     for i in linkfile.mutual_imports:
         assert i in set().union(*[linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names]), f"{i} not found"
         i_dict = [linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names if i in linkfile.mvdef_names.get(k)][0].get(i)
-        agenda.get("copy").append({i: i_dict})
+        linkfile.edits.add_entry(category="copy", key_val_pair=(i, i_dict))
     for i in linkfile.undef_names:
         i_dict = linkfile.undef_names.get(i)
-        agenda.get("lose").append({i: i_dict})
+        linkfile.edits.add_entry(category="lose", key_val_pair=(i, i_dict))
     if not transfers:
         # Returning without transfers if None (would also catch empty dict `{}`)
         if linkfile.report:
-            pprint_agenda(agenda)
-        return agenda
+            pprint_agenda(linkfile.edits)
+        return
     # elif linkfile.report:
-    #    if len(agenda.get("lose")) > 0:
+    #    if len(linkfile.edits.get("lose")) > 0:
     #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to ast_parse, and just needs reporting
     for i in transfers.get("take"):
         k, i_dict = list(i.items())[0]
-        agenda.get("take").append({k: i_dict})
+        linkfile.edits.add_entry(category="take", key_val_pair=(k, i_dict))
     for i in transfers.get("echo"):
         k, i_dict = list(i.items())[0]
-        agenda.get("echo").append({k: i_dict})
+        linkfile.edits.add_entry(category="echo", key_val_pair=(k, i_dict))
     # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
     # by any identically named imports marked 'take' or 'echo', change to 'stay'
-    for i in agenda.get("lose"):
+    for i in linkfile.edits.get("lose"):
         k, i_dict = list(i.items())[0]
         imp_src = i_dict.get("import")
-        if k in [list(x)[0] for x in agenda.get("take")]:
-            t_i_dict = [x for x in agenda.get("take") if k in x][0].get(k)
+        if k in [list(x)[0] for x in linkfile.edits.get("take")]:
+            t_i_dict = [x for x in linkfile.edits.get("take") if k in x][0].get(k)
             take_imp_src = t_i_dict.get("import")
             if imp_src != take_imp_src:
                 continue
             # Deduplicate 'lose'/'take' k: replace both with 'stay'
-            agenda.get("stay").append({k: i_dict})
-            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
-            del agenda.get("lose")[l_k_i]
-            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(t_i_dict)
-            del agenda.get("take")[t_k_i]
-        elif k in [list(x)[0] for x in agenda.get("echo")]:
-            e_i_dict = [x for x in agenda.get("echo") if k in x][0].get(k)
+            linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
+            linkfile.edits.remove_entry(category="lose", entry_value=i_dict)
+            linkfile.edits.remove_entry(category="take", entry_value=t_i_dict)
+        elif k in [list(x)[0] for x in linkfile.edits.get("echo")]:
+            e_i_dict = [x for x in linkfile.edits.get("echo") if k in x][0].get(k)
             echo_imp_src = e_i_dict.get("import")
             if imp_src != echo_imp_src:
                 continue
             # Deduplicate 'lose'/'echo' k: replace both with 'stay'
-            agenda.get("stay").append({k: i_dict})
-            l_k_i = [list(x.values())[0] for x in agenda.get("lose")].index(i_dict)
-            del agenda.get("lose")[l_k_i]
-            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(e_i_dict)
-            del agenda.get("echo")[e_k_i]
+            linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
+            linkfile.edits.remove_entry(category="lose", entry_value=i_dict)
+            linkfile.edits.remove_entry(category="echo", entry_value=e_i_dict)
     # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
     # out by any identically named imports already present, change to 'stay'
-    for i in agenda.get("take"):
+    for i in linkfile.edits.get("take"):
         k, i_dict = list(i.items())[0]
         take_imp_src = i_dict.get("import")
         if k in imported_names:
@@ -195,10 +210,9 @@ def process_ast(linkfile, trunk, transfers=None):
             # Otherwise there is simply a duplicate import statement, so the demand
             # to 'take' the imported name is already fulfilled.
             # Replace unnecessary 'take' with 'stay'
-            agenda.get("stay").append({k: i_dict})
-            t_k_i = [list(x.values())[0] for x in agenda.get("take")].index(i_dict)
-            del agenda.get("take")[t_k_i]
-    for i in agenda.get("echo"):
+            linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
+            linkfile.edits.remove_entry(category="take", entry_value=i_dict)
+    for i in linkfile.edits.get("echo"):
         k, i_dict = list(i.items())[0]
         echo_imp_src = i_dict.get("import")
         if k in imported_names:
@@ -213,13 +227,12 @@ def process_ast(linkfile, trunk, transfers=None):
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
             # to 'echo' the imported name is already fulfilled.
-            # Replace unnecessary 'take' with 'stay'
-            agenda.get("stay").append({k: i_dict})
-            e_k_i = [list(x.values())[0] for x in agenda.get("echo")].index(i_dict)
-            del agenda.get("echo")[e_k_i]
+            # Replace unnecessary 'echo' with 'stay'
+            linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
+            linkfile.edits.remove_entry(category="echo", entry_value=i_dict)
     if linkfile.report:
-        pprint_agenda(agenda)
-    return agenda
+        pprint_agenda(linkfile.edits)
+    return
 
 
 def find_assigned_args(fd):
