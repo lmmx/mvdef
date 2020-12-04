@@ -361,6 +361,36 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
     return def_names
 
 
+class FuncDef(ast.FunctionDef):
+    """
+    Wrap `ast.FunctionDef` to permit recursive search for inner functions upon
+    creation in `parse_mv_funcs`.
+    """
+    def __init__(self, funcdef):
+        super().__init__(**vars(funcdef))
+        self.check_for_inner_funcs()
+
+    def check_for_inner_funcs(self):
+        if not hasattr(self, "_inner_func_idx"):
+            self.inner_func_idx = [i for i, n in enumerate(self.body) if isinstance(n, ast.FunctionDef)]
+       
+    @property
+    def has_inner_func(self):
+        return self.inner_func_idx is not []
+
+    @property
+    def inner_func_idx(self):
+        return self._inner_func_idx
+
+    @inner_func_idx.setter
+    def inner_func_idx(self, idx):
+        self._inner_func_idx = idx
+
+    @property
+    def inner_funcs(self):
+        return [self.body[i] for i in self.inner_func_idx]
+
+
 def parse_mv_funcs(linkfile, trunk):
     """
     mvdefs:  the list of functions to move (string list of function names)
@@ -404,7 +434,7 @@ def parse_mv_funcs(linkfile, trunk):
     report_VERBOSE = False  # Silencing debug print statements
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
-    defs = [n for n in trunk if type(n) == ast.FunctionDef]
+    defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
     # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
     # Omit names used outside of function definitions so as not to remove them
