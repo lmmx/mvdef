@@ -362,7 +362,7 @@ def annotate_imports(imports, report=True):
     return imp_name_linedict, imp_name_dict_list
 
 
-def imp_def_subsets(mvdefs, nonmvdefs, report=True):
+def imp_def_subsets(linkfile):
     """
     Given the list of mvdef_names and nonmvdef_names, construct the subsets:
       mv_imports:      imported names used by the functions to move,
@@ -370,24 +370,27 @@ def imp_def_subsets(mvdefs, nonmvdefs, report=True):
       mutual_imports:  imported names used by both the functions to move and
                         the functions not to move
     """
+    #report = linkfile.report
     report_VERBOSE = False  # Silencing debug print statements
-    mvdefs_names = set().union(*[list(mvdefs[x]) for x in mvdefs])
-    nonmvdefs_names = set().union(*[list(nonmvdefs[x]) for x in nonmvdefs])
-    mv_imports = mvdefs_names - nonmvdefs_names
-    nonmv_imports = nonmvdefs_names - mvdefs_names
-    mutual_imports = mvdefs_names.intersection(nonmvdefs_names)
-    assert mv_imports.isdisjoint(nonmv_imports), "mv/nonmv_imports intersect!"
-    assert mv_imports.isdisjoint(mutual_imports), "mv/mutual imports intersect!"
-    assert nonmv_imports.isdisjoint(mutual_imports), "nonmv/mutual imports intersect!"
+    mvdef_dicts = linkfile.mvdef_names # rename to emphasise that these are dicts
+    mvdef_names = set().union(*[list(mvdef_dicts[x]) for x in mvdef_dicts]) # funcdef names
+    nonmvdef_dicts = linkfile.nonmvdef_names # (as for mvdef_dicts)
+    nonmvdef_names = set().union(*[list(nonmvdef_dicts[x]) for x in nonmvdef_dicts])
+    linkfile.mv_imports = mvdef_names - nonmvdef_names
+    linkfile.nonmv_imports = nonmvdef_names - mvdef_names
+    linkfile.mutual_imports = mvdef_names.intersection(nonmvdef_names)
+    assert linkfile.mv_imports.isdisjoint(linkfile.nonmv_imports), "mv/nonmv_imports intersect!"
+    assert linkfile.mv_imports.isdisjoint(linkfile.mutual_imports), "mv/mutual imports intersect!"
+    assert linkfile.nonmv_imports.isdisjoint(linkfile.mutual_imports), "nonmv/mutual imports intersect!"
     if report_VERBOSE:
         print(
-            f"mv_imports: {mv_imports}",
-            f", nonmv_imports: {nonmv_imports}",
-            f", mutual_imports: {mutual_imports}",
+            f"mv_imports: {linkfile.mv_imports}",
+            f", nonmv_imports: {linkfile.nonmv_imports}",
+            f", mutual_imports: {linkfile.mutual_imports}",
             sep="",
             file=stderr,
         )
-    all_defnames = set().union(*[mvdefs_names, nonmvdefs_names])
-    all_def_imports = set().union(*[mv_imports, nonmv_imports, mutual_imports])
+    all_defnames = set().union(*[mvdef_names, nonmvdef_names])
+    all_def_imports = set().union(*[linkfile.mv_imports, linkfile.nonmv_imports, linkfile.mutual_imports])
     assert sorted(all_defnames) == sorted(all_def_imports), "Defnames =/= import names"
-    return mv_imports, nonmv_imports, mutual_imports
+    return
