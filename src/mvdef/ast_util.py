@@ -296,7 +296,7 @@ def get_extradef_names(extra_nodes):
     """
     extradef_names = set()
     for node in extra_nodes:
-        node_names = [x.id for x in list(ast.walk(node)) if type(x) is ast.Name]
+        node_names = [x.id for x in ast.walk(node) if type(x) is ast.Name]
         for n in node_names:
             extradef_names.add(n)
     return extradef_names
@@ -304,26 +304,26 @@ def get_extradef_names(extra_nodes):
 
 def get_nondef_names(unused, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
-    # nondef_names is a dictionary keyed by the unused names (which were imported)
-    nondef_names = NameDict(unused)
+    nondef_names = NameDict(unused) # dict keyed by the unused names
     if unknowns := [n for n in unused if n not in imp_name_lines]:
         raise ValueError(f"These names could not be sourced: {unknowns}")
     # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
     # These refs will lead to import statements being copied and/or moved
-    uu_imp_refs = dict([[n, imp_name_lines.get(n)] for n in unused])
-    for k in uu_imp_refs:
+    uu_imp_refs = {n: imp_name_lines.get(n) for n in unused}
+    for k in uu_imp_refs: # iterate over the unused imported names/asnames
         n = uu_imp_refs.get(k).get("n")
         d = imp_name_dicts[n]
-        n_i = [list(d.keys()).index(x) for x in d if d[x] == k][0]
+        n_i = next(i for i,x in enumerate(d.values()) if x == k)
         assert n_i >= 0, f"Movable name {k} not found in import name dict"
         # Store index in case of multiple imports per import statement line
         uu_imp_refs.get(k)["n_i"] = n_i
-        uu_name_entry = nondef_names.get(k)
-        n = uu_imp_refs.get(k).get("n")
-        uu_name_entry["n"] = n
-        uu_name_entry["n_i"] = n_i
-        uu_name_entry["line"] = uu_imp_refs.get(k).get("line")
-        uu_name_entry["import"] = list(imp_name_dicts[n].keys())[n_i]
+        new_entry = {
+            "n": uu_imp_refs.get(k).get("n"),
+            "n_i": n_i,
+            "line": uu_imp_refs.get(k).get("line"),
+            "import": [*imp_name_dicts[n]][n_i],
+        }
+        nondef_names.add_entry(k, new_entry)
     return nondef_names
 
 
@@ -373,7 +373,7 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
         fd_params = [a.arg for a in fd.args.args]
         assigned_args = find_assigned_args(fd)
         for ast_statement in fd.body:
-            for node in list(ast.walk(ast_statement)):
+            for node in ast.walk(ast_statement):
                 if type(node) == ast.Name:
                     n_id = node.id
                     if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
