@@ -163,18 +163,18 @@ def process_ast(linkfile, trunk, transfers=None):
     #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to ast_parse, and just needs reporting
     for i in transfers.get("take"):
-        k, i_dict = list(i.items())[0]
+        k, i_dict = next(iter((i.items())))
         linkfile.edits.add_entry(category="take", key_val_pair=(k, i_dict))
     for i in transfers.get("echo"):
-        k, i_dict = list(i.items())[0]
+        k, i_dict = next(iter((i.items())))
         linkfile.edits.add_entry(category="echo", key_val_pair=(k, i_dict))
     # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
     # by any identically named imports marked 'take' or 'echo', change to 'stay'
     for i in linkfile.edits.get("lose"):
-        k, i_dict = list(i.items())[0]
+        k, i_dict = next(iter((i.items())))
         imp_src = i_dict.get("import")
         if k in [list(x)[0] for x in linkfile.edits.get("take")]:
-            t_i_dict = [x for x in linkfile.edits.get("take") if k in x][0].get(k)
+            t_i_dict = next(x.get(k) for x in linkfile.edits.get("take") if k in x)
             take_imp_src = t_i_dict.get("import")
             if imp_src != take_imp_src:
                 continue
@@ -183,7 +183,7 @@ def process_ast(linkfile, trunk, transfers=None):
             linkfile.edits.remove_entry(category="lose", entry_value=i_dict)
             linkfile.edits.remove_entry(category="take", entry_value=t_i_dict)
         elif k in [list(x)[0] for x in linkfile.edits.get("echo")]:
-            e_i_dict = [x for x in linkfile.edits.get("echo") if k in x][0].get(k)
+            e_i_dict = next(x.get(k) for x in linkfile.edits.get("echo") if k in x)
             echo_imp_src = e_i_dict.get("import")
             if imp_src != echo_imp_src:
                 continue
@@ -194,7 +194,7 @@ def process_ast(linkfile, trunk, transfers=None):
     # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
     # out by any identically named imports already present, change to 'stay'
     for i in linkfile.edits.get("take"):
-        k, i_dict = list(i.items())[0]
+        k, i_dict = next(iter((i.items())))
         take_imp_src = i_dict.get("import")
         if k in imported_names:
             # Check the import source and asnames match
@@ -212,7 +212,7 @@ def process_ast(linkfile, trunk, transfers=None):
             linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
             linkfile.edits.remove_entry(category="take", entry_value=i_dict)
     for i in linkfile.edits.get("echo"):
-        k, i_dict = list(i.items())[0]
+        k, i_dict = next(iter((i.items())))
         echo_imp_src = i_dict.get("import")
         if k in imported_names:
             # Check the import source and asnames match
@@ -393,7 +393,7 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
         for k in mv_imp_refs:
             n = mv_imp_refs.get(k).get("n")
             d = imp_name_dicts[n]
-            n_i = [list(d.keys()).index(x) for x in d if d[x] == k][0]
+            n_i = next(list(d.keys()).index(x) for x in d if d[x] == k)
             assert n_i >= 0, f"Movable name {k} not found in import name dict"
             # Store index in case of multiple imports per import statement line
             mv_imp_refs.get(k)["n_i"] = n_i
