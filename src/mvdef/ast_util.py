@@ -78,7 +78,9 @@ class EditAgenda(dict):
         self.get(category).append(entry)
 
     def remove_entry(self, category, entry_value):
-        index_key = [next(iter(x.values())) for x in self.get(category)].index(entry_value)
+        index_key = [next(iter(x.values())) for x in self.get(category)].index(
+            entry_value
+        )
         del self.get(category)[index_key]
 
     def add_imports(self, imports, category, names):
@@ -91,6 +93,7 @@ class EditAgenda(dict):
 class EditItem(dict):
     def __init__(self, key, value):
         super().__init__({key: value})
+
 
 def process_ast(linkfile, trunk, transfers=None):
     """

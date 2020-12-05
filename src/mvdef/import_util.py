@@ -267,7 +267,7 @@ def get_imported_name_sources(trunk, report=True):
     for ld in imp_name_lines:
         ld_n = imp_name_lines.get(ld).get("n")
         line_n = imp_name_dict_list[ld_n]
-        imp_src = [x for x in list(line_n.items()) if x[1] == ld][0]
+        imp_src = next(x for x in [*line_n.items()] if x[1] == ld)
         imported_names[ld] = imp_src
     return imported_names
 

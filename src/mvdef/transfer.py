@@ -189,11 +189,21 @@ class SrcFile(LinkedFile):
     def defs_to_move(self, defs):
         self._defs_to_move = defs
 
+    def get_merged_dicts(self, categories):
+        """
+        Return the first item in each agenda category (without list expanding).
+        Used when we no longer need to keep a record of a name's annotation.
+        """
+        return dict(
+            [
+                next(iter(a.items()))
+                for a in reduce(list.__add__, map(self.edits.get, categories))
+            ]
+        )
+
     def set_rm_agenda(self):
         "Merge lose/move lists of info dicts into dict of to-be-removed names/info"
-        self.rm_agenda = dict(
-            [[*a.items()][0] for a in (self.edits.get("move") + self.edits.get("lose"))]
-        )
+        self.rm_agenda = self.get_merged_dicts(["move", "lose"])
 
     @property
     def rm_agenda(self):
@@ -228,9 +238,7 @@ class DstFile(LinkedFile):
 
     def set_rcv_agenda(self):
         "Merge take/echo lists of info dicts into dict of received names/info"
-        self.rcv_agenda = dict(
-            [[*a.items()][0] for a in (self.edits.get("take") + self.edits.get("echo"))]
-        )
+        self.rcv_agenda = self.get_merged_dicts(["take", "echo"])
 
     @property
     def rcv_agenda(self):
@@ -247,7 +255,7 @@ class DstFile(LinkedFile):
 
     def set_rm_agenda(self):
         "Convert lose list of info dicts into dict of to-be-removed names/info"
-        self.rm_agenda = dict([[*a.items()][0] for a in self.edits.get("lose")])
+        self.rm_agenda = get_merged_dicts(["lose"])
 
     @property
     def rm_agenda(self):
