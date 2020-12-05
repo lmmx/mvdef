@@ -11,8 +11,8 @@ __all__ = [
     "retrieve_ast_agenda",
     "process_ast",
     "find_assigned_args",
-    "get_extradef_names",
-    "get_nondef_names",
+    "set_extradef_names",
+    "set_nondef_names",
     "get_def_names",
     "parse_mv_funcs",
 ]
@@ -290,23 +290,24 @@ def find_assigned_args(fd):
     return assigned_args
 
 
-def get_extradef_names(extra_nodes):
+def set_extradef_names(linkfile, extra_nodes):
     """
     Return the names used in the AST trunk nodes which are outside of both function
     definitions and import statements, so as to distinguish the unused names from
     those which are just used outside of function definitions.
     """
-    extradef_names = set()
+    linkfile.extradef_names = set()
     for node in extra_nodes:
         node_names = [x.id for x in ast.walk(node) if type(x) is ast.Name]
         for n in node_names:
-            extradef_names.add(n)
-    return extradef_names
+            linkfile.extradef_names.add(n)
+    return
 
 
-def get_nondef_names(unused, import_annos, report=True):
+def set_nondef_names(linkfile, unused, import_annos):
+    report = linkfile.report
     imp_name_lines, imp_name_dicts = import_annos
-    nondef_names = NameDict(unused)  # dict keyed by the unused names
+    linkfile.nondef_names = NameDict(unused)  # dict keyed by the unused names
     if unknowns := [n for n in unused if n not in imp_name_lines]:
         raise ValueError(f"These names could not be sourced: {unknowns}")
     # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
@@ -325,8 +326,8 @@ def get_nondef_names(unused, import_annos, report=True):
             "line": uu_imp_refs.get(k).get("line"),
             "import": [*imp_name_dicts[n]][n_i],
         }
-        nondef_names.add_entry(k, new_entry)
-    return nondef_names
+        linkfile.nondef_names.add_entry(k, new_entry)
+    return
 
 
 class NameDict(dict):
@@ -363,15 +364,15 @@ class NameEntryDict(dict):
             super().__init__({n: {} for n in names})
 
 
-def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True):
+def get_def_names(linkfile, func_list, import_annos):
     imp_name_lines, imp_name_dicts = import_annos
     def_names = NameDict(func_list)
     for m in func_list:
         fd_names = set()
-        if m not in [f.name for f in funcdefs]:
+        if m not in [f.name for f in linkfile.ast_defs]:
             raise NameError(f"No function '{m}' is defined")
-        fd = funcdefs[[f.name for f in funcdefs].index(m)]
-        fd_ids = [f.name for f in funcdefs]
+        fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]
+        fd_ids = [f.name for f in linkfile.ast_defs]
         fd_params = [a.arg for a in fd.args.args]
         assigned_args = find_assigned_args(fd)
         for ast_statement in fd.body:
@@ -379,7 +380,7 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
                 if type(node) == ast.Name:
                     n_id = node.id
                     if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
-                        if n_id not in extradef_names:
+                        if n_id not in linkfile.extradef_names:
                             fd_names.add(n_id)
         def_names[m] = NameEntryDict(fd_names, sort=True)
         # All names successfully found and can finish if remaining names are
@@ -502,7 +503,7 @@ def parse_mv_funcs(linkfile, trunk):
     For the names that were imported but not used, the dictionary is not keyed
     by function (as there are no associated functions), and instead the entries
     are accessed as `nondef_names.get(k)` for `k` in `unused_names`. This access
-    is handed off to the helper function `get_nondef_names`.
+    is handed off to the helper function `set_nondef_names`.
     """
     mvdefs = linkfile.mvdefs
     if mvdefs is None:
@@ -511,25 +512,22 @@ def parse_mv_funcs(linkfile, trunk):
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
     defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
+    linkfile.ast_defs = defs
     # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
     # Omit names used outside of function definitions so as not to remove them
-    extradefs = get_extradef_names(extra)
+    linkfile.set_extradef_names(extra) # sets extradef_names
     if report_VERBOSE:
         print("extra:", extra, file=stderr)
     import_annos = annotate_imports(imports, report=linkfile.report)
-    linkfile.mvdef_names = get_def_names(
-        mvdefs, defs, import_annos, extradefs, linkfile.report
-    )
+    linkfile.mvdef_names = linkfile.get_def_names(mvdefs, import_annos)
     if report_VERBOSE:
         print("mvdef names:", file=stderr)
         pprint_def_names(linkfile.mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
-    nomvdefs = [f.name for f in defs if f.name not in mvdefs]
-    linkfile.nonmvdef_names = get_def_names(
-        nomvdefs, defs, import_annos, extradefs, linkfile.report
-    )
+    nomvdefs = [f.name for f in linkfile.ast_defs if f.name not in mvdefs]
+    linkfile.nonmvdef_names = linkfile.get_def_names(nomvdefs, import_annos)
     if report_VERBOSE:
         print("non-mvdef names:", file=stderr)
         pprint_def_names(nonmvdef_names)
@@ -542,11 +540,8 @@ def parse_mv_funcs(linkfile, trunk):
         *[linkfile.nonmvdef_names.get(x).keys() for x in linkfile.nonmvdef_names]
     )
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
-    nondefs = get_nondef_names(unused_names, import_annos, report=linkfile.report)
-    # linkfile.undef_names contains only those names that are imported but never used
-    linkfile.undef_names = dict(
-        [(x, nondefs.get(x)) for x in nondefs if x not in extradefs]
-    )
+    linkfile.set_nondef_names(unused_names, import_annos) # sets nondef_names
+    linkfile.set_undef_names() # set undef_names using nondef_names
     if report_VERBOSE:
         print("non-def names (imported but not used in any function def):")
         pprint_def_names(nondefs, no_funcdef_list=True)

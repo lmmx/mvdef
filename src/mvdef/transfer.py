@@ -1,5 +1,12 @@
 from .ast_tokens import get_defs, get_imports, get_tree
-from .ast_util import retrieve_ast_agenda, process_ast, parse_mv_funcs
+from .ast_util import (
+    retrieve_ast_agenda,
+    process_ast,
+    parse_mv_funcs,
+    get_def_names,
+    set_nondef_names,
+    set_extradef_names,
+)
 from .backup import backup
 from .colours import colour_str as colour
 from .editor import (
@@ -88,6 +95,30 @@ class LinkedFile:
     process_ast = process_ast  # called by `retrieve_ast_agenda`
     parse_mv_funcs = parse_mv_funcs  # called by `process_ast`
     imp_def_subsets = imp_def_subsets  # called by `process_ast`
+    get_def_names = get_def_names
+    set_nondef_names = set_nondef_names
+    set_extradef_names = set_extradef_names
+
+    @property
+    def undef_names(self):
+        "undef_names contains only those names that are imported but never used"
+        if not hasattr(self, "nondef_names"):
+            raise ValueError("Cannot use undef_names before setting nondef_names")
+        elif not hasattr(self, "_undef_names"):
+            self.set_undef_names()
+        else:
+            return self._undef_names
+
+    @undef_names.setter
+    def undef_names(self, undef_names):
+        self._undef_names = undef_names
+
+    def set_undef_names(self):
+        self.undef_names = {
+            x: self.nondef_names.get(x)
+            for x in self.nondef_names
+            if x not in self.extradef_names
+        }
 
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
@@ -197,7 +228,7 @@ class SrcFile(LinkedFile):
         return dict(
             [
                 next(iter(a.items()))
-                for a in reduce(list.__add__, map(self.edits.get, categories))
+                for a in [*chain.from_iterable(map(self.edits.get, categories))]
             ]
         )
 
