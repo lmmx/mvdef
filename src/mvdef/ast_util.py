@@ -381,10 +381,22 @@ def get_def_names(linkfile, func_list, import_annos):
     all_excluded_names = [*linkfile.extradef_names, *linkfile.intradef_names]
     for m in func_list:
         fd_names = set()
-        if m not in [f.name for f in linkfile.ast_defs]:
+        if ":" in m:
+            # colon indicates inner function
+            innerfunc_paths = {f.path: f for f in linkfile.intradef_names.values()}
+            if m not in innerfunc_paths:
+                raise NameError(f"No inner function '{m}' is defined")
+            else:
+                fd = next((p, innerfunc_paths.get(p)) for p in innerfunc_paths if m == p)[1]
+                fd_ids = [f.name for f in linkfile.ast_defs]
+                #print(f"{fd=}")
+                #raise NotImplementedError("WIP")
+        elif m in [f.name for f in linkfile.ast_defs]:
+            fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]
+            #print(f"{fd=}")
+            fd_ids = [f.name for f in linkfile.ast_defs]
+        elif m not in [f.name for f in linkfile.ast_defs]:
             raise NameError(f"No function '{m}' is defined")
-        fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]
-        fd_ids = [f.name for f in linkfile.ast_defs]
         fd_params = [a.arg for a in fd.args.args]
         assigned_args = find_assigned_args(fd)
         for ast_statement in fd.body:
@@ -429,7 +441,7 @@ class FuncDef(ast.FunctionDef):
     creation in `parse_mv_funcs`.
     """
 
-    def __init__(self, funcdef):
+    def __init__(self, funcdef, is_inner=False):
         super().__init__(**vars(funcdef))
         self.check_for_inner_funcs()
 
@@ -455,7 +467,7 @@ class FuncDef(ast.FunctionDef):
 
     def set_inner_funcs(self):
         self.inner_funcs = [
-            InnerFuncDef(self.body[i], self.name, (self.lineno, self.end_lineno))
+            InnerFuncDef(self.body[i], self.name, self.path, (self.lineno, self.end_lineno))
             for i in self.inner_func_idx
         ]
 
@@ -467,6 +479,10 @@ class FuncDef(ast.FunctionDef):
     def inner_funcs(self, funcdefs):
         self._inner_funcs = funcdefs
 
+    @property
+    def path(self):
+        return self.name
+
 
 class InnerFuncDef(FuncDef):
     """
@@ -474,10 +490,15 @@ class InnerFuncDef(FuncDef):
     parent funcdef's line range on an inner function.
     """
 
-    def __init__(self, funcdef, parent_def_name, parent_def_line_range):
-        super().__init__(funcdef)
+    def __init__(self, funcdef, parent_def_name, parent_path, parent_def_line_range):
+        super().__init__(funcdef, is_inner=True)
         self.parent_def_name = parent_def_name
+        self.parent_path = parent_path
         self.parent_def_line_range = parent_def_line_range
+
+    @property
+    def path(self):
+        return f"{self.parent_path}:{self.name}"
 
 
 def parse_mv_funcs(linkfile, trunk):
