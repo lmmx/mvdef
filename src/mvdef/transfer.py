@@ -19,6 +19,7 @@ from .editor import (
     transfer_mvdefs,
 )
 from .import_util import count_imported_names, get_module_srcs, imp_def_subsets
+from itertools import chain
 
 # from .traceback_util import pprint_stack_trace
 from sys import stderr
@@ -203,6 +204,18 @@ class LinkedFile:
     def modules(self, modules):
         self._modules = modules
 
+    def get_merged_dicts(self, categories):
+        """
+        Return the first item in each agenda category (without list expanding).
+        Used when we no longer need to keep a record of a name's annotation.
+        """
+        return dict(
+            [
+                next(iter(a.items()))
+                for a in [*chain.from_iterable(map(self.edits.get, categories))]
+            ]
+        )
+
 
 class SrcFile(LinkedFile):
     def validate_edits(self):
@@ -221,18 +234,6 @@ class SrcFile(LinkedFile):
     @defs_to_move.setter
     def defs_to_move(self, defs):
         self._defs_to_move = defs
-
-    def get_merged_dicts(self, categories):
-        """
-        Return the first item in each agenda category (without list expanding).
-        Used when we no longer need to keep a record of a name's annotation.
-        """
-        return dict(
-            [
-                next(iter(a.items()))
-                for a in [*chain.from_iterable(map(self.edits.get, categories))]
-            ]
-        )
 
     def set_rm_agenda(self):
         "Merge lose/move lists of info dicts into dict of to-be-removed names/info"
@@ -288,7 +289,7 @@ class DstFile(LinkedFile):
 
     def set_rm_agenda(self):
         "Convert lose list of info dicts into dict of to-be-removed names/info"
-        self.rm_agenda = get_merged_dicts(["lose"])
+        self.rm_agenda = self.get_merged_dicts(["lose"])
 
     @property
     def rm_agenda(self):
