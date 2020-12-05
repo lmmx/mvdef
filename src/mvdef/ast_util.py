@@ -6,11 +6,13 @@ from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
 from sys import stderr
+from itertools import chain
 
 __all__ = [
     "retrieve_ast_agenda",
     "process_ast",
     "find_assigned_args",
+    "set_intradef_names",
     "set_extradef_names",
     "set_nondef_names",
     "get_def_names",
@@ -136,10 +138,9 @@ def process_ast(linkfile, trunk, transfers=None):
 
     For clarity, note that this function does **not** edit anything itself, it just
     describes how it would be possible to carry out the required edits at the level
-    of Python file changes.
+    of Python file changes. As such it is computed even on a 'dry run'.
     """
-    linkfile.parse_mv_funcs(trunk)  # sets: (mvdef_names, nonmvdef_names, undef_names)
-    # as linkfile.mvdef_names, linkfile.nonmvdef_names, linkfile.undef_names
+    linkfile.parse_mv_funcs(trunk)  # sets ast_defs, {mv,nonmv,extra,un}def_names
     imported_names = get_imported_name_sources(trunk, report=linkfile.report)
     if linkfile.report:
         print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
@@ -290,6 +291,11 @@ def find_assigned_args(fd):
     return assigned_args
 
 
+def set_intradef_names(linkfile, intra_nodes):
+    "Record inner functions."
+    linkfile.intradef_names = {i.name: i for i in intra_nodes}
+
+
 def set_extradef_names(linkfile, extra_nodes):
     """
     Return the names used in the AST trunk nodes which are outside of both function
@@ -365,8 +371,14 @@ class NameEntryDict(dict):
 
 
 def get_def_names(linkfile, func_list, import_annos):
+    """
+    Given the `func_list` list of strings (must be empty in the negative case rather
+    than None, and is prepared as such from `LinkedFile.mvdefs` in `parse_mv_funcs`).
+    """
     imp_name_lines, imp_name_dicts = import_annos
     def_names = NameDict(func_list)
+    intradef_names = linkfile.intradef_names
+    all_excluded_names = [*linkfile.extradef_names, *linkfile.intradef_names]
     for m in func_list:
         fd_names = set()
         if m not in [f.name for f in linkfile.ast_defs]:
@@ -380,12 +392,12 @@ def get_def_names(linkfile, func_list, import_annos):
                 if type(node) == ast.Name:
                     n_id = node.id
                     if n_id not in dir(builtins) + fd_ids + fd_params + assigned_args:
-                        if n_id not in linkfile.extradef_names:
+                        if n_id not in all_excluded_names:
                             fd_names.add(n_id)
         def_names[m] = NameEntryDict(fd_names, sort=True)
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
-        unknowns = [n for n in fd_names if n not in imp_name_lines]
+        unknowns = [n for n in fd_names if n not in [*imp_name_lines, *intradef_names]]
         if unknowns:
             raise ValueError(f"These names could not be sourced: {unknowns}")
         # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
@@ -507,16 +519,18 @@ def parse_mv_funcs(linkfile, trunk):
     """
     mvdefs = linkfile.mvdefs
     if mvdefs is None:
-        mvdefs = []
+        mvdefs = [] # prepare for `get_def_names`, don't pass a `None` directly
     report_VERBOSE = False  # Silencing debug print statements
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
-    defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
-    linkfile.ast_defs = defs
-    # Any nodes in the AST that aren't imports or defs are 'extra' (as in 'other')
+    linkfile.ast_defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
+    # Any nodes in the AST that are funcdefs inside funcdefs are 'intra' (i.e. 'inside')
+    intra = [*chain.from_iterable(x.inner_funcs for x in linkfile.ast_defs)]
+    linkfile.set_intradef_names(intra)
+    # Any nodes in the AST that aren't imports or ast_defs are 'extra' (as in 'outside')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
     # Omit names used outside of function definitions so as not to remove them
-    linkfile.set_extradef_names(extra) # sets extradef_names
+    linkfile.set_extradef_names(extra) # sets extradef_names by walking the extra nodes
     if report_VERBOSE:
         print("extra:", extra, file=stderr)
     import_annos = annotate_imports(imports, report=linkfile.report)

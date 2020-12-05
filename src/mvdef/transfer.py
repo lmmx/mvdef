@@ -5,6 +5,7 @@ from .ast_util import (
     parse_mv_funcs,
     get_def_names,
     set_nondef_names,
+    set_intradef_names,
     set_extradef_names,
 )
 from .backup import backup
@@ -97,6 +98,7 @@ class LinkedFile:
     imp_def_subsets = imp_def_subsets  # called by `process_ast`
     get_def_names = get_def_names
     set_nondef_names = set_nondef_names
+    set_intradef_names = set_intradef_names
     set_extradef_names = set_extradef_names
 
     @property
