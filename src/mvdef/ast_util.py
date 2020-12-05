@@ -78,13 +78,13 @@ class EditAgenda(dict):
         self.get(category).append(entry)
 
     def remove_entry(self, category, entry_value):
-        index_key = [list(x.values())[0] for x in self.get(category)].index(entry_value)
+        index_key = [next(iter(x.values())) for x in self.get(category)].index(entry_value)
         del self.get(category)[index_key]
 
     def add_imports(self, imports, category, names):
         for i in imports:
-            assert i in set().union(*[names.get(k) for k in names]), f"{i} not found"
-            i_dict = [names.get(k) for k in names if i in names.get(k)][0].get(i)
+            assert i in set().union(*names.values()), f"{i} not found"
+            i_dict = next(v.get(i) for k, v in names.items() if i in v)
             self.add_entry(category=category, key_val_pair=(i, i_dict))
 
 
