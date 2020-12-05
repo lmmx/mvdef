@@ -49,7 +49,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
             trunk = ast.parse(fc).body
 
         # print("Next running process_ast from retrieve_ast_agenda")
-        linkfile.process_ast(trunk, transfers) # sets linkfile.edits
+        linkfile.process_ast(trunk, transfers)  # sets linkfile.edits
     elif type(linkfile).__name__ == "DstFile":
         # An `isinstance` call would require a circular import, hence the __name__ check
         #
@@ -80,6 +80,13 @@ class EditAgenda(dict):
     def remove_entry(self, category, entry_value):
         index_key = [list(x.values())[0] for x in self.get(category)].index(entry_value)
         del self.get(category)[index_key]
+
+    def add_imports(self, imports, category, names):
+        for i in imports:
+            assert i in set().union(*[names.get(k) for k in names]), f"{i} not found"
+            i_dict = [names.get(k) for k in names if i in names.get(k)][0].get(i)
+            self.add_entry(category=category, key_val_pair=(i, i_dict))
+
 
 class EditItem(dict):
     def __init__(self, key, value):
@@ -128,26 +135,18 @@ def process_ast(linkfile, trunk, transfers=None):
     describes how it would be possible to carry out the required edits at the level
     of Python file changes.
     """
-    linkfile.parse_mv_funcs(trunk) # sets: (mvdef_names, nonmvdef_names, undef_names)
+    linkfile.parse_mv_funcs(trunk)  # sets: (mvdef_names, nonmvdef_names, undef_names)
     # as linkfile.mvdef_names, linkfile.nonmvdef_names, linkfile.undef_names
     imported_names = get_imported_name_sources(trunk, report=linkfile.report)
     if linkfile.report:
         print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
     linkfile.edits = EditAgenda()
-    linkfile.imp_def_subsets() # sets mv_imports, nonmv_imports, mutual_imports
+    linkfile.imp_def_subsets()  # sets mv_imports, nonmv_imports, mutual_imports
     # Iterate over each imported name, i, in the subset of import names to move
-    for i in linkfile.mv_imports:
-        assert i in set().union(*[linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names]), f"{i} not found"
-        i_dict = [linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names if i in linkfile.mvdef_names.get(k)][0].get(i)
-        linkfile.edits.add_entry(category="move", key_val_pair=(i, i_dict))
-    for i in linkfile.nonmv_imports:
-        assert i in set().union(*[linkfile.nonmvdef_names.get(k) for k in linkfile.nonmvdef_names]), f"{i} not found"
-        i_dict = [linkfile.nonmvdef_names.get(k) for k in linkfile.nonmvdef_names if i in linkfile.nonmvdef_names.get(k)][0].get(i)
-        linkfile.edits.add_entry(category="keep", key_val_pair=(i, i_dict))
-    for i in linkfile.mutual_imports:
-        assert i in set().union(*[linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names]), f"{i} not found"
-        i_dict = [linkfile.mvdef_names.get(k) for k in linkfile.mvdef_names if i in linkfile.mvdef_names.get(k)][0].get(i)
-        linkfile.edits.add_entry(category="copy", key_val_pair=(i, i_dict))
+
+    linkfile.edits.add_imports(linkfile.mv_imports, "move", linkfile.mvdef_names)
+    linkfile.edits.add_imports(linkfile.nonmv_imports, "keep", linkfile.nonmvdef_names)
+    linkfile.edits.add_imports(linkfile.mutual_imports, "copy", linkfile.mvdef_names)
     for i in linkfile.undef_names:
         i_dict = linkfile.undef_names.get(i)
         linkfile.edits.add_entry(category="lose", key_val_pair=(i, i_dict))
@@ -304,16 +303,16 @@ def get_extradef_names(extra_nodes):
 
 def get_nondef_names(unused, import_annos, report=True):
     imp_name_lines, imp_name_dicts = import_annos
-    nondef_names = NameDict(unused) # dict keyed by the unused names
+    nondef_names = NameDict(unused)  # dict keyed by the unused names
     if unknowns := [n for n in unused if n not in imp_name_lines]:
         raise ValueError(f"These names could not be sourced: {unknowns}")
     # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
     # These refs will lead to import statements being copied and/or moved
     uu_imp_refs = {n: imp_name_lines.get(n) for n in unused}
-    for k in uu_imp_refs: # iterate over the unused imported names/asnames
+    for k in uu_imp_refs:  # iterate over the unused imported names/asnames
         n = uu_imp_refs.get(k).get("n")
         d = imp_name_dicts[n]
-        n_i = next(i for i,x in enumerate(d.values()) if x == k)
+        n_i = next(i for i, x in enumerate(d.values()) if x == k)
         assert n_i >= 0, f"Movable name {k} not found in import name dict"
         # Store index in case of multiple imports per import statement line
         uu_imp_refs.get(k)["n_i"] = n_i
@@ -349,12 +348,12 @@ class NameEntryDict(dict):
         if values:
             if sort:
                 raise NotImplementedError("Sorting not coded for key-val pairs")
-            super().__init__(dict(zip(names,values)))
+            super().__init__(dict(zip(names, values)))
         else:
             if type(names) is dict:
                 if sort:
                     raise NotImplementedError("Sorting not coded for dicts")
-                super().__init__(names) # simples
+                super().__init__(names)  # simples
                 return
             elif sort:
                 names = sorted(names)
@@ -396,12 +395,14 @@ def get_def_names(func_list, funcdefs, import_annos, extradef_names, report=True
             # Store index in case of multiple imports per import statement line
             mv_imp_refs.get(k)["n_i"] = n_i
             n = mv_imp_refs.get(k).get("n")
-            new_entry = NameEntryDict({
-                "n": n,
-                "n_i": n_i,
-                "line": mv_imp_refs.get(k).get("line"),
-                "import": list(imp_name_dicts[n].keys())[n_i]
-            })
+            new_entry = NameEntryDict(
+                {
+                    "n": n,
+                    "n_i": n_i,
+                    "line": mv_imp_refs.get(k).get("line"),
+                    "import": list(imp_name_dicts[n].keys())[n_i],
+                }
+            )
             def_names.add_subentry(m, k, new_entry)
     return def_names
 
@@ -411,16 +412,19 @@ class FuncDef(ast.FunctionDef):
     Wrap `ast.FunctionDef` to permit recursive search for inner functions upon
     creation in `parse_mv_funcs`.
     """
+
     def __init__(self, funcdef):
         super().__init__(**vars(funcdef))
         self.check_for_inner_funcs()
 
     def check_for_inner_funcs(self):
         if not hasattr(self, "_inner_func_idx"):
-            self.inner_func_idx = [i for i, n in enumerate(self.body) if isinstance(n, ast.FunctionDef)]
+            self.inner_func_idx = [
+                i for i, n in enumerate(self.body) if isinstance(n, ast.FunctionDef)
+            ]
         if self.has_inner_func:
             self.set_inner_funcs()
-       
+
     @property
     def has_inner_func(self):
         return self.inner_func_idx is not []
@@ -432,9 +436,12 @@ class FuncDef(ast.FunctionDef):
     @inner_func_idx.setter
     def inner_func_idx(self, idx):
         self._inner_func_idx = idx
-    
+
     def set_inner_funcs(self):
-        self.inner_funcs = [InnerFuncDef(self.body[i], self.name, (self.lineno, self.end_lineno)) for i in self.inner_func_idx]
+        self.inner_funcs = [
+            InnerFuncDef(self.body[i], self.name, (self.lineno, self.end_lineno))
+            for i in self.inner_func_idx
+        ]
 
     @property
     def inner_funcs(self):
@@ -450,6 +457,7 @@ class InnerFuncDef(FuncDef):
     Wrap `FuncDef` (in turn wrapping `ast.FunctionDef`) to store a reference to the
     parent funcdef's line range on an inner function.
     """
+
     def __init__(self, funcdef, parent_def_name, parent_def_line_range):
         super().__init__(funcdef)
         self.parent_def_name = parent_def_name
@@ -507,7 +515,9 @@ def parse_mv_funcs(linkfile, trunk):
     if report_VERBOSE:
         print("extra:", extra, file=stderr)
     import_annos = annotate_imports(imports, report=linkfile.report)
-    linkfile.mvdef_names = get_def_names(mvdefs, defs, import_annos, extradefs, linkfile.report)
+    linkfile.mvdef_names = get_def_names(
+        mvdefs, defs, import_annos, extradefs, linkfile.report
+    )
     if report_VERBOSE:
         print("mvdef names:", file=stderr)
         pprint_def_names(linkfile.mvdef_names)
@@ -522,12 +532,18 @@ def parse_mv_funcs(linkfile, trunk):
         pprint_def_names(nonmvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain unused_names
-    mv_set = set().union(*[linkfile.mvdef_names.get(x).keys() for x in linkfile.mvdef_names])
-    nomv_set = set().union(*[linkfile.nonmvdef_names.get(x).keys() for x in linkfile.nonmvdef_names])
+    mv_set = set().union(
+        *[linkfile.mvdef_names.get(x).keys() for x in linkfile.mvdef_names]
+    )
+    nomv_set = set().union(
+        *[linkfile.nonmvdef_names.get(x).keys() for x in linkfile.nonmvdef_names]
+    )
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
     nondefs = get_nondef_names(unused_names, import_annos, report=linkfile.report)
     # linkfile.undef_names contains only those names that are imported but never used
-    linkfile.undef_names = dict([(x, nondefs.get(x)) for x in nondefs if x not in extradefs])
+    linkfile.undef_names = dict(
+        [(x, nondefs.get(x)) for x in nondefs if x not in extradefs]
+    )
     if report_VERBOSE:
         print("non-def names (imported but not used in any function def):")
         pprint_def_names(nondefs, no_funcdef_list=True)

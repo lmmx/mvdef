@@ -86,8 +86,8 @@ class LinkedFile:
 
     retrieve_ast_agenda = retrieve_ast_agenda
     process_ast = process_ast  # called by `retrieve_ast_agenda`
-    parse_mv_funcs = parse_mv_funcs # called by `process_ast`
-    imp_def_subsets = imp_def_subsets # called by `process_ast`
+    parse_mv_funcs = parse_mv_funcs  # called by `process_ast`
+    imp_def_subsets = imp_def_subsets  # called by `process_ast`
 
     def ast_parse(self, transfers=None):
         "Create edit agendas from the parsed AST of source and destination files"
