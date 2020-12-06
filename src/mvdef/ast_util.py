@@ -7,6 +7,7 @@ from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
 from sys import stderr
 from itertools import chain
+from functools import reduce
 
 __all__ = [
     "retrieve_ast_agenda",
@@ -370,6 +371,43 @@ class NameEntryDict(dict):
             super().__init__({n: {} for n in names})
 
 
+class InnerFuncPath:
+    def __init__(self, path_string):
+        self.path_string = path_string
+        self.parts = path_string.split(":")
+    
+    @property
+    def global_def_name(self):
+        return self.parts[0]
+
+    @property
+    def intradef_name(self):
+        return self.parts[1]
+
+    def check_against_linkedfile(self, linkfile):
+        global_def_names = [f.name for f in linkfile.ast_defs] # TODO DRY as property
+        if self.global_def_name not in global_def_names:
+            raise NameError(f"{linkfile} does not contain {self.global_def_name}")
+        elif self.intradef_name not in linkfile.intradef_names:
+            fail_subpath = ":".join(self.parts[:2])
+            raise NameError(f"{linkfile} does not contain {fail_subpath}")
+        else:
+            initial_intradef = linkfile.intradef_names.get(self.intradef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_fd = None
+                while remaining_parts:
+                    try:
+                        retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
+                    except Exception as e:
+                        # raise NameError(f"No inner function '{m}' is defined")
+                        msg = f"{linkfile} does not contain {self.path_string} (raised {e})"
+                        raise NameError(msg)
+            else:
+                retrieved_fd = initial_intradef
+            return retrieved_fd
+
+
 def get_def_names(linkfile, func_list, import_annos):
     """
     Given the `func_list` list of strings (must be empty in the negative case rather
@@ -385,17 +423,12 @@ def get_def_names(linkfile, func_list, import_annos):
         if ":" in m:
             # colon indicates inner function
             innerfunc_paths = {f.path: f for f in linkfile.intradef_names.values()}
-            if m not in innerfunc_paths:
-                raise NameError(f"No inner function '{m}' is defined")
-            else:
-                fd = next((p, innerfunc_paths.get(p)) for p in innerfunc_paths if m == p)[1]
-                #fd_ids.extend(fd.all_ns_fd_ids) # add namespace of inner funcdef IDs
-                #print(f"{fd=}")
-                #raise NotImplementedError("WIP")
+            m_path = InnerFuncPath(m)
+            fd = m_path.check_against_linkedfile(linkfile)
+            fd_ids = fd.all_ns_fd_ids # inner funcdef IDs, includes global def namespace
         elif m in [f.name for f in linkfile.ast_defs]:
             fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]
-            #print(f"{fd=}")
-        elif m not in [f.name for f in linkfile.ast_defs]:
+        else:
             raise NameError(f"No function '{m}' is defined")
         fd_params = [a.arg for a in fd.args.args] # func params (fd may be innerfunc)
         assigned_args = find_assigned_args(fd)
@@ -469,6 +502,9 @@ class FuncDef(ast.FunctionDef):
                     f.set_ns_fd_ids(inner_fd_id_ns)
             for f in self.inner_funcs:
                 f.recursively_set_inner_funcs()
+
+    def get_inner_func(self, func_name):
+        return next(f for f in self.inner_funcs if f.name == func_name)
 
     @property
     def has_inner_func(self):
