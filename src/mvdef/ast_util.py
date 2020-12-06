@@ -441,8 +441,9 @@ class FuncDef(ast.FunctionDef):
     creation in `parse_mv_funcs`.
     """
 
-    def __init__(self, funcdef, ast_defs=None, is_inner=False):
+    def __init__(self, funcdef, ast_def_ids=None, is_inner=False):
         super().__init__(**vars(funcdef))
+        self.global_fd_ids = ast_def_ids
         self.is_inner = is_inner
         if not self.is_inner:
             self.check_for_inner_funcs()
@@ -454,15 +455,18 @@ class FuncDef(ast.FunctionDef):
             ]
         self.set_inner_funcs()
         if not self.is_inner:
-            self.recursively_set_inner_funcs()
+            self.recursively_set_inner_funcs() # sets inner_funcs, all_ns_fd_ids
 
     def recursively_set_inner_funcs(self):
         if self.has_inner_func:
             for f in self.inner_funcs:
                 f.check_for_inner_funcs()
-                print(f"done: check_for_inner_funcs (for {f.name=}")
-                f.set_ns_fd_ids()
-                print(f"done: set_ns_fd_ids (for {f.name=}")
+                if self.is_inner:
+                    f.set_ns_fd_ids(self.all_ns_fd_ids)
+                else:
+                    inner_fd_id_ns = [*self.global_fd_ids]
+                    inner_fd_id_ns.extend(f.name for f in self.inner_funcs)
+                    f.set_ns_fd_ids(inner_fd_id_ns)
             for f in self.inner_funcs:
                 f.recursively_set_inner_funcs()
 
@@ -502,13 +506,14 @@ class FuncDef(ast.FunctionDef):
     def path(self):
         return self.name
 
-    def set_ns_fd_ids(self):
+    def set_ns_fd_ids(self, parent_namespace_ids=None):
+        self.all_ns_fd_ids = []
+        if parent_namespace_ids:
+            self.all_ns_fd_ids.extend(parent_namespace_ids)
         if self.has_inner_func:
-            self.all_ns_fd_ids = [
-                n.name for n in self.body if isinstance(n, ast.FunctionDef)
-            ]
-        else:
-            self.all_ns_fd_ids = []
+            self.all_ns_fd_ids.extend(
+                [n.name for n in self.body if isinstance(n, ast.FunctionDef)]
+            )
 
 
 class InnerFuncDef(FuncDef):
@@ -522,11 +527,9 @@ class InnerFuncDef(FuncDef):
         self.parent_def_name = parent_fd.name
         self.parent_path = parent_fd.path
         self.parent_def_line_range = parent_fd.def_line_range
-        #self.parent_fd_ids = parent_fd.all_ns_fd_ids if parent_fd.is_inner else []
 
     @property
     def path(self):
-        print(self.parent_def_name)
         parent_path = self.parent_path
         return f"{parent_path}:{self.name}"
         #return f"{self.parent_path}:{self.name}"
@@ -583,10 +586,9 @@ def parse_mv_funcs(linkfile, trunk):
     report_VERBOSE = False  # Silencing debug print statements
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
-    linkfile.ast_defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
-    #for f in linkfile.ast_defs:
-    #    print(f"Running for {f.name=}")
-    #    f.recursively_set_inner_funcs()
+    ast_funcdefs = [n for n in trunk if type(n) is ast.FunctionDef]
+    ast_fd_ids = [f.name for f in ast_funcdefs]
+    linkfile.ast_defs = [FuncDef(n, ast_def_ids=ast_fd_ids) for n in ast_funcdefs]
     # Any nodes in the AST that are funcdefs inside funcdefs are 'intra' (i.e. 'inside')
     intra = [*chain.from_iterable(x.inner_funcs for x in linkfile.ast_defs if x.has_inner_func)]
     linkfile.set_intradef_names(intra)
