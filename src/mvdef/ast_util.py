@@ -377,10 +377,11 @@ def get_def_names(linkfile, func_list, import_annos):
     """
     imp_name_lines, imp_name_dicts = import_annos
     def_names = NameDict(func_list)
-    intradef_names = linkfile.intradef_names
+    intradef_names = linkfile.intradef_names # N.B. inner funcs of top level defs only
     all_excluded_names = [*linkfile.extradef_names, *linkfile.intradef_names]
     for m in func_list:
         fd_names = set()
+        fd_ids = [f.name for f in linkfile.ast_defs] # global scope AST funcdef IDs
         if ":" in m:
             # colon indicates inner function
             innerfunc_paths = {f.path: f for f in linkfile.intradef_names.values()}
@@ -388,16 +389,15 @@ def get_def_names(linkfile, func_list, import_annos):
                 raise NameError(f"No inner function '{m}' is defined")
             else:
                 fd = next((p, innerfunc_paths.get(p)) for p in innerfunc_paths if m == p)[1]
-                fd_ids = [f.name for f in linkfile.ast_defs]
+                #fd_ids.extend(fd.all_ns_fd_ids) # add namespace of inner funcdef IDs
                 #print(f"{fd=}")
                 #raise NotImplementedError("WIP")
         elif m in [f.name for f in linkfile.ast_defs]:
             fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]
             #print(f"{fd=}")
-            fd_ids = [f.name for f in linkfile.ast_defs]
         elif m not in [f.name for f in linkfile.ast_defs]:
             raise NameError(f"No function '{m}' is defined")
-        fd_params = [a.arg for a in fd.args.args]
+        fd_params = [a.arg for a in fd.args.args] # func params (fd may be innerfunc)
         assigned_args = find_assigned_args(fd)
         for ast_statement in fd.body:
             for node in ast.walk(ast_statement):
@@ -441,21 +441,34 @@ class FuncDef(ast.FunctionDef):
     creation in `parse_mv_funcs`.
     """
 
-    def __init__(self, funcdef, is_inner=False):
+    def __init__(self, funcdef, ast_defs=None, is_inner=False):
         super().__init__(**vars(funcdef))
-        self.check_for_inner_funcs()
+        self.is_inner = is_inner
+        if not self.is_inner:
+            self.check_for_inner_funcs()
 
     def check_for_inner_funcs(self):
         if not hasattr(self, "_inner_func_idx"):
             self.inner_func_idx = [
                 i for i, n in enumerate(self.body) if isinstance(n, ast.FunctionDef)
             ]
+        self.set_inner_funcs()
+        if not self.is_inner:
+            self.recursively_set_inner_funcs()
+
+    def recursively_set_inner_funcs(self):
         if self.has_inner_func:
-            self.set_inner_funcs()
+            for f in self.inner_funcs:
+                f.check_for_inner_funcs()
+                print(f"done: check_for_inner_funcs (for {f.name=}")
+                f.set_ns_fd_ids()
+                print(f"done: set_ns_fd_ids (for {f.name=}")
+            for f in self.inner_funcs:
+                f.recursively_set_inner_funcs()
 
     @property
     def has_inner_func(self):
-        return self.inner_func_idx is not []
+        return self.inner_func_idx != []
 
     @property
     def inner_func_idx(self):
@@ -465,10 +478,16 @@ class FuncDef(ast.FunctionDef):
     def inner_func_idx(self, idx):
         self._inner_func_idx = idx
 
+    @property
+    def def_line_range(self):
+        return (self.lineno, self.end_lineno)
+
     def set_inner_funcs(self):
+        if not self.has_inner_func:
+            self.inner_funcs = []
+        parent_def_line_range = (self.lineno, self.end_lineno)
         self.inner_funcs = [
-            InnerFuncDef(self.body[i], self.name, self.path, (self.lineno, self.end_lineno))
-            for i in self.inner_func_idx
+            InnerFuncDef(fd=self.body[i], parent_fd=self) for i in self.inner_func_idx
         ]
 
     @property
@@ -483,6 +502,14 @@ class FuncDef(ast.FunctionDef):
     def path(self):
         return self.name
 
+    def set_ns_fd_ids(self):
+        if self.has_inner_func:
+            self.all_ns_fd_ids = [
+                n.name for n in self.body if isinstance(n, ast.FunctionDef)
+            ]
+        else:
+            self.all_ns_fd_ids = []
+
 
 class InnerFuncDef(FuncDef):
     """
@@ -490,15 +517,27 @@ class InnerFuncDef(FuncDef):
     parent funcdef's line range on an inner function.
     """
 
-    def __init__(self, funcdef, parent_def_name, parent_path, parent_def_line_range):
-        super().__init__(funcdef, is_inner=True)
-        self.parent_def_name = parent_def_name
-        self.parent_path = parent_path
-        self.parent_def_line_range = parent_def_line_range
+    def __init__(self, fd, parent_fd):
+        super().__init__(fd, is_inner=True)
+        self.parent_def_name = parent_fd.name
+        self.parent_path = parent_fd.path
+        self.parent_def_line_range = parent_fd.def_line_range
+        #self.parent_fd_ids = parent_fd.all_ns_fd_ids if parent_fd.is_inner else []
 
     @property
     def path(self):
-        return f"{self.parent_path}:{self.name}"
+        print(self.parent_def_name)
+        parent_path = self.parent_path
+        return f"{parent_path}:{self.name}"
+        #return f"{self.parent_path}:{self.name}"
+
+    @property
+    def all_ns_fd_ids(self):
+        return self._all_ns_fd_ids
+
+    @all_ns_fd_ids.setter
+    def all_ns_fd_ids(self, id_list):
+        self._all_ns_fd_ids = id_list
 
 
 def parse_mv_funcs(linkfile, trunk):
@@ -545,8 +584,11 @@ def parse_mv_funcs(linkfile, trunk):
     import_types = [ast.Import, ast.ImportFrom]
     imports = [n for n in trunk if type(n) in import_types]
     linkfile.ast_defs = [FuncDef(n) for n in trunk if type(n) is ast.FunctionDef]
+    #for f in linkfile.ast_defs:
+    #    print(f"Running for {f.name=}")
+    #    f.recursively_set_inner_funcs()
     # Any nodes in the AST that are funcdefs inside funcdefs are 'intra' (i.e. 'inside')
-    intra = [*chain.from_iterable(x.inner_funcs for x in linkfile.ast_defs)]
+    intra = [*chain.from_iterable(x.inner_funcs for x in linkfile.ast_defs if x.has_inner_func)]
     linkfile.set_intradef_names(intra)
     # Any nodes in the AST that aren't imports or ast_defs are 'extra' (as in 'outside')
     extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
