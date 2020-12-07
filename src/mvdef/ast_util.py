@@ -5,6 +5,7 @@ from pathlib import Path
 from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
+from .def_path_util import FuncDefPathString
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -371,10 +372,19 @@ class NameEntryDict(dict):
             super().__init__({n: {} for n in names})
 
 
-class InnerFuncPath:
+class InnerFuncPath(FuncDefPathString):
+    """
+    A FuncDefPathString which has a top level funcdef, an 'intradef' inner func (these
+    are checked on __init__), and potentially one or more inner functions below that,
+    which must be reachable as direct descendants of the AST at each step (i.e. no
+    intervening nodes between descendant inner functions in the path when checking
+    against the LinkedFile AST).
+    """
+    # let it fall through to FuncDefPathString.__init__, setting .string and .parts
     def __init__(self, path_string):
-        self.path_string = path_string
-        self.parts = path_string.split(":")
+        super().__init__(path_string)
+        assert self.global_def_name.part_type == "Func", "Path must begin with a func"
+        assert self.intradef_name.part_type == "InnerFunc", "Path lacks an inner func"
     
     @property
     def global_def_name(self):
@@ -401,7 +411,7 @@ class InnerFuncPath:
                         retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
                     except Exception as e:
                         # raise NameError(f"No inner function '{m}' is defined")
-                        msg = f"{linkfile} does not contain {self.path_string} (raised {e})"
+                        msg = f"{linkfile} does not contain {self.string} (raised {e})"
                         raise NameError(msg)
             else:
                 retrieved_fd = initial_intradef
@@ -420,11 +430,16 @@ def get_def_names(linkfile, func_list, import_annos):
     for m in func_list:
         fd_names = set()
         fd_ids = [f.name for f in linkfile.ast_defs] # global scope AST funcdef IDs
-        if ":" in m:
-            # colon indicates inner function
-            innerfunc_paths = {f.path: f for f in linkfile.intradef_names.values()}
-            m_path = InnerFuncPath(m)
-            fd = m_path.check_against_linkedfile(linkfile)
+        m_parsed = FuncDefPathString(m) # will be remade in InnerFuncPath but it's fast
+        # (in theory the purpose of the previous line would be to decide which subclass
+        # to use, e.g. to distinguish between an inner func path and a path beginning
+        # with a class, but for now it's [trivially] only supporting inner functions)
+        if len(m_parsed.parts) > 1:
+            # Multi-part path, separated by one or more of the following separators
+            # `:` (inner func), `.` (method), `::` (inner class), `@` (decorator)
+            m_path = InnerFuncPath(m) # make fresh subclass of FuncDefPathString
+            # InnerFuncPath will error if `m` does not begin with 2 funcdefs
+            fd = m_path.check_against_linkedfile(linkfile) # retrieve funcdef from AST
             fd_ids = fd.all_ns_fd_ids # inner funcdef IDs, includes global def namespace
         elif m in [f.name for f in linkfile.ast_defs]:
             fd = linkfile.ast_defs[[f.name for f in linkfile.ast_defs].index(m)]

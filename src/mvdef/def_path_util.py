@@ -1,6 +1,6 @@
 from enum import Enum
-from functools import partial
 
+__all__ = ["FuncDefPathString"]
 
 class PathPartStr(str):
     pass
