@@ -104,6 +104,10 @@ class FuncDefPathString:
                 self.tokens.append(symbol)
 
     def parse_from_tokens(self):
+        if len(self.tokens) == 1:
+            # Trivial case
+            self.parts = [self.PathPartEnum.Func.value(*self.tokens)]
+            return
         self.parts = []
         tokens = [*self.tokens]  # make a copy to destroy
         while tokens:
