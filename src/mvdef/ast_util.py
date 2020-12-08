@@ -5,7 +5,7 @@ from pathlib import Path
 from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
-from .def_path_util import FuncDefPathString
+from .def_path_util import FuncDefPathString, InnerFuncDefPathString
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -372,27 +372,17 @@ class NameEntryDict(dict):
             super().__init__({n: {} for n in names})
 
 
-class InnerFuncPath(FuncDefPathString):
+class InnerFuncPath(InnerFuncDefPathString):
     """
-    A FuncDefPathString which has a top level funcdef, an 'intradef' inner func (these
-    are checked on __init__), and potentially one or more inner functions below that,
-    which must be reachable as direct descendants of the AST at each step (i.e. no
-    intervening nodes between descendant inner functions in the path when checking
+    An InnerFuncDefPathString which has a top level funcdef, an 'intradef' inner func
+    (checked on super().__init__), and potentially one or more inner functions below
+    that, which must be reachable as direct descendants of the AST at each step (i.e.
+    no intervening nodes between descendant inner functions in the path when checking
     against the LinkedFile AST).
     """
-    # let it fall through to FuncDefPathString.__init__, setting .string and .parts
+    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
     def __init__(self, path_string):
         super().__init__(path_string)
-        assert self.global_def_name.part_type == "Func", "Path must begin with a func"
-        assert self.intradef_name.part_type == "InnerFunc", "Path lacks an inner func"
-    
-    @property
-    def global_def_name(self):
-        return self.parts[0]
-
-    @property
-    def intradef_name(self):
-        return self.parts[1]
 
     def check_against_linkedfile(self, linkfile):
         global_def_names = [f.name for f in linkfile.ast_defs] # TODO DRY as property
@@ -406,7 +396,7 @@ class InnerFuncPath(FuncDefPathString):
             remaining_parts = self.parts[2:]
             if remaining_parts:
                 retrieved_fd = None
-                while remaining_parts:
+                if remaining_parts:
                     try:
                         retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
                     except Exception as e:
@@ -437,8 +427,14 @@ def get_def_names(linkfile, func_list, import_annos):
         if len(m_parsed.parts) > 1:
             # Multi-part path, separated by one or more of the following separators
             # `:` (inner func), `.` (method), `::` (inner class), `@` (decorator)
-            m_path = InnerFuncPath(m) # make fresh subclass of FuncDefPathString
-            # InnerFuncPath will error if `m` does not begin with 2 funcdefs
+            pt_init = m_parsed.parts[0].part_type # initial part type
+            if pt_init == "Func":
+                m_path = InnerFuncPath(m) # subclass InnerFuncDefPathString
+                # InnerFuncPath will error if `m` does not begin with 2 funcdefs
+            elif pt_init == "Class":
+                raise NotImplementedError("Not written support for class methods yet")
+            else:
+                raise NotImplementedError(f"Did not expect to support {pt_init}")
             fd = m_path.check_against_linkedfile(linkfile) # retrieve funcdef from AST
             fd_ids = fd.all_ns_fd_ids # inner funcdef IDs, includes global def namespace
         elif m in [f.name for f in linkfile.ast_defs]:

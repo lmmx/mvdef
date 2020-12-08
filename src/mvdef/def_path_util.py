@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ["FuncDefPathString"]
+__all__ = ["FuncDefPathString", "InnerFuncDefPathString"]
 
 class PathPartStr(str):
     pass
@@ -58,7 +58,7 @@ class FuncDefPathString:
 
     def __init__(self, path_string):
         self.string = path_string
-        self.parse_from_string()  # sets .tokens and .parts
+        self.parse_from_string()  # sets ._tokens and .parts
 
     class PathSepEnum(Enum):
         "Path separator symbols (1 to 2 characters)"
@@ -79,11 +79,11 @@ class FuncDefPathString:
         Decorator = DecoratorPathPart
 
     def parse_from_string(self):
-        self.tokens = []
-        self.tokenise_from_string() # sets .tokens
+        self.tokenise_from_string() # sets ._tokens
         self.parse_from_tokens() # sets .parts
 
     def tokenise_from_string(self):
+        self._tokens = []
         parse_string_symbols = [*self.string]
         while parse_string_symbols:
             symbol = parse_string_symbols.pop(0)
@@ -93,23 +93,23 @@ class FuncDefPathString:
                 if bigram in self.PathSepEnum._value2member_map_:
                     parse_string_symbols.pop(0)  # already stored as `next_symbol`
                     sep = self.PathSepEnum._value2member_map_.get(bigram)
-                    self.tokens.append(sep)
+                    self._tokens.append(sep)
                     continue  # don't try to parse 1st symbol after using it in 'bigram'
             if symbol in self.PathSepEnum._value2member_map_:
                 sep = self.PathSepEnum._value2member_map_.get(symbol)
-                self.tokens.append(sep)
-            elif self.tokens and isinstance(self.tokens[-1], str):
-                self.tokens[-1] += symbol
+                self._tokens.append(sep)
+            elif self._tokens and isinstance(self._tokens[-1], str):
+                self._tokens[-1] += symbol
             else:  # either the first part or the last part was a separator so append
-                self.tokens.append(symbol)
+                self._tokens.append(symbol)
 
     def parse_from_tokens(self):
-        if len(self.tokens) == 1:
+        if len(self._tokens) == 1:
             # Trivial case
-            self.parts = [self.PathPartEnum.Func.value(*self.tokens)]
+            self.parts = [self.PathPartEnum.Func.value(*self._tokens)]
             return
         self.parts = []
-        tokens = [*self.tokens]  # make a copy to destroy
+        tokens = [*self._tokens]  # make a copy to destroy
         while tokens:
             tok = tokens.pop(0)
             if not self.parts:
@@ -153,3 +153,26 @@ class FuncDefPathString:
                 tok_parsed = part_class(tok)
                 last_seen_sep = None  # didn't look ahead, unset (only used on init)
             self.parts.append(tok_parsed)
+
+class InnerFuncDefPathString(FuncDefPathString):
+    """
+    A FuncDefPathString which has a top level funcdef, an 'intradef' inner func (these
+    are checked on __init__), and potentially one or more inner functions below that.
+
+    This class should be subclassed for checking against the (separate) ASTs used in
+    either `ast_util` or `asttokens` (the first for generating the inner function
+    indexes, the latter for line numbering associated with the AST nodes).
+    """
+    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+        assert self.global_def_name.part_type == "Func", "Path must begin with a func"
+        assert self.intradef_name.part_type == "InnerFunc", "Path lacks an inner func"
+
+    @property
+    def global_def_name(self):
+        return self.parts[0]
+    
+    @property
+    def intradef_name(self):
+        return self.parts[1]
