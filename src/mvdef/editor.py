@@ -248,7 +248,7 @@ def copy_src_defs_to_dst(link):
         #print(f"{mvdef=}")
         def_startline, def_endline = get_defrange(mvdef)
         deflines = link.src.lines[def_startline:def_endline]
-        # get_def_lines prepares the lines (whitespace and TODO indentation)
+        # get_def_lines prepares the lines (whitespace and indentation)
         indent_delta = dst_col_offset - mvdef.col_offset
         link.dst.lines += get_def_lines(deflines, link.dst.lines, indent_delta)
         if not link.dst.is_edited:

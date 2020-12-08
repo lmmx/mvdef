@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ["FuncDefPathString", "InnerFuncDefPathString"]
+__all__ = ["FuncDefPathString", "InnerFuncDefPathString", "MethodDefPathString"]
 
 class PathPartStr(str):
     pass
@@ -153,6 +153,30 @@ class FuncDefPathString:
                 tok_parsed = part_class(tok)
                 last_seen_sep = None  # didn't look ahead, unset (only used on init)
             self.parts.append(tok_parsed)
+
+class MethodDefPathString(FuncDefPathString):
+    """
+    A FuncDefPathString which has a top level class, which contains a method (these
+    are checked on __init__), and potentially one or more inner functions below that*.
+    *[TODO: confirm against finished implementation if this is the case]
+
+    This class should be subclassed for checking against the (separate) ASTs used in
+    either `ast_util` or `asttokens` (the first for generating the inner function
+    indexes, the latter for line numbering associated with the AST nodes).
+    """
+    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+        assert self.global_cls_name.part_type == "Class", "Path must begin with a class"
+        assert self.methdef_name.part_type == "Method", "Path lacks a method"
+
+    @property
+    def global_cls_name(self):
+        return self.parts[0]
+    
+    @property
+    def methdef_name(self):
+        return self.parts[1]
 
 class InnerFuncDefPathString(FuncDefPathString):
     """

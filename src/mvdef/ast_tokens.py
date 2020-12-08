@@ -1,6 +1,6 @@
 from asttokens import ASTTokens
-from ast import Import as IType, ImportFrom as IFType, FunctionDef, walk
-from .def_path_util import FuncDefPathString, InnerFuncDefPathString
+from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, walk
+from .def_path_util import FuncDefPathString, InnerFuncDefPathString, MethodDefPathString
 from functools import reduce, partial
 
 __all__ = ["get_tokenised", "get_tree", "get_imports", "get_defs", "locate_import_ends"]
@@ -41,6 +41,7 @@ def get_defs(tr, def_list=[], trunk_only=True):
     at any level by walking the full tree rather than just the trunk.
     """
     defs = [t for t in (tr if trunk_only else walk(tr)) if type(t) is FunctionDef]
+    classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
     if def_list == []:
         return defs
     else:
@@ -50,11 +51,30 @@ def get_defs(tr, def_list=[], trunk_only=True):
                 path_parsed = FuncDefPathString(s)
                 toks = path_parsed._tokens
                 if any(
+                    t.name not in ("InnerFunc", "Method")
+                    for t in path_parsed._tokens
+                    if type(t) is FuncDefPathString.PathSepEnum
+                ):
+                    supported = "inner funcdefs and methods of global-scope classes"
+                    raise NotImplementedError(f"Currently only supporting {supported}")
+                elif any(
                     t.name != "InnerFunc"
                     for t in path_parsed._tokens
                     if type(t) is FuncDefPathString.PathSepEnum
                 ):
-                    raise NotImplementedError("Currently only supporting inner funcdefs")
+                    def_list_path = MethodDefPathString(s)
+                    c_name = def_list_path.global_cls_name
+                    def name_check(node, name):
+                        return node.name == name
+                    def find_node(nodes, name):
+                        p_name_check = partial(name_check, name=name)
+                        return next(filter(p_name_check, nodes))
+                    def find_def(node, name):
+                        def_nodes = [n for n in node.body if type(n) is FunctionDef]
+                        return find_node(def_nodes, name)
+                    initial_cls = find_node(classes, c_name)
+                    fd = reduce(find_def, def_list_path.parts[1:], initial_cls)
+                    defs_to_move.append(fd)
                 else:
                     def_list_path = InnerFuncDefPathString(s)
                     f_name = def_list_path.global_def_name
@@ -63,11 +83,11 @@ def get_defs(tr, def_list=[], trunk_only=True):
                     def find_node(nodes, name):
                         p_name_check = partial(name_check, name=name)
                         return next(filter(p_name_check, nodes))
-                    def find_subnode(node, name):
+                    def find_def(node, name):
                         def_nodes = [n for n in node.body if type(n) is FunctionDef]
                         return find_node(def_nodes, name)
                     initial_def = find_node(defs, f_name)
-                    fd = reduce(find_subnode, def_list_path.parts[1:], initial_def)
+                    fd = reduce(find_def, def_list_path.parts[1:], initial_def)
                     defs_to_move.append(fd)
             # To be consistent with the trivial case below, the defs must remain in
             # the same order they appeared in the AST, i.e. in ascending line order
