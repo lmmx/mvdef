@@ -53,7 +53,7 @@ def append_def_to_file(defstring, dst_path):
     return
 
 
-def get_def_lines(deflines, dst_lines):
+def get_def_lines(deflines, dst_lines, indent_delta=0):
     """
     Get the list of lines of a func. def. suitable to be appended to a set of lines.
 
@@ -63,6 +63,14 @@ def get_def_lines(deflines, dst_lines):
     # Assess the whitespace, leave at least 2
     end_blanklines = terminal_whitespace(dst_lines, from_file=False)
     append_newlines = [nl for _ in range(max((0, 2 - end_blanklines)))]
+    if indent_delta > 0:
+        # Indent
+        indent = " " * indent_delta
+        deflines = [f"{indent}{l}" for l in deflines]
+    elif indent_delta < 0:
+        # Deindent
+        deindent = abs(indent_delta)
+        deflines = [l[deindent:] for l in deflines]
     return append_newlines + deflines
 
 
