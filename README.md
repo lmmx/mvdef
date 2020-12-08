@@ -5,6 +5,11 @@
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
+## New features
+
+- **0.5.13 (December 8th 2020)** — inner functions can now be moved into the global scope,
+  by specifying a path in `-m` separated by `:` (e.g. `mvdef -m foo:bar a.py b.py`)
+
 ## Installation
 
 mvdef is [available on PyPi](https://pypi.org/project/mvdef/): install it
@@ -174,44 +179,6 @@ Software can scale to handle these higher levels of complexity no differently th
 it can handle a simple case, and I began writing this on the basis that "if I'm going
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
-
-## Project status and future plans
-
-- November 2019: This library is currently working only as a proof of concept, with a demo, and not
-yet working for code.
-- December 2019: The demo now works, and using the command line flags it works as a command line tool
-for any list of functions and any pair of files specified.
-
-I'd like this to end up being a command line tool that assists the development workflow
-similar to how [`black`](https://github.com/psf/black/) has simplified linting to best
-practice conventions for Python code style, as a tool callable on a Python file to
-change it in place, and reliable enough to trust it not mess up any of your files in
-the process.
-
-## Changelog
-
-- versions 0.3.0 - 0.5.0:
-  - returned to development 10 months later, added entry-point for CLI, big OOP refactor
-- versions 0.2.6 - 0.2.9:
-  - unbreaking module... trying to get module recognised by modifying `setup.py`...
-- version 0.2.5:
-  - rearrange library following [this guide](https://blog.ionelmc.ro/2014/05/25/python-packaging/)
-- version 0.2.4:
-  - fix bug relating to asttokens misannotating comma tokens' type as 54 (`ERRORTOKEN`) rather than 53
-  (`OP`), by just checking for comma tokens of type 54 matching the string `','`, will inform asttokens devs
-- version 0.2.2:
-  - fix bug where names assigned outside of definitions were causing errors
-- version 0.2.1:
-  - fix error in support for walrus operator
-- version 0.2.0:
-  - added support for "walrus operator" named expression assignment
-- version 0.1.9:
-  - caught another type of implicit name assignment, this time from lambda expressions
-- version 0.1.8:
-  - resolved a bug in the code from 0.1.7 to catch all names, including nested tuples for multiple names
-- version 0.1.7:
-  - resolved a bug arising from `mvdef.src.ast_util`⠶`get_def_names` not registering variables assigned
-  implicitly via for loops and list comprehensions ([issue #2](/issues/2))
 
 ## Approach
 
