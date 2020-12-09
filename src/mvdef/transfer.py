@@ -1,4 +1,4 @@
-from .ast_tokens import get_defs, get_imports, get_tree
+from .ast_tokens import set_defs_to_move, get_imports, get_tree
 from .ast_util import (
     retrieve_ast_agenda,
     process_ast,
@@ -224,13 +224,12 @@ class SrcFile(LinkedFile):
         e_msg = f"The {self.__class__.__name__} did not return a processed AST"
         assert self.edits, e_msg
 
+    set_defs_to_move = set_defs_to_move
+
     @property
     def defs_to_move(self):
         if not hasattr(self, "_defs_to_move"):
-            # print(f"SETTING DEFS_TO_MOVE ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
-            self.defs_to_move = get_defs(self.trunk, self.mvdefs)
+            self.set_defs_to_move() # sets defs_to_move
         return self._defs_to_move
 
     @defs_to_move.setter

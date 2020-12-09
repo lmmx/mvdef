@@ -128,24 +128,25 @@ def excise_def_lines(def_node, lines):
     Delete a function definition using its AST node (via asttokens) from a list of lines
     which originated from a single, entire, Python file.
     """
+    window_size = 2 # used in get_borders and in repairing method-excised empty classdefs
     def_startline = def_node.first_token.start[0]
     def_endline = def_node.last_token.end[0]
     # Subtract 1 from start line index for 0-based "inclusive start/exclusive end"
     defrange = [def_startline - 1, def_endline]
-    pre, post = get_borders(defrange, lines, window_size=2)
+    pre, post = get_borders(defrange, lines, window_size=window_size)
     # Count whitespace above and below the function definition
     # Reverse the order of `pre` otherwise redefining the range start to be the 1st
     # would also necessarily include the 2nd elem of `pre` within the range
     wspace_pre = [lines[p] == nl for p in pre[::-1]]
     wspace_post = [lines[p] == nl for p in post]
     wspace_count = (wspace_pre + wspace_post).count(True)
-    if wspace_count > 2:
+    if wspace_count > window_size:
         # Remove whitespace: get list of indexes of lines which are blank
         # Reverse pre so as to match the index of `wspace_pre` as above
         pp = pre[::-1] + post
         ws_li = [pp[i] for (i, x) in enumerate((wspace_pre + wspace_post)) if x]
-        # Take as many as reduce the whitespace count to 2
-        remove_li = [ws_li[n] for n in range(wspace_count - 2)]
+        # Take as many as reduce the whitespace count to window size (2)
+        remove_li = [ws_li[n] for n in range(wspace_count - window_size)]
         for li in remove_li:
             # Reduce whitespace border by extending defrange to include it
             if li < min(defrange):
@@ -155,8 +156,16 @@ def excise_def_lines(def_node, lines):
             # Otherwise li is intermediate (already processed a past li, continue)
     # Whitespace count of less than 2 could only happen when a def is at the end of
     # a file, in which case no need to add whitespace, so no need to check for it.
-    for i in range(*defrange):
-        lines[i] = None  # Mark lines as deleted by setting the string to `None`
+    if hasattr(def_node, "has_siblings") and not def_node.has_siblings:
+        repair_lines = [f"{' ' * def_node.col_offset}pass"]
+        repair_lines.extend([""] * window_size) # leave the window of 2 lines(?)
+    else:
+        repair_lines = []
+    for i,r in enumerate(range(*defrange)):
+        if i < len(repair_lines):
+            lines[r] = repair_lines[i]
+        else:
+            lines[r] = None  # Mark lines as deleted by setting the string to `None`
     return
 
 

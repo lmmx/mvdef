@@ -3,7 +3,7 @@ from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, wa
 from .def_path_util import FuncDefPathString, InnerFuncDefPathString, MethodDefPathString
 from functools import reduce, partial
 
-__all__ = ["get_tokenised", "get_tree", "get_imports", "get_defs", "locate_import_ends"]
+__all__ = ["get_tokenised", "get_tree", "get_imports", "set_defs_to_move", "locate_import_ends"]
 
 
 def get_tokenised(filepath):
@@ -34,68 +34,73 @@ def get_imports(tr, index_list=None, trunk_only=True):
     return imports
 
 
-def get_defs(tr, def_list=[], trunk_only=True):
+def set_defs_to_move(src, trunk_only=True):
     """
     Using the `asttoken`-tokenised AST tree body ("trunk"), get the top-level
     function definition statements. Alternatively, get function definitions
     at any level by walking the full tree rather than just the trunk.
     """
+    tr = src.trunk
+    def_list = src.mvdefs
     defs = [t for t in (tr if trunk_only else walk(tr)) if type(t) is FunctionDef]
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
-    if def_list == []:
-        return defs
-    else:
-        if any(sep in x for sep in [*":.@"] for x in def_list):
-            defs_to_move = []
-            for s in def_list:
-                path_parsed = FuncDefPathString(s)
-                toks = path_parsed._tokens
-                if any(
-                    t.name not in ("InnerFunc", "Method")
-                    for t in path_parsed._tokens
-                    if type(t) is FuncDefPathString.PathSepEnum
-                ):
-                    supported = "inner funcdefs and methods of global-scope classes"
-                    raise NotImplementedError(f"Currently only supporting {supported}")
-                elif any(
-                    t.name != "InnerFunc"
-                    for t in path_parsed._tokens
-                    if type(t) is FuncDefPathString.PathSepEnum
-                ):
-                    def_list_path = MethodDefPathString(s)
-                    c_name = def_list_path.global_cls_name
-                    def name_check(node, name):
-                        return node.name == name
-                    def find_node(nodes, name):
-                        p_name_check = partial(name_check, name=name)
-                        return next(filter(p_name_check, nodes))
-                    def find_def(node, name):
-                        def_nodes = [n for n in node.body if type(n) is FunctionDef]
-                        return find_node(def_nodes, name)
-                    initial_cls = find_node(classes, c_name)
-                    fd = reduce(find_def, def_list_path.parts[1:], initial_cls)
-                    defs_to_move.append(fd)
+    #if def_list == []:
+    #    target_defs = defs
+    # It'd be better if this could be looked up not recomputed
+    if any(sep in x for sep in [*":.@"] for x in def_list):
+        ### Some inner functions used for finding the node given a path
+        def name_check(node, name):
+            return node.name == name
+        def find_node(nodes, name):
+            p_name_check = partial(name_check, name=name)
+            return next(filter(p_name_check, nodes))
+        def find_def(node, name):
+            def_nodes = [n for n in node.body if type(n) is FunctionDef]
+            return find_node(def_nodes, name)
+        ###
+        target_defs = []
+        for s in def_list:
+            path_parsed = FuncDefPathString(s)
+            toks = path_parsed._tokens
+            if any(
+                t.name not in ("InnerFunc", "Method")
+                for t in path_parsed._tokens
+                if type(t) is FuncDefPathString.PathSepEnum
+            ):
+                supported = "inner funcdefs and methods of global-scope classes"
+                raise NotImplementedError(f"Currently only supporting {supported}")
+            elif any(
+                t.name != "InnerFunc"
+                for t in path_parsed._tokens
+                if type(t) is FuncDefPathString.PathSepEnum
+            ):
+                def_list_path = MethodDefPathString(s)
+                c_name = def_list_path.global_cls_name
+                # inner funcdefs went here
+                initial_cls = find_node(classes, c_name)
+                fd = reduce(find_def, def_list_path.parts[1:], initial_cls)
+                target_defs.append(fd)
+                if len(def_list_path.parts[1:]) == 1:
+                    parent_cls = initial_cls
+                    #fd.parent_cls = parent_cls
+                    fd.has_siblings = any(x for x in parent_cls.body if x is not fd)
                 else:
-                    def_list_path = InnerFuncDefPathString(s)
-                    f_name = def_list_path.global_def_name
-                    def name_check(node, name):
-                        return node.name == name
-                    def find_node(nodes, name):
-                        p_name_check = partial(name_check, name=name)
-                        return next(filter(p_name_check, nodes))
-                    def find_def(node, name):
-                        def_nodes = [n for n in node.body if type(n) is FunctionDef]
-                        return find_node(def_nodes, name)
-                    initial_def = find_node(defs, f_name)
-                    fd = reduce(find_def, def_list_path.parts[1:], initial_def)
-                    defs_to_move.append(fd)
-            # To be consistent with the trivial case below, the defs must remain in
-            # the same order they appeared in the AST, i.e. in ascending line order
-            defs_to_move = sorted(defs_to_move, key=lambda d: d.lineno)
-            return defs_to_move
-        else:
-            # Only trivial single part path(s), i.e. global-scope funcdef name(s)
-            return [d for d in defs if d.name in def_list]
+                    # store parent if inner class, then check it for other siblings
+                    raise NotImplementedError("TODO: store parent if it's inner class")
+            else:
+                def_list_path = InnerFuncDefPathString(s)
+                f_name = def_list_path.global_def_name
+                # inner funcdefs went here
+                initial_def = find_node(defs, f_name)
+                fd = reduce(find_def, def_list_path.parts[1:], initial_def)
+                target_defs.append(fd)
+        # To be consistent with the trivial case below, the defs must remain in
+        # the same order they appeared in the AST, i.e. in ascending line order
+        target_defs = sorted(target_defs, key=lambda d: d.lineno)
+    else:
+        # Only trivial single part path(s), i.e. global-scope funcdef name(s)
+        target_defs = [d for d in defs if d.name in def_list]
+    src.defs_to_move = target_defs
 
 
 def locate_import_ends(source_filepath, index_list=None):
