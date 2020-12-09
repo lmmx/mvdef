@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import argcomplete
 
 from .demo import main as run_demo
-from .cli import main as run_cli
+from .cli import main as run_cli, _MvAction, _IntoAction
 from .transfer import parse_transfer, FileLink
 
 argv = argv[1:]  # omit the call to mvdef
@@ -36,7 +36,8 @@ def main():
     )
     parser.add_argument("src")
     parser.add_argument("dst")
-    parser.add_argument("-m", "--mv", action="append")
+    parser.add_argument("-m", "--mv", action=_MvAction)
+    parser.add_argument("-i", "--into", action=_IntoAction)
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-b", "--backup", action="store_true")
     parser.add_argument("-d", "--dry-run", action="store_true")
