@@ -351,6 +351,7 @@ class FileLink:
             return
         # print("Running link.dst.ensure_exists")
         self.dst.ensure_exists()
+        self.set_src_defs_to_move()
         transfers = {
             "take": self.src.edits.get("move"),
             "echo": self.src.edits.get("copy"),
@@ -358,6 +359,7 @@ class FileLink:
         try:
             # print("Running link.dst.ast_parse(transfers)")
             self.dst.ast_parse(transfers=transfers)  # populate self.dst.edits
+            #breakpoint()
         except Exception as e:
             self.dst.edits = e
             return
@@ -367,6 +369,9 @@ class FileLink:
         report = self.report if report is None else report
         self.src = SrcFile(src_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=self.mvdefs, into_paths=self.into_paths)
         self.dst = DstFile(dst_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=None, into_paths=None)
+
+    def set_src_defs_to_move(self):
+        self.src.set_defs_to_move(self.dst)
 
     @property
     def mvdefs(self):

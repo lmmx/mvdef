@@ -242,6 +242,7 @@ def copy_src_defs_to_dst(link):
     """
     #print("Step 3: copy function definitions {mvdefs} from src to dst")
     # The following line sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
+    link.set_src_defs_to_move()
     for mvdef in link.src.defs_to_move:
         indent = 4
         # Simply add an indent for each AST path part (i.e. per classdef/funcdef)
