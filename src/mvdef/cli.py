@@ -3,7 +3,7 @@ from sys import stderr
 from itertools import chain
 import argparse
 
-__all__ = ["_MvAction", "_IntoAction", "main", "validate_into_flag"]
+__all__ = ["main", "validate_into_flag"]
 
 
 def validate_into_flag(parser, args, nonconsec_dest="into"):
@@ -25,7 +25,6 @@ def validate_into_flag(parser, args, nonconsec_dest="into"):
         idx = [list(chain.from_iterable(i for d in v for i in d.values() if i))]
         opt_i.get(k).extend(*idx)
 
-    nonconsec_dest = "into"
     flag_pos_i_sorted = sorted([*chain.from_iterable(v for v in opt_i.values())])
     dest_i = [flag_pos_i_sorted.index(a) for a in opt_i.get(nonconsec_dest)]
     invalid = [(dest_i[i] - dest_i[i - 1]) == 1 for i, _ in enumerate(dest_i) if i > 0]
@@ -77,18 +76,26 @@ class _IntoAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         items = getattr(namespace, self.dest, None)
         items = argparse._copy_items(items)
-        items.pop()  # remove the last `None` appended by _MvAction
+        if items:
+            items.pop()  # remove the last `None` appended by _MvAction
+        else:
+            raise argparse.ArgumentError(None,
+                f"Cannot set '{option_string}={values}', "
+                "as no function was given to apply it to "
+                f"({option_string} was called before -m/--mv)"
+            )
         items.append(values)
         setattr(namespace, self.dest, items)
 
 
-def main(src_p, dst_p, mvdefs, dry_run, report, backup):
+def main(src_p, dst_p, mvdefs, into_paths, dry_run, report, backup):
     if report:
         print("--------------RUNNING mvdef.cli⠶main()--------------", file=stderr)
     src_parsed, dst_parsed = parse_transfer(
         src_p,
         dst_p,
         mvdefs,
+        into_paths,
         test_func=None,
         report=report,
         nochange=dry_run,

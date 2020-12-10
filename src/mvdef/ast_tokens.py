@@ -42,11 +42,9 @@ def set_defs_to_move(src, trunk_only=True):
     """
     tr = src.trunk
     def_list = src.mvdefs
+    into_list = src.into_paths
     defs = [t for t in (tr if trunk_only else walk(tr)) if type(t) is FunctionDef]
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
-    #if def_list == []:
-    #    target_defs = defs
-    # It'd be better if this could be looked up not recomputed
     if any(sep in x for sep in [*":.@"] for x in def_list):
         ### Some inner functions used for finding the node given a path
         def name_check(node, name):
@@ -59,8 +57,10 @@ def set_defs_to_move(src, trunk_only=True):
             return find_node(def_nodes, name)
         ###
         target_defs = []
-        for s in def_list:
+        for s, to in zip(def_list, into_list):
             path_parsed = FuncDefPathString(s)
+            into_path_parsed = FuncDefPathString(to if to else "")
+            # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
             toks = path_parsed._tokens
             if any(
                 t.name not in ("InnerFunc", "Method")

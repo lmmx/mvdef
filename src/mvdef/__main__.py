@@ -8,13 +8,16 @@ from .cli import main as run_cli, _MvAction, _IntoAction, validate_into_flag
 from .transfer import parse_transfer, FileLink
 
 prog, *argv = argv  # excise the call to mvdef as prog
+USE_CALL_PATH = False
+if not USE_CALL_PATH:
+    prog = "mvdef" # overwrite the full call path with just 'mvdef'
 
 
 def demo():
     """
     mvdef -d pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -rb
     """
-    run_demo(mvdefs=["pprint_dict"], dry_run=True, report=True)
+    run_demo(mvdefs=["pprint_dict"], into_paths=[None], dry_run=True, report=True)
 
 
 def main():
@@ -43,12 +46,14 @@ def main():
     parser.add_argument("-b", "--backup", action="store_true")
     parser.add_argument("-d", "--dry-run", action="store_true")
 
-    validate_into_flag(parser, argv)
+    if any(f in argv for f in ["-i", "--into"]):
+        validate_into_flag(parser, argv)
 
     argcomplete.autocomplete(parser)
     arg_l = parser.parse_args(argv)  # pass explicitly to allow above debug override
 
     mvdefs = arg_l.mv
+    into_paths = arg_l.into
     dry_run = arg_l.dry_run
     report = arg_l.verbose
     backup = arg_l.backup
@@ -58,7 +63,7 @@ def main():
     try:
         if DEBUGGING_MODE:
             global link
-            link = FileLink(mvdefs, src_path, dst_path, report, dry_run, None, backup)
+            link = FileLink(mvdefs, into_paths, src_path, dst_path, report, dry_run, None, backup)
             # Raise any error encountered when building the AST
             if isinstance(link.src.edits, Exception):
                 global src_err_link
@@ -70,12 +75,12 @@ def main():
                 raise link.dst.edits
             print(
                 f"An equivalent `link` to that computed in `run_cli({src_path=}, "
-                "{dst_path=}, {mvdefs=}, {dry_run=}, {report=}, {backup=}` has been added "
+                "{dst_path=}, {mvdefs=}, {into_paths=}, {dry_run=}, {report=}, {backup=}` has been added "
                 "to the global namespace.",
                 file=stderr,
             )
         else:
-            run_cli(src_path, dst_path, mvdefs, dry_run, report, backup)
+            run_cli(src_path, dst_path, mvdefs, into_paths, dry_run, report, backup)
     except Exception as e:
         if HIDE_TRACEBACKS:
             print(f"{type(e).__name__} ⠶ {e}")

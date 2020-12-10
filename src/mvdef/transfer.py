@@ -30,12 +30,13 @@ __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
 
 class LinkedFile:
-    def __init__(self, path, report, nochange, use_backup, mvdefs):
+    def __init__(self, path, report, nochange, use_backup, mvdefs, into_paths):
         self.path = path
         self.report = report
         self.nochange = nochange
         self.use_backup = use_backup
         self.mvdefs = mvdefs
+        self.into_paths = into_paths
 
     is_edited = False
 
@@ -89,6 +90,14 @@ class LinkedFile:
     @mvdefs.setter
     def mvdefs(self, mvdefs):
         self._mvdefs = mvdefs
+
+    @property
+    def into_paths(self):
+        return self._into_paths
+
+    @into_paths.setter
+    def into_paths(self, into_paths):
+        self._into_paths = into_paths
 
     @property
     def is_extant(self):
@@ -255,7 +264,11 @@ class SrcFile(LinkedFile):
 
     def report_edits(self):
         c_str = colour("light_gray", self.path)
-        print(f"⇒ Functions moving from {c_str}: {self.mvdefs}", file=stderr)
+        if self.into_paths:
+            _as = f" ({[f'as {x}' if x else '—' for x in self.into_paths]})"
+        else:
+            _as = ""
+        print(f"⇒ Functions moving from {c_str}: {self.mvdefs}{_as}", file=stderr)
 
     nix_surplus_imports = nix_surplus_imports
     shorten_imports = shorten_imports
@@ -321,14 +334,15 @@ class DstFile(LinkedFile):
 
 
 class FileLink:
-    def __init__(self, mvdefs, src_p, dst_p, report, nochange, test_func, use_backup):
+    def __init__(self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup):
         self.mvdefs = mvdefs
-        # print("Setting link")
-        self.set_link(src_p, dst_p, report, nochange, use_backup)
+        self.into_paths = into_paths
         self.report = report
         self.nochange = nochange
+        # print("Setting link")
+        self.set_link(src_p, dst_p, use_backup=use_backup)
+        self.use_backup = use_backup  # will create backups (now!) if True
         self.test_func = test_func  # will run the test_func to check it works
-        self.use_backup = use_backup  # will create backups if True
         try:
             # print("Running link.src.ast_parse()")
             self.src.ast_parse()  # populate self.src.edits
@@ -348,9 +362,11 @@ class FileLink:
             self.dst.edits = e
             return
 
-    def set_link(self, src_p, dst_p, report, nochange, use_backup):
-        self.src = SrcFile(src_p, report, nochange, use_backup, mvdefs=self.mvdefs)
-        self.dst = DstFile(dst_p, report, nochange, use_backup, mvdefs=None)
+    def set_link(self, src_p, dst_p, use_backup, report=None, nochange=None):
+        nochange = self.nochange if nochange is None else nochange
+        report = self.report if report is None else report
+        self.src = SrcFile(src_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=self.mvdefs, into_paths=self.into_paths)
+        self.dst = DstFile(dst_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=None, into_paths=None)
 
     @property
     def mvdefs(self):
@@ -413,7 +429,7 @@ class FileLink:
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(
-    src_p, dst_p, mvdefs, test_func=None, report=True, nochange=True, use_backup=True
+    src_p, dst_p, mvdefs, into_paths, test_func=None, report=True, nochange=True, use_backup=True
 ):
     """
     Execute the transfer of function definitions and import statements, optionally
@@ -437,7 +453,7 @@ def parse_transfer(
     # Backs up source and target to a hidden file, restorable in case of error,
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
-    link = FileLink(mvdefs, src_p, dst_p, report, nochange, test_func, use_backup)
+    link = FileLink(mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup)
     # Raise any error encountered when building the AST
     if isinstance(link.src.edits, Exception):
         global src_err_link
