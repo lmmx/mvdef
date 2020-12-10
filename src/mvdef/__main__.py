@@ -4,10 +4,10 @@ from argparse import ArgumentParser
 import argcomplete
 
 from .demo import main as run_demo
-from .cli import main as run_cli, _MvAction, _IntoAction
+from .cli import main as run_cli, _MvAction, _IntoAction, validate_into_flag
 from .transfer import parse_transfer, FileLink
 
-argv = argv[1:]  # omit the call to mvdef
+prog, *argv = argv  # excise the call to mvdef as prog
 
 
 def demo():
@@ -32,7 +32,8 @@ def main():
 
     parser = ArgumentParser(
         description="Move function definitions and associated import"
-        + " statements from one file to another within a library."
+        + " statements from one file to another within a library.",
+        prog=prog
     )
     parser.add_argument("src")
     parser.add_argument("dst")
@@ -41,6 +42,8 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-b", "--backup", action="store_true")
     parser.add_argument("-d", "--dry-run", action="store_true")
+
+    validate_into_flag(parser, argv)
 
     argcomplete.autocomplete(parser)
     arg_l = parser.parse_args(argv)  # pass explicitly to allow above debug override
