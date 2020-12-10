@@ -241,9 +241,11 @@ def copy_src_defs_to_dst(link):
     Bound as a method of the `FileLink` class, and used in step 3 of `transfer_mvdefs`.
     """
     #print("Step 3: copy function definitions {mvdefs} from src to dst")
-    dst_col_offset = 0 # For now, only move funcdef into global scope i.e. no indent
     # The following line sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
     for mvdef in link.src.defs_to_move:
+        indent = 4
+        # Simply add an indent for each AST path part (i.e. per classdef/funcdef)
+        dst_col_offset = indent * len(mvdef.into_path.parts) if mvdef.into_path else 0
         # Transfer mvdef into the destination file: receive mvdef
         #print(f"{mvdef=}")
         def_startline, def_endline = get_defrange(mvdef)

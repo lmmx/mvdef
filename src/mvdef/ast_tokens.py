@@ -79,6 +79,8 @@ def set_defs_to_move(src, trunk_only=True):
                 # inner funcdefs went here
                 initial_cls = find_node(classes, c_name)
                 fd = reduce(find_def, def_list_path.parts[1:], initial_cls)
+                fd.path = path_parsed
+                fd.into_path = into_path_parsed
                 target_defs.append(fd)
                 if len(def_list_path.parts[1:]) == 1:
                     parent_cls = initial_cls
@@ -93,13 +95,21 @@ def set_defs_to_move(src, trunk_only=True):
                 # inner funcdefs went here
                 initial_def = find_node(defs, f_name)
                 fd = reduce(find_def, def_list_path.parts[1:], initial_def)
+                fd.path = path_parsed
+                fd.into_path = into_path_parsed
                 target_defs.append(fd)
         # To be consistent with the trivial case below, the defs must remain in
         # the same order they appeared in the AST, i.e. in ascending line order
         target_defs = sorted(target_defs, key=lambda d: d.lineno)
     else:
         # Only trivial single part path(s), i.e. global-scope funcdef name(s)
-        target_defs = [d for d in defs if d.name in def_list]
+        target_defs = [fd for fd in defs if d.name in def_list]
+        for fd in target_defs:
+            to = into_list[def_list.index(fd.name)]
+            path_parsed = FuncDefPathString(fd.name)
+            into_path_parsed = FuncDefPathString(to if to else "")
+            fd.path = path_parsed
+            fd.into_path = into_path_parsed
     src.defs_to_move = target_defs
 
 
