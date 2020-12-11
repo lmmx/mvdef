@@ -4,7 +4,7 @@ from pathlib import Path
 from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
-from .def_path_util import FuncDefPathString, InnerFuncDefPathString, MethodDefPathString
+from .def_path_util import FuncDefPathString, InnerFuncDefPathString, ClassDefPathString, MethodDefPathString
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -373,6 +373,35 @@ class NameEntryDict(dict):
                 names = sorted(names)
             super().__init__({n: {} for n in names})
 
+class ClassPath(ClassDefPathString):
+    """
+    A ClassDefPathString for a top-level class
+    """
+    # fall through to ClassDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+
+    def check_against_linkedfile(self, linkfile):
+        global_cls_names = [c.name for c in linkfile.ast_classes]
+        if self.global_cls_name not in global_cls_names:
+            raise NameError(f"{linkfile} does not contain {self.global_cls_name}")
+        else:
+            global_cls_names = [c.name for c in linkfile.ast_classes]
+            initial_clsdef = linkfile.clsdef_names.get(self.clsdef_name)
+            remaining_parts = self.parts[1:]
+            if remaining_parts:
+                raise NotImplementedError("Only implemented top-level class so far")
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(ClassDef.get_inner_class, remaining_parts, initial_clsdef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_clsdef
+            return retrieved_cd
+
 class MethodPath(MethodDefPathString):
     """
     A MethodDefPathString which has a top level class, which contains a method
@@ -398,13 +427,12 @@ class MethodPath(MethodDefPathString):
             remaining_parts = self.parts[2:]
             if remaining_parts:
                 retrieved_fd = None
-                if remaining_parts:
-                    try:
-                        retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_methdef)
-                    except Exception as e:
-                        # raise NameError(f"No inner function '{m}' is defined")
-                        msg = f"{linkfile} does not contain {self.string} (raised {e})"
-                        raise NameError(msg)
+                try:
+                    retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_methdef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
             else:
                 retrieved_fd = initial_methdef
             return retrieved_fd
@@ -433,13 +461,12 @@ class InnerFuncPath(InnerFuncDefPathString):
             remaining_parts = self.parts[2:]
             if remaining_parts:
                 retrieved_fd = None
-                if remaining_parts:
-                    try:
-                        retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
-                    except Exception as e:
-                        # raise NameError(f"No inner function '{m}' is defined")
-                        msg = f"{linkfile} does not contain {self.string} (raised {e})"
-                        raise NameError(msg)
+                try:
+                    retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
             else:
                 retrieved_fd = initial_intradef
             return retrieved_fd

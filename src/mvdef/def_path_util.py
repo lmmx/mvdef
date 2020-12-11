@@ -250,11 +250,11 @@ class FuncDefPathString(TokenisedString):
 
     @property
     def is_supported_path(self):
-        return any(t.name not in self._supported_path_types for t in self._sep_tokens)
+        return all(t.name in self._supported_path_types for t in self._sep_tokens)
 
     @property
     def is_inner_func_path_only(self):
-        return any(t.name != "InnerFunc" for t in self._sep_tokens)
+        return all(t.name == "InnerFunc" for t in self._sep_tokens)
     ###
 
 

@@ -253,7 +253,14 @@ def copy_src_defs_to_dst(link):
         deflines = link.src.lines[def_startline:def_endline]
         # get_def_lines prepares the lines (whitespace and indentation)
         indent_delta = dst_col_offset - mvdef.col_offset
-        link.dst.lines += get_def_lines(deflines, link.dst.lines, indent_delta)
+        if mvdef.into_path:
+            into_end = mvdef.into_path.node.end_lineno
+            pre_lines = link.dst.lines[:into_end]
+            post_lines = link.dst.lines[into_end:]
+            new_lines = get_def_lines(deflines, link.dst.lines, indent_delta)
+            link.dst.lines = pre_lines + new_lines + post_lines
+        else:
+            link.dst.lines += get_def_lines(deflines, link.dst.lines, indent_delta)
         if not link.dst.is_edited:
             link.dst.is_edited = True
 
