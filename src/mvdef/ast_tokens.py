@@ -65,6 +65,48 @@ def _find_def(node, name):
     def_nodes = [n for n in node.body if type(n) is FunctionDef]
     return _find_node(def_nodes, name)
 
+def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
+    """
+    Annotate the parsed `into_path` with a `.node` attribute, which will be used later
+    when determining the line to insert the newly moved funcdef at in the `DstFile`.
+    """
+    if to:
+        # Cannot use `check_against_linkedfile` without type of leaf node
+        *into_path_preamble, into_path_leaf = into_path_parsed.parts
+        if into_path_preamble:
+            # More than 1 part therefore can detect leaf node type from sep
+            i_leaf_type = into_path_leaf.part_type
+            if i_leaf_type == "Func":
+                # TODO: make a FuncDefPath
+                into_path_parsed = FuncDefPath(to)
+            elif i_leaf_type == "Class":
+                into_path_parsed = ClassDefPathString(to)
+            else:
+                raise NotImplementedError(f"Invalid path leaf: {to}")
+        else:
+            # Cannot detect, must check dst_defs and dst_classes
+            matched_def = [f for f in dst_defs if into_path_leaf == f.name]
+            matched_cls = [c for c in dst_classes if into_path_leaf == c.name]
+            if all([matched_def, matched_cls]):
+                raise NameError(f"Ambiguous whether {into_path_leaf} is a cls/def")
+            if matched_def:
+                d_name = into_path_parsed.parts[0]
+                initial_def = _find_node(matched_def, d_name)
+                into_path_parsed.node = initial_def
+                #raise NotImplementedError("Need to write FuncPath(FuncDefPathString) in ast_util")
+            elif matched_cls:
+                c_name = into_path_parsed.parts[0]
+                initial_cls = _find_node(matched_cls, c_name)
+                into_path_parsed.node = initial_cls
+                #raise NotImplementedError("Need to write ClassPath(ClassDefPathString) in ast_util")
+            else:
+                raise NameError(f"{into_path_leaf} is not an extant cls/def name")
+        if not hasattr(into_path_parsed, "node"):
+            into_path_parsed.node = into_path_parsed.check_against_linkedfile(dst)
+    else:
+        into_path_parsed.node = to # propagate None
+    return into_path_parsed # now annotated with `.node` attribute
+
 def set_defs_to_move(src, dst, trunk_only=True):
     """
     Using the `asttokens`-tokenised AST tree body ("trunk"), get the top-level
@@ -77,6 +119,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
         raise NotImplementedError("Won't work (see src_defs/classes/_find_node below)")
     src_defs, src_classes = get_defs_and_classes(src.trunk, trunk_only=trunk_only)
     dst_defs, dst_classes = get_defs_and_classes(dst.trunk, trunk_only=trunk_only)
+    # Note that you may want to set `into_path.node` even if the mvdef is top-level!
     if any(sep in x for sep in [*":."] for x in def_list):
         target_defs = []
         for s, to in zip(def_list, into_list):
@@ -84,41 +127,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
             #
             #---#---#--- begin handling `into_path` ---#---#---#
             into_path_parsed = FuncDefPathString(to if to else "")
-            if to:
-                # Cannot use `check_against_linkedfile` without type of leaf node
-                *into_path_preamble, into_path_leaf = into_path_parsed.parts
-                if into_path_preamble:
-                    # More than 1 part therefore can detect leaf node type from sep
-                    i_leaf_type = into_path_leaf.part_type
-                    if i_leaf_type == "Func":
-                        # TODO: make a FuncDefPath
-                        into_path_parsed = FuncDefPath(to)
-                    elif i_leaf_type == "Class":
-                        into_path_parsed = ClassDefPathString(to)
-                    else:
-                        raise NotImplementedError(f"Invalid path leaf: {to}")
-                else:
-                    # Cannot detect, must check dst_defs and dst_classes
-                    matched_def = [f for f in dst_defs if into_path_leaf == f.name]
-                    matched_cls = [c for c in dst_classes if into_path_leaf == c.name]
-                    if all([matched_def, matched_cls]):
-                        raise NameError(f"Ambiguous whether {into_path_leaf} is a cls/def")
-                    if matched_def:
-                        d_name = into_path_parsed.parts[0]
-                        initial_def = _find_node(matched_def, d_name)
-                        into_path_parsed.node = initial_def
-                        #raise NotImplementedError("Need to write FuncPath(FuncDefPathString) in ast_util")
-                    elif matched_cls:
-                        c_name = into_path_parsed.parts[0]
-                        initial_cls = _find_node(matched_cls, c_name)
-                        into_path_parsed.node = initial_cls
-                        #raise NotImplementedError("Need to write ClassPath(ClassDefPathString) in ast_util")
-                    else:
-                        raise NameError(f"{into_path_leaf} is not an extant cls/def name")
-                if not hasattr(into_path_parsed, "node"):
-                    into_path_parsed.node = into_path_parsed.check_against_linkedfile(dst)
-            else:
-                into_path_parsed.node = to # propagate None
+            into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
             #---#---#--- done handling `into_path` ---#---#---#
             #
             # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
@@ -167,6 +176,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
             to = into_list[def_list.index(fd.name)]
             path_parsed = FuncDefPathString(fd.name)
             into_path_parsed = FuncDefPathString(to if to else "")
+            into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
             fd.path = path_parsed
             fd.into_path = into_path_parsed
     src.defs_to_move = target_defs

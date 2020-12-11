@@ -254,6 +254,8 @@ def copy_src_defs_to_dst(link):
         # get_def_lines prepares the lines (whitespace and indentation)
         indent_delta = dst_col_offset - mvdef.col_offset
         if mvdef.into_path:
+            if not hasattr(mvdef.into_path, "node"):
+                raise NotImplementedError(f"{mvdef.into_path.string} has no node")
             into_end = mvdef.into_path.node.end_lineno
             pre_lines = link.dst.lines[:into_end]
             post_lines = link.dst.lines[into_end:]

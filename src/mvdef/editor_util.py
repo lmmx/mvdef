@@ -170,10 +170,10 @@ def excise_def_lines(def_node, lines):
         repair_lines = []
     for i,r in enumerate(range(*defrange)):
         if i < len(repair_lines):
-            print(f"Replacing '{lines[r]}' with '{repair_lines[i]}'")
+            #print(f"Replacing '{lines[r]}' with '{repair_lines[i]}'")
             lines[r] = repair_lines[i]
         else:
-            print(f"Deleting '{lines[r]}'")
+            #print(f"Deleting '{lines[r]}'")
             lines[r] = None  # Mark lines as deleted by setting the string to `None`
     return
 
