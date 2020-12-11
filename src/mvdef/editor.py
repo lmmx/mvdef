@@ -257,10 +257,25 @@ def copy_src_defs_to_dst(link):
             into_end = mvdef.into_path.node.end_lineno
             pre_lines = link.dst.lines[:into_end]
             post_lines = link.dst.lines[into_end:]
-            new_lines = get_def_lines(deflines, link.dst.lines, indent_delta)
+            new_lines = get_def_lines(deflines, link.dst.lines, True, indent_delta)
+            if [l for l in post_lines if l]: # check non-empty, ignoring `None` values
+                if len(post_lines) > 1:
+                    it = iter(map(str.rstrip, post_lines))
+                    if any(it): # consume generator up to the first nonblank line
+                        first_nonblank_i = len(post_lines) - len([*it]) - 1
+                        window_size = 1 if post_lines[first_nonblank_i][0] == " " else 2
+                        if first_nonblank_i < window_size:
+                            # if first following nonblank line is indented, 1 else 2
+                            window_filler = window_size - first_nonblank_i
+                            for _ in range(window_filler):
+                                post_lines.insert(0, "\n")
+                    else:
+                        pass # all remaining lines are blank!
             link.dst.lines = pre_lines + new_lines + post_lines
         else:
-            link.dst.lines += get_def_lines(deflines, link.dst.lines, indent_delta)
+            append_lines = get_def_lines(deflines, link.dst.lines, False, indent_delta)
+            breakpoint()
+            link.dst.lines += append_lines
         if not link.dst.is_edited:
             link.dst.is_edited = True
 

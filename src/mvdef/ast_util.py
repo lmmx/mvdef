@@ -382,9 +382,10 @@ class ClassPath(ClassDefPathString):
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
         global_cls_names = [c.name for c in linkfile.ast_classes]
         if self.global_cls_name not in global_cls_names:
-            raise NameError(f"{linkfile} does not contain {self.global_cls_name}")
+            raise NameError(f"{filename} does not contain {self.global_cls_name}")
         else:
             global_cls_names = [c.name for c in linkfile.ast_classes]
             initial_clsdef = linkfile.clsdef_names.get(self.clsdef_name)
@@ -396,7 +397,7 @@ class ClassPath(ClassDefPathString):
                     retrieved_cd = reduce(ClassDef.get_inner_class, remaining_parts, initial_clsdef)
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_clsdef
@@ -416,12 +417,13 @@ class MethodPath(MethodDefPathString):
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
         global_cls_names = [c.name for c in linkfile.ast_classes]
         if self.global_cls_name not in global_cls_names:
-            raise NameError(f"{linkfile} does not contain {self.global_cls_name}")
+            raise NameError(f"{filename} does not contain {self.global_cls_name}")
         elif self.methdef_name not in linkfile.methdef_names:
             fail_subpath = ".".join(self.parts[:2])
-            raise NameError(f"{linkfile} does not contain {fail_subpath}")
+            raise NameError(f"{filename} does not contain {fail_subpath}")
         else:
             initial_methdef = linkfile.methdef_names.get(self.methdef_name)
             remaining_parts = self.parts[2:]
@@ -431,7 +433,7 @@ class MethodPath(MethodDefPathString):
                     retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_methdef)
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_fd = initial_methdef
@@ -450,12 +452,13 @@ class InnerFuncPath(InnerFuncDefPathString):
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
         global_def_names = [f.name for f in linkfile.ast_defs] # TODO DRY as property
         if self.global_def_name not in global_def_names:
-            raise NameError(f"{linkfile} does not contain {self.global_def_name}")
+            raise NameError(f"{filename} does not contain {self.global_def_name}")
         elif self.intradef_name not in linkfile.intradef_names:
             fail_subpath = ":".join(self.parts[:2])
-            raise NameError(f"{linkfile} does not contain {fail_subpath}")
+            raise NameError(f"{filename} does not contain {fail_subpath}")
         else:
             initial_intradef = linkfile.intradef_names.get(self.intradef_name)
             remaining_parts = self.parts[2:]
@@ -465,7 +468,7 @@ class InnerFuncPath(InnerFuncDefPathString):
                     retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{linkfile} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_fd = initial_intradef

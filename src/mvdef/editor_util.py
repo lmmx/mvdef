@@ -53,16 +53,17 @@ def append_def_to_file(defstring, dst_path):
     return
 
 
-def get_def_lines(deflines, dst_lines, indent_delta=0):
+def get_def_lines(deflines, dst_lines, is_inner=False, indent_delta=0):
     """
     Get the list of lines of a func. def. suitable to be appended to a set of lines.
 
     `deflines` must be a list of strings containing appropriate newlines for a Python
     file (the lines will not be joined with newlines, they must be already supplied).
     """
-    # Assess the whitespace, leave at least 2
+    # Assess the whitespace, leave at least 2 if outer, 1 if inner
+    window_size = 1 if is_inner else 2
     end_blanklines = terminal_whitespace(dst_lines, from_file=False)
-    append_newlines = [nl for _ in range(max((0, 2 - end_blanklines)))]
+    append_newlines = [nl for _ in range(max((0, window_size - end_blanklines)))]
     if indent_delta > 0:
         # Indent
         indent = " " * indent_delta
@@ -127,8 +128,14 @@ def excise_def_lines(def_node, lines):
     """
     Delete a function definition using its AST node (via asttokens) from a list of lines
     which originated from a single, entire, Python file.
+
+    If the deleted function was the only element in the body of its parent, then replace
+    it with a `pass` statement to ensure the file remains valid.
+
+    Ensure 2 lines between global-level nodes, and 1 line between inner nodes.
     """
-    window_size = 2 # used in get_borders and in repairing method-excised empty classdefs
+    window_size = 2 # used in get_borders
+    inner_window_size = 1 # used in repairing method-excised empty classdefs
     def_startline = def_node.first_token.start[0]
     def_endline = def_node.last_token.end[0]
     # Subtract 1 from start line index for 0-based "inclusive start/exclusive end"
@@ -158,13 +165,15 @@ def excise_def_lines(def_node, lines):
     # a file, in which case no need to add whitespace, so no need to check for it.
     if hasattr(def_node, "has_siblings") and not def_node.has_siblings:
         repair_lines = [f"{' ' * def_node.col_offset}pass"]
-        repair_lines.extend([""] * window_size) # leave the window of 2 lines(?)
+        repair_lines.extend([""] * inner_window_size) # leave the window of 1 line
     else:
         repair_lines = []
     for i,r in enumerate(range(*defrange)):
         if i < len(repair_lines):
+            print(f"Replacing '{lines[r]}' with '{repair_lines[i]}'")
             lines[r] = repair_lines[i]
         else:
+            print(f"Deleting '{lines[r]}'")
             lines[r] = None  # Mark lines as deleted by setting the string to `None`
     return
 

@@ -126,7 +126,23 @@ def set_defs_to_move(src, dst, trunk_only=True):
                 breakpoint()
                 supported = "inner funcdefs and methods of global-scope classes"
                 raise NotImplementedError(f"Currently only supporting {supported}")
-            if not path_parsed.is_inner_func_path_only:
+            if path_parsed.is_inner_func_path_only:
+                def_list_path = InnerFuncDefPathString(s)
+                f_name = def_list_path.global_def_name
+                # inner funcdefs went here
+                initial_def = _find_node(src_defs, f_name)
+                fd = reduce(_find_def, def_list_path.parts[1:], initial_def)
+                fd.path = path_parsed
+                fd.into_path = into_path_parsed
+                if len(def_list_path.parts[1:]) == 1:
+                    parent_def = initial_def
+                    fd.has_siblings = any(x for x in parent_def.body if x is not fd)
+                else:
+                    # store parent if inner class, then check it for other siblings
+                    raise NotImplementedError("TODO: store parent if it's inner class")
+                target_defs.append(fd)
+            else:
+                # presume method
                 def_list_path = MethodDefPathString(s)
                 c_name = def_list_path.global_cls_name
                 # inner funcdefs went here
@@ -137,21 +153,10 @@ def set_defs_to_move(src, dst, trunk_only=True):
                 target_defs.append(fd)
                 if len(def_list_path.parts[1:]) == 1:
                     parent_cls = initial_cls
-                    #fd.parent_cls = parent_cls
                     fd.has_siblings = any(x for x in parent_cls.body if x is not fd)
                 else:
                     # store parent if inner class, then check it for other siblings
                     raise NotImplementedError("TODO: store parent if it's inner class")
-            else:
-                breakpoint() # cannot presume innerfunc, check if method
-                def_list_path = InnerFuncDefPathString(s)
-                f_name = def_list_path.global_def_name
-                # inner funcdefs went here
-                initial_def = _find_node(src_defs, f_name)
-                fd = reduce(_find_def, def_list_path.parts[1:], initial_def)
-                fd.path = path_parsed
-                fd.into_path = into_path_parsed
-                target_defs.append(fd)
         # To be consistent with the trivial case below, the defs must remain in
         # the same order they appeared in the AST, i.e. in ascending line order
         target_defs = sorted(target_defs, key=lambda d: d.lineno)
