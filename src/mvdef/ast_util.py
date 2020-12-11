@@ -1,4 +1,5 @@
 import ast
+from ast import FunctionDef
 import builtins
 from pathlib import Path
 from .agenda_util import pprint_agenda
@@ -373,6 +374,38 @@ class NameEntryDict(dict):
                 names = sorted(names)
             super().__init__({n: {} for n in names})
 
+class FuncPath(FuncDefPathString):
+    """
+    A FuncDefPathString for a top-level function definition
+    """
+    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+
+    def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
+        global_def_names = [d.name for d in linkfile.ast_defs]
+        if self.global_def_name not in global_def_names:
+            raise NameError(f"{filename} does not contain {self.global_def_name}")
+        else:
+            global_def_names = [d.name for d in linkfile.ast_defs]
+            # clsdef_names isn't an attribute of linkfile... is this ever reached
+            raise NotImplementedError("TODO: set clsdef_names?")
+            initial_funcdef = linkfile.clsdef_names.get(self.clsdef_name) 
+            remaining_parts = self.parts[1:]
+            if remaining_parts:
+                raise NotImplementedError("Only implemented top-level class so far")
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(ClassDef.get_inner_class, remaining_parts, initial_clsdef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_clsdef
+            return retrieved_cd
+
 class ClassPath(ClassDefPathString):
     """
     A ClassDefPathString for a top-level class
@@ -388,6 +421,9 @@ class ClassPath(ClassDefPathString):
             raise NameError(f"{filename} does not contain {self.global_cls_name}")
         else:
             global_cls_names = [c.name for c in linkfile.ast_classes]
+            # clsdef_names isn't an attribute of linkfile... is this ever reached
+            raise NotImplementedError("TODO: set clsdef_names?")
+            # could very easily do it with a property looking at ast_classes
             initial_clsdef = linkfile.clsdef_names.get(self.clsdef_name)
             remaining_parts = self.parts[1:]
             if remaining_parts:
@@ -415,6 +451,33 @@ class MethodPath(MethodDefPathString):
     # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
     def __init__(self, path_string):
         super().__init__(path_string)
+
+    def check_against_classes(self, linkfile_classes):
+        global_cls_names = [c.name for c in linkfile_classes]
+        # basically just a sanity check (doesn't filter by top-level class)
+        methdef_names = {
+            method.name: method for body in [cls.body for cls in linkfile_classes]
+            for method in body if type(method) is ast.FunctionDef
+        }
+        if self.global_cls_name not in global_cls_names:
+            raise NameError(f"File does not contain {self.global_cls_name}")
+        elif self.methdef_name not in methdef_names:
+            fail_subpath = ".".join(self.parts[:2])
+            raise NameError(f"File does not contain {fail_subpath}")
+        else:
+            initial_methdef = methdef_names.get(self.methdef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_fd = None
+                try:
+                    retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_methdef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"File does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_fd = initial_methdef
+            return retrieved_fd
 
     def check_against_linkedfile(self, linkfile):
         filename = linkfile.path.name

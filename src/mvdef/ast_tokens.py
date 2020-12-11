@@ -1,7 +1,7 @@
 from asttokens import ASTTokens
 from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, walk
 from .def_path_util import FuncDefPathString, InnerFuncDefPathString, MethodDefPathString
-from .ast_util import ClassPath
+from .ast_util import ClassPath, FuncPath, MethodPath
 from functools import reduce, partial
 
 __all__ = ["get_tokenised", "get_tree", "get_imports", "set_defs_to_move", "locate_import_ends"]
@@ -77,12 +77,21 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
             # More than 1 part therefore can detect leaf node type from sep
             i_leaf_type = into_path_leaf.part_type
             if i_leaf_type == "Func":
-                # TODO: make a FuncDefPath
-                into_path_parsed = FuncDefPath(to)
+                # TODO: make a FuncPath
+                #raise NotImplementedError("Need to write FuncPath(FuncDefPathString) in ast_util")
+                into_path_parsed = FuncPath(to)
+                into_path_parsed.node = into_path_parsed.check_against_defs(dst_defs)
             elif i_leaf_type == "Class":
-                into_path_parsed = ClassDefPathString(to)
-            else:
-                raise NotImplementedError(f"Invalid path leaf: {to}")
+                # TODO: make a ClassPath
+                #raise NotImplementedError("Need to write ClassPath(ClassDefPathString) in ast_util")
+                into_path_parsed = ClassPath(to)
+                raise NotImplementedError("Not written the check_against_classes yet")
+                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+            elif i_leaf_type == "Method":
+                if len(into_path_preamble) > 1:
+                    raise NotImplementedError(f"Invalid path leaf: {to}")
+                into_path_parsed = MethodPath(to)
+                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
         else:
             # Cannot detect, must check dst_defs and dst_classes
             matched_def = [f for f in dst_defs if into_path_leaf == f.name]
@@ -93,16 +102,12 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
                 d_name = into_path_parsed.parts[0]
                 initial_def = _find_node(matched_def, d_name)
                 into_path_parsed.node = initial_def
-                #raise NotImplementedError("Need to write FuncPath(FuncDefPathString) in ast_util")
             elif matched_cls:
                 c_name = into_path_parsed.parts[0]
                 initial_cls = _find_node(matched_cls, c_name)
                 into_path_parsed.node = initial_cls
-                #raise NotImplementedError("Need to write ClassPath(ClassDefPathString) in ast_util")
             else:
                 raise NameError(f"{into_path_leaf} is not an extant cls/def name")
-        if not hasattr(into_path_parsed, "node"):
-            into_path_parsed.node = into_path_parsed.check_against_linkedfile(dst)
     else:
         into_path_parsed.node = to # propagate None
     return into_path_parsed # now annotated with `.node` attribute
