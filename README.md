@@ -7,6 +7,9 @@ associated import statements along with them.
 
 ## New features
 
+Check out the releases and changelogs in full [on GitHub](https://github.com/lmmx/mvdef/tags),
+major updates will be listed here:
+
 - **0.6.0** — functions can now move into a specified path in the
   destination file (e.g. to become a class method of a particular class, or an inner function
   of a particular funcdef)
