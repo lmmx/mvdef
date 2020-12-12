@@ -7,10 +7,10 @@ associated import statements along with them.
 
 ## New features
 
-- **0.6.0** (December 11th 2020) — functions can now move into a specified path in the
+- **0.6.0** — functions can now move into a specified path in the
   destination file (e.g. to become a class method of a particular class, or an inner function
   of a particular funcdef)
-- **0.5.13** (December 8th 2020) — inner functions can now be moved into the global scope,
+- **0.5.13** — inner functions can now be moved into the global scope,
   by specifying a path in `-m` separated by `:` (e.g. `mvdef -m foo:bar a.py b.py`)
 
 ## Installation
