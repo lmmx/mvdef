@@ -21,7 +21,49 @@ To get `mvdef` on your command line, install from [PyPi](https://pypi.org/projec
 pip install mvdef
 ```
 
+## Recipes
+
+### Specifying what to move and where to move it to
+
+`mvdef` is called on the command line with at the least an `-m` flag specifying the function to move (e.g. `foo`),
+the file it's in (e.g. `src.py`) and the file to move it to (which will be created if it doesn't exist).
+
+```sh
+mvdef -m foo src.py dst.py
+```
+
+Additionally, `-i` specifies a 'path' to move the function into, e.g. within a class `Bar`:
+
+```sh
+mvdef -m foo -i Bar src.py dst.py
+```
+
+Some points to note about these flags:
+
+- The `-m` flag can be repeated for as many functions as you want to move
+- The `-i` flag is optional for any and every `-m` flag (but must come immediately after it!)
+  - Without it, the `-m` function will just go in the global namespace (i.e. unindented) at
+    the end of the file
+- Both the `-m` and `-i` paths can have parts separated by:
+  - `.` to indicate the method of a class
+  - `:` to indicate the inner function of a function
+  - `::` to indicate the inner class of a class
+
+> The multi-part paths are a work in progress, and currently mostly
+> restricted to paths a couple of parts deep, but watch this space!
+
+Additionally:
+
+- The `-m`/`--mv` flags can go anywhere but I find it more natural to place them first,
+  so the command reads "move {this function} from {this file} to {this file}")
+- If you move the last item out of a funcdef or class, `mvdef` will automatically
+  repair it so it's still valid Python by replacing the excised lines with a `pass` statement
+
+Still hungry? See the [cookbook](#cookbook) below!
+
 ## Usage
+
+Run `mvdef -h` to get this reminder:
 
 ```
 usage: mvdef [-h] [-m MV] [-i INTO] [-v] [-b] [-d] src dst
@@ -45,23 +87,35 @@ optional arguments:
 - For development flags not shown above (`--debug`, `--show-tracebacks`, `--demo`) see
   [below](#Development flags)
 
+### Cookbook
 
-### Example usage
+If you're curious to try this out but don't want to dive straight in, below are some
+more examples for the careful.
 
-#### A simple move
+#### A cautious check before moving
 
 ```sh
-mvdef -m myfunc source.py destination.py -vb
+mvdef -m myfunc src.py dst.py -vd
 ```
 
-will **m**ove the global funcdef named `myfunc` from `source.py` to `destination.py`,
-while **v**erbosely reporting results (`-v`) and making **b**ackups (`-b`).
+- `-v` is "verbose": print out the import statement edits to be made and functions to move
+- `-d` is "dry run": don't edit any files, just prepare as if you were about to
+  - It's not possible to run a dry run without a report, `mvdef` will tell you it has "nothing to do"
 
-- Further functions can be moved by adding more `-m`/`--mv` flags each followed by a function name,
-e.g. `mvdef -m a -m b -m c` ...
-  - (The `-m`/`--mv` flags can go anywhere but I find it more natural to place them first,
-    so the command reads "move {this function} from {this file} to {this file}")
+This is handy to check that there are no errors in the specified move,
+i.e. that the move will be possible (for example that you didn't make typos in any names),
+and will give a printout of what import statements will change in each file edited (if any).
 
+#### A safeguarded move
+
+```sh
+mvdef -m myfunc src.py dst.py -vb
+```
+
+- `-v`: "verbose" (as above, print out import statement edits and funcdefs to move)
+- `-b`: "backup", make backups (not overwriting prior ones, as `.backup`, then `.backup0`, etc)
+  - `src.py` --> `.src.py.backup`
+  - `dst.py` --> `.dst.py.backup`
 
 #### A simple move with a specified target
 
@@ -69,12 +123,8 @@ e.g. `mvdef -m a -m b -m c` ...
 mvdef -m foo -i Bar src.py dst.py
 ```
 
-will **m**ove the funcdef named `foo` from the global namespace of `src.py` **i**nto the
-class definition `Bar` (where it becomes a method) of `dst.py`,
-(silently this time, and without backups, neither of which should be necessary).
-
-- The `-i`/`--into` flags **must** come immediately following the `-m`/`--mv` flag they
-  "pair" with (i.e. whose funcdef in `src.py` they provide a target for in `dst.py`)
+This moves the lines of the funcdef `foo` from `src.py` to the end of the classdef `Bar`
+(and note that this will indent the lines of `foo` by 4 spaces).
 
 #### Multiple moves
 
@@ -185,9 +235,6 @@ DRY RUN: No files have been modified, skipping tests.
 ------------------COMPLETE--------------------------
 ```
 
-### Demo usage
-
-
 ## Motivation
 
 My workflow typically involves a process of starting to work in one file,
@@ -233,9 +280,7 @@ it can handle a simple case, and I began writing this on the basis that "if I'm 
 to figure it out for this one instance, I may as well code it for any instance going
 forward".
 
-## Approach
-
-The idea is to run a command like `mvdef src.py dst.py fn1 fn2 fn3` to do the following:
+## TODO
 
 - [x] Back up `src.py` and `dst.py`, as `src.py.backup` and `dst.py.backup` in case it doesn't work
    - [x] Function completed in `src.backup`⠶`backup()` with `dry_run` parameter, called in `src.demo`
