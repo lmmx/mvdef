@@ -7,23 +7,24 @@ associated import statements along with them.
 
 ## New features
 
-- **0.5.13 (December 8th 2020)** — inner functions can now be moved into the global scope,
+- **0.6.0** (December 11th 2020) — functions can now move into a specified path in the
+  destination file (e.g. to become a class method of a particular class, or an inner function
+  of a particular funcdef)
+- **0.5.13** (December 8th 2020) — inner functions can now be moved into the global scope,
   by specifying a path in `-m` separated by `:` (e.g. `mvdef -m foo:bar a.py b.py`)
 
 ## Installation
 
-mvdef is [available on PyPi](https://pypi.org/project/mvdef/): install it
-using `pip install mvdef`.
+To get `mvdef` on your command line, install from [PyPi](https://pypi.org/project/mvdef/)
 
-After installing to your environment from PyPi, the `mvdef` command will be available
-on the command line (to `__main__.py:main`).
+```sh
+pip install mvdef
+```
 
 ## Usage
 
-Run `mvdef -h` to get the following usage message.
-
 ```
-usage: mvdef [-h] [-m MV] [-v] [-b] [-d] src dst
+usage: mvdef [-h] [-m MV] [-i INTO] [-v] [-b] [-d] src dst
 
 Move function definitions and associated import statements from one file to another within a
 library.
@@ -33,58 +34,66 @@ positional arguments:
   dst
 
 optional arguments:
-  -h, --help      show this help message and exit
+  -h, --help            show this help message and exit
   -m MV, --mv MV
+  -i INTO, --into INTO
   -v, --verbose
   -b, --backup
   -d, --dry-run
 ```
 
-Not documented in this usage: `mvdef --demo` will display a (dry run) demo of the output
-from moving a function from one file to another.
+- For development flags not shown above (`--debug`, `--show-tracebacks`, `--demo`) see
+  [below](#Development flags)
 
-- The following is displayed in colour in the terminal, using ANSI codes.
-
-```STDOUT
---------------RUNNING mvdef.demo⠶main()--------------
-{'foo': 1, 'bar': 2}
-hello//human, welcome to spin.systems
-✔ All tests pass
-• Determining edit agenda for demo_program.py:
- ⇢ MOVE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
- ⇢ MOVE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
- ⇢ MOVE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
-⇠  KEEP ⇠  (import 3:1 on line 4) pathsep ⇒ <os.path.sep>
-⇠  KEEP ⇠  (import 2:0 on line 3) req ⇒ <urllib.request>
- ✘ LOSE ✘  (import 3:0 on line 4) bname ⇒ <os.path.basename>
- ✘ LOSE ✘  (import 3:2 on line 4) islink ⇒ <os.path.islink>
-⇒ Functions moving from /home/louis/dev/mvdef/src/mvdef/example/demo_program.py: ['pprint_dict']
-• Determining edit agenda for new_file.py:
- ⇢ TAKE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
- ⇢ TAKE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
- ⇢ TAKE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
-⇒ Functions will move to /home/louis/dev/mvdef/src/mvdef/example/new_file.py
-DRY RUN: No files have been modified, skipping tests.
-------------------COMPLETE--------------------------
-```
 
 ### Example usage
 
-#### Outline
+#### A simple move
 
 ```sh
-mvdef -m func1 source.py destination.py -vb
+mvdef -m myfunc source.py destination.py -vb
 ```
 
-will **m**ove the funcdef named `func1` from `source.py` to `destination.py`,
+will **m**ove the global funcdef named `myfunc` from `source.py` to `destination.py`,
 while **v**erbosely reporting results (`-v`) and making **b**ackups (`-b`).
 
-- Further functions can be moved by adding more `-m` flags each followed by a function name,
-e.g. `mvdef -m func1 -m func2 -m func3` ...
-  - (The `-m` flags can go anywhere but I find it more natural to place them first,
+- Further functions can be moved by adding more `-m`/`--mv` flags each followed by a function name,
+e.g. `mvdef -m a -m b -m c` ...
+  - (The `-m`/`--mv` flags can go anywhere but I find it more natural to place them first,
     so the command reads "move {this function} from {this file} to {this file}")
 
-#### A simple case study
+
+#### A simple move with a specified target
+
+```sh
+mvdef -m foo -i Bar src.py dst.py
+```
+
+will **m**ove the funcdef named `foo` from the global namespace of `src.py` **i**nto the
+class definition `Bar` (where it becomes a method) of `dst.py`,
+(silently this time, and without backups, neither of which should be necessary).
+
+- The `-i`/`--into` flags **must** come immediately following the `-m`/`--mv` flag they
+  "pair" with (i.e. whose funcdef in `src.py` they provide a target for in `dst.py`)
+
+#### Multiple moves
+
+```sh
+mvdef -m hello -i Bar.foo -m baz -i Bax src.py dst.py
+```
+
+will **m**ove the funcdef named `hello` from the global namespace of 
+
+#### Coming soon
+
+Paths to `-mv`/`--mv` and `-i`/`--into` will soon support:
+
+- **wildcards**: to avoid having to specify a full path to a particular function
+  - e.g. `-m **foo`
+- **decorators**: to indicate a particular version of funcdefs with identical names
+  - e.g. for `property` decorators which have a `@property` and a `@foo.setter` variant
+
+#### Moving with imports: a simple case study
 
 Consider the file `hello.py`:
 
@@ -112,12 +121,27 @@ mvdef -m hello hello.py world.py -v
 ------------------COMPLETE--------------------------
 ```
 
-### Demo usage
+### Development flags
 
-The package comes with a built-in demo, accessed with the `--demo` flag.
+#### `--debug`
 
-`mvdef --demo` is equivalent to running the following within the `mvdef`
-source code repo (or wherever the package is installed to):
+When you want to debug why something works or why it didn't work, change the `mvdef -m ...`
+command to `python -im mvdef -m ...` to gain an interactive shell after the command runs.
+If you supply `--debug` at the end of this command, the variable `link` will be populated
+with the `FileLink` instance which can be inspected and debugged (without need for `pdb`).
+
+#### `-show-tracebacks`
+
+By default, `mvdef` will curtail the stack trace when raising an error
+(as [robust interfaces are more user-friendly](https://clig.dev/#robustness-principle)).
+
+To print the full stack trace, add the `--show-tracebacks` flag (and submit errors you find
+[on GitHub](https://github.com/lmmx/mvdef/issues/new)).
+
+#### `--demo`
+
+To run a built-in demo, run `mvdef --demo` (equivalent to running the following within the
+package source):
 
 ```sh
 mvdef -m pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -vd
@@ -133,6 +157,35 @@ mvdef -m pprint_dict mvdef/example/demo_program.py mvdef/example/new_file.py -vd
   destination file (`new_file.py`) under `mvdef/example/`.
 - This demo creates hidden `.backup` files, which can be used to 'reset' the demo by
   moving them back so as to overwrite the original files.
+
+
+`mvdef --demo` will display a (dry run) demo of the output from moving a function from
+one file to another (in colour in the terminal, using ANSI codes):
+
+```STDOUT
+--------------RUNNING mvdef.demo⠶main()--------------
+{'foo': 1, 'bar': 2}
+hello//human, welcome to spin.systems
+✔ All tests pass
+• Determining edit agenda for demo_program.py:
+ ⇢ MOVE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
+ ⇢ MOVE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
+ ⇢ MOVE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
+⇠  KEEP ⇠  (import 3:1 on line 4) pathsep ⇒ <os.path.sep>
+⇠  KEEP ⇠  (import 2:0 on line 3) req ⇒ <urllib.request>
+ ✘ LOSE ✘  (import 3:0 on line 4) bname ⇒ <os.path.basename>
+ ✘ LOSE ✘  (import 3:2 on line 4) islink ⇒ <os.path.islink>
+⇒ Functions moving from /home/louis/dev/mvdef/src/mvdef/example/demo_program.py: ['pprint_dict']
+• Determining edit agenda for new_file.py:
+ ⇢ TAKE  ⇢ (import 0:0 on line 1) ft ⇒ <functools>
+ ⇢ TAKE  ⇢ (import 1:0 on line 2) pprint ⇒ <pprint.pprint>
+ ⇢ TAKE  ⇢ (import 1:1 on line 2) pformat ⇒ <pprint.pformat>
+⇒ Functions will move to /home/louis/dev/mvdef/src/mvdef/example/new_file.py
+DRY RUN: No files have been modified, skipping tests.
+------------------COMPLETE--------------------------
+```
+
+### Demo usage
 
 
 ## Motivation
