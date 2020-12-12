@@ -31,9 +31,9 @@ mvdef -m foo -i Bar src.py dst.py
 Some points to note about these flags:
 
 - The `-m` flag can be repeated for as many functions as you want to move
-- The `-i` flag is optional for any and every `-m` flag (but must come immediately after it!)
-  - Without it, the `-m` function will just go in the global namespace (i.e. unindented) at
-    the end of the file
+- The `-i` flag is optional for any/every `-m` flag (but must come immediately after)
+  - Without `-i`, the function named in `-m` will go in the global namespace (i.e. unindented)
+    at the end of the file
 - Both the `-m` and `-i` paths can have parts separated by:
   - `.` to indicate the method of a class
   - `:` to indicate the inner function of a function
