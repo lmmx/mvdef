@@ -1,7 +1,5 @@
 # mvdef
 
-## Summary
-
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
