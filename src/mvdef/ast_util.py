@@ -833,6 +833,7 @@ class InnerClsDef(ClsDef):
 
     @property
     def path(self):
+        breakpoint()
         parent_path = self.parent_path
         return f"{parent_path}::{self.name}"
         #return f"{self.parent_path}:{self.name}"

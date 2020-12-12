@@ -253,7 +253,7 @@ def copy_src_defs_to_dst(link):
         deflines = link.src.lines[def_startline:def_endline]
         # get_def_lines prepares the lines (whitespace and indentation)
         indent_delta = dst_col_offset - mvdef.col_offset
-        if mvdef.into_path:
+        if mvdef.into_path.string:
             if not hasattr(mvdef.into_path, "node"):
                 raise NotImplementedError(f"{mvdef.into_path.string} has no node")
             into_end = mvdef.into_path.node.end_lineno
@@ -276,7 +276,15 @@ def copy_src_defs_to_dst(link):
             link.dst.lines = pre_lines + new_lines + post_lines
         else:
             append_lines = get_def_lines(deflines, link.dst.lines, False, indent_delta)
-            #breakpoint()
+            if not link.dst.lines:
+                # file may be new, don't prepend newlines if nothing to keep gap between
+                it = iter(l.rstrip() for l in append_lines)
+                if any(it):
+                    first_nonblank_i = len(append_lines) - len([*it]) - 1
+                    for _ in range(first_nonblank_i):
+                        append_lines.pop(0) # remove the whitespace prefix lines
+                else:
+                    raise ValueError("You're appending blank lines to an empty file!")
             link.dst.lines += append_lines
         if not link.dst.is_edited:
             link.dst.is_edited = True
