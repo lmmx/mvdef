@@ -1,7 +1,7 @@
 from asttokens import ASTTokens
 from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, walk
 from .def_path_util import FuncDefPathString, InnerFuncDefPathString, MethodDefPathString
-from .ast_util import ClassPath, FuncPath, MethodPath
+from .ast_util import ClassPath, InnerClassPath, FuncPath, MethodPath
 from functools import reduce, partial
 
 __all__ = ["get_tokenised", "get_tree", "get_imports", "set_defs_to_move", "locate_import_ends"]
@@ -89,9 +89,18 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
                 into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
             elif i_leaf_type == "Method":
                 if len(into_path_preamble) > 1:
-                    raise NotImplementedError(f"Invalid path leaf: {to}")
+                    raise NotImplementedError(f"The method path is too deep: {to}")
                 into_path_parsed = MethodPath(to)
                 into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+            elif i_leaf_type == "InnerClass":
+                if len(into_path_preamble) > 1:
+                    raise NotImplementedError(f"The inner class is too deep: {to}")
+                into_path_parsed = InnerClassPath(to)
+                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+            else:
+                #breakpoint()
+                part_types = [p.part_type for p in into_path_parsed.parts]
+                raise NotImplementedError(f"{to=} gave {part_types=}")
         else:
             # Cannot detect, must check dst_defs and dst_classes
             matched_def = [f for f in dst_defs if into_path_leaf == f.name]
@@ -137,7 +146,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
             #
             # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
             if not path_parsed.is_supported_path:
-                breakpoint()
+                #breakpoint()
                 supported = "inner funcdefs and methods of global-scope classes"
                 raise NotImplementedError(f"Currently only supporting {supported}")
             if path_parsed.is_inner_func_path_only:

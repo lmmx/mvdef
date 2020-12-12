@@ -276,7 +276,7 @@ def copy_src_defs_to_dst(link):
             link.dst.lines = pre_lines + new_lines + post_lines
         else:
             append_lines = get_def_lines(deflines, link.dst.lines, False, indent_delta)
-            breakpoint()
+            #breakpoint()
             link.dst.lines += append_lines
         if not link.dst.is_edited:
             link.dst.is_edited = True

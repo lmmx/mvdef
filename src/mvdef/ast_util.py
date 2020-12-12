@@ -406,6 +406,42 @@ class FuncPath(FuncDefPathString):
                 retrieved_cd = initial_clsdef
             return retrieved_cd
 
+class InnerFuncPath(InnerFuncDefPathString):
+    """
+    An InnerFuncDefPathString which has a top level funcdef, an 'intradef' inner func
+    (checked on super().__init__), and potentially one or more inner functions below
+    that, which must be reachable as direct descendants of the AST at each step (i.e.
+    no intervening nodes between descendant inner functions in the path when checking
+    against the LinkedFile AST).
+    """
+    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+
+    def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
+        global_def_names = [f.name for f in linkfile.ast_defs] # TODO DRY as property
+        if self.global_def_name not in global_def_names:
+            raise NameError(f"{filename} does not contain {self.global_def_name}")
+        elif self.intradef_name not in linkfile.intradef_names:
+            fail_subpath = ":".join(self.parts[:2])
+            raise NameError(f"{filename} does not contain {fail_subpath}")
+        else:
+            initial_intradef = linkfile.intradef_names.get(self.intradef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_fd = None
+                try:
+                    retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
+                except Exception as e:
+                    # raise NameError(f"No inner function '{m}' is defined")
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_fd = initial_intradef
+            return retrieved_fd
+
+
 class ClassPath(ClassDefPathString):
     """
     A ClassDefPathString for a top-level class
@@ -437,6 +473,66 @@ class ClassPath(ClassDefPathString):
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_clsdef
+            return retrieved_cd
+
+class InnerClassPath(ClassPath):
+    """
+    A ClassDefPathString for a class within another class.
+    """
+    # fall through to ClassDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+
+    @property
+    def innerclsdef_name(self):
+        return self.parts[1]
+
+    def check_against_classes(self, linkfile_classes):
+        global_cls_names = [c.name for c in linkfile_classes]
+        # basically just a sanity check (doesn't filter by top-level class)
+        iclsdef_names = {
+            iclsdef.name: iclsdef for body in [cls.body for cls in linkfile_classes]
+            for iclsdef in body if type(iclsdef) is ast.ClassDef
+        }
+        if self.global_cls_name not in global_cls_names:
+            raise NameError(f"File does not contain {self.global_cls_name}")
+        elif self.innerclsdef_name not in iclsdef_names:
+            fail_subpath = "::".join(self.parts[:2])
+            raise NameError(f"File does not contain {fail_subpath}")
+        else:
+            initial_iclsdef = iclsdef_names.get(self.innerclsdef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(ClsDef.get_inner_cls, remaining_parts, initial_iclsdef)
+                except Exception as e:
+                    msg = f"File does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_iclsdef
+            return retrieved_cd
+
+    def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
+        global_cls_names = [c.name for c in linkfile.ast_classes]
+        if self.global_cls_name not in global_cls_names:
+            raise NameError(f"{filename} does not contain {self.global_cls_name}")
+        elif self.iclsdef_name not in linkfile.innerclsdef_names:
+            fail_subpath = "::".join(self.parts[:2])
+            raise NameError(f"{filename} does not contain {fail_subpath}")
+        else:
+            initial_iclsdef = linkfile.innerclsdef_names.get(self.innerclsdef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(ClsDef.get_inner_cls, remaining_parts, initial_iclsdef)
+                except Exception as e:
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_iclsdef
             return retrieved_cd
 
 class MethodPath(MethodDefPathString):
@@ -501,42 +597,6 @@ class MethodPath(MethodDefPathString):
             else:
                 retrieved_fd = initial_methdef
             return retrieved_fd
-
-class InnerFuncPath(InnerFuncDefPathString):
-    """
-    An InnerFuncDefPathString which has a top level funcdef, an 'intradef' inner func
-    (checked on super().__init__), and potentially one or more inner functions below
-    that, which must be reachable as direct descendants of the AST at each step (i.e.
-    no intervening nodes between descendant inner functions in the path when checking
-    against the LinkedFile AST).
-    """
-    # fall through to FuncDefPathString.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
-        super().__init__(path_string)
-
-    def check_against_linkedfile(self, linkfile):
-        filename = linkfile.path.name
-        global_def_names = [f.name for f in linkfile.ast_defs] # TODO DRY as property
-        if self.global_def_name not in global_def_names:
-            raise NameError(f"{filename} does not contain {self.global_def_name}")
-        elif self.intradef_name not in linkfile.intradef_names:
-            fail_subpath = ":".join(self.parts[:2])
-            raise NameError(f"{filename} does not contain {fail_subpath}")
-        else:
-            initial_intradef = linkfile.intradef_names.get(self.intradef_name)
-            remaining_parts = self.parts[2:]
-            if remaining_parts:
-                retrieved_fd = None
-                try:
-                    retrieved_fd = reduce(FuncDef.get_inner_func, remaining_parts, initial_intradef)
-                except Exception as e:
-                    # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
-                    raise NameError(msg)
-            else:
-                retrieved_fd = initial_intradef
-            return retrieved_fd
-
 
 def get_def_names(linkfile, func_list, import_annos):
     """
