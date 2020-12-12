@@ -5,7 +5,7 @@ from pathlib import Path
 from .agenda_util import pprint_agenda
 from .deprecations import pprint_def_names
 from .import_util import get_imported_name_sources, annotate_imports
-from .def_path_util import FuncDefPathString, InnerFuncDefPathString, ClassDefPathString, MethodDefPathString
+from .def_path_util import FuncDefPathString, InnerFuncDefPathString, ClassDefPathString, InnerClassDefPathString, MethodDefPathString
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -475,17 +475,13 @@ class ClassPath(ClassDefPathString):
                 retrieved_cd = initial_clsdef
             return retrieved_cd
 
-class InnerClassPath(ClassPath):
+class InnerClassPath(InnerClassDefPathString):
     """
     A ClassDefPathString for a class within another class.
     """
     # fall through to ClassDefPathString.__init__, setting .string, ._tokens and .parts
     def __init__(self, path_string):
         super().__init__(path_string)
-
-    @property
-    def innerclsdef_name(self):
-        return self.parts[1]
 
     def check_against_classes(self, linkfile_classes):
         global_cls_names = [c.name for c in linkfile_classes]

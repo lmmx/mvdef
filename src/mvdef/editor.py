@@ -351,10 +351,14 @@ def transfer_mvdefs(link):
 
     if link.src.is_edited:
         link.src.lines = "".join([line for line in link.src.lines if line is not None])
+        if not link.src.lines.endswith("\n"):
+            link.src.lines += "\n"
         with open(link.src.path, "w") as f:
             f.write(link.src.lines)
     if link.dst.is_edited:
         link.dst.lines = "".join([line for line in link.dst.lines if line is not None])
+        if not link.dst.lines.endswith("\n"):
+            link.dst.lines += "\n"
         with open(link.dst.path, "w") as f:
             f.write(link.dst.lines)
     return

@@ -364,6 +364,29 @@ class ClassDefPathString(TokenisedString):
         return any(t.name != "InnerFunc" for t in self._sep_tokens)
     ###
 
+class InnerClassDefPathString(ClassDefPathString):
+    """
+    A ClassDefPathString which has a top level funcdef, an 'intradef' inner func (these
+    are checked on __init__), and potentially one or more inner functions below that.
+
+    This class should be subclassed for checking against the (separate) ASTs used in
+    either `ast_util` or `asttokens` (the first for generating the inner function
+    indexes, the latter for line numbering associated with the AST nodes).
+    """
+    # fall through to ClassDefPathString.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+        assert self.global_def_name.part_type == "Class", "Path must begin with a class"
+        assert self.innerclsdef_name.part_type == "InnerClass", "Path lacks an inner class"
+
+    @property
+    def global_def_name(self):
+        return self.parts[0]
+    
+    @property
+    def innerclsdef_name(self):
+        return self.parts[1]
+
 class MethodDefPathString(FuncDefPathString):
     """
     A FuncDefPathString which has a top level class, which contains a method (these
