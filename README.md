@@ -75,7 +75,7 @@ optional arguments:
 ```
 
 - For development flags not shown above (`--debug`, `--show-tracebacks`, `--demo`) see
-  [below](#Development flags)
+  [below](#Development_flags)
 
 ### Cookbook
 
