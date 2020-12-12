@@ -5,17 +5,6 @@
 Move function definitions from one file to another, moving or copying
 associated import statements along with them.
 
-## New features
-
-Check out the releases and changelogs in full [on GitHub](https://github.com/lmmx/mvdef/tags),
-major updates will be listed here:
-
-- **0.6.0** — functions can now move into a specified path in the
-  destination file (e.g. to become a class method of a particular class, or an inner function
-  of a particular funcdef)
-- **0.5.13** — inner functions can now be moved into the global scope,
-  by specifying a path in `-m` separated by `:` (e.g. `mvdef -m foo:bar a.py b.py`)
-
 ## Installation
 
 To get `mvdef` on your command line, install from [PyPi](https://pypi.org/project/mvdef/)
@@ -173,6 +162,10 @@ mvdef -m hello hello.py world.py -v
 ⇒ Functions will move to /home/ubuntu/stuff/simple_with_import_edit/world.py
 ------------------COMPLETE--------------------------
 ```
+
+## New features
+
+Check out the releases and changelogs in full [on GitHub](https://github.com/lmmx/mvdef/tags)
 
 ### Development flags
 
