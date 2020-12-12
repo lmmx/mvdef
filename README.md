@@ -122,7 +122,12 @@ This moves the lines of the funcdef `foo` from `src.py` to the end of the classd
 mvdef -m hello -i Bar.foo -m baz -i Bax src.py dst.py
 ```
 
-will **m**ove the funcdef named `hello` from the global namespace of 
+will move:
+
+- the funcdef `hello` from the global namespace of `src.py` into the method
+  `foo` of the class `Bar` in `dst.py` (making it an inner function of the method)
+- the funcdef `baz` from the global namespace of `src.py` into the class `Bax`
+  in `dst.py` (making it a method of the class)
 
 #### Coming soon
 
@@ -132,6 +137,9 @@ Paths to `-mv`/`--mv` and `-i`/`--into` will soon support:
   - e.g. `-m **foo`
 - **decorators**: to indicate a particular version of funcdefs with identical names
   - e.g. for `property` decorators which have a `@property` and a `@foo.setter` variant
+  
+...but first support needs to be improved for paths of the existing types, at greater depths.
+(WIP)
 
 #### Moving with imports: a simple case study
 
