@@ -77,13 +77,9 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
             # More than 1 part therefore can detect leaf node type from sep
             i_leaf_type = into_path_leaf.part_type
             if i_leaf_type == "Func":
-                # TODO: make a FuncPath
-                #raise NotImplementedError("Need to write FuncPath(FuncDefPathStr) in ast_util")
                 into_path_parsed = FuncPath(to)
                 into_path_parsed.node = into_path_parsed.check_against_defs(dst_defs)
             elif i_leaf_type == "Class":
-                # TODO: make a ClassPath
-                #raise NotImplementedError("Need to write ClassPath(ClassDefPathStr) in ast_util")
                 into_path_parsed = ClassPath(to)
                 raise NotImplementedError("Not written the check_against_classes yet")
                 into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
@@ -150,12 +146,11 @@ def set_defs_to_move(src, dst, trunk_only=True):
                 supported = "inner funcdefs and methods of global-scope classes"
                 raise NotImplementedError(f"Currently only supporting {supported}")
             try:
-                assert to is not None, "Abort attempting to parse null string funcdef path"
+                assert to is not None, "Abort attempt to parse null funcdef path"
                 func_path_parsed = FuncDefPathStr(to)
-                assert func_path_parsed.is_ifunc_path_only
+                assert func_path_parsed.is_ifunc_path_only, "Path isn't just innerfuncs"
                 def_list_path = InnerFuncDefPathStr(s)
-                # TODO global_def_name --> parent_def_name in def_path_util⠶InnerFuncDefPathStr
-                f_name = def_list_path.global_def_name
+                f_name = def_list_path.root_name
                 # inner funcdefs went here
                 initial_def = _find_node(src_defs, f_name)
                 fd = reduce(_find_def, def_list_path.parts[1:], initial_def)

@@ -146,7 +146,16 @@ class TokenisedStr:
         a = any(t.name not in self._supported_path_types for t in self._sep_tokens)
         return a
 
-class LeafMixin:
+class RootedMixin:
+    @property
+    def root_name(self):
+        return self.parts[0]
+
+    @property
+    def root_type(self):
+        return self.root_name.part_type
+
+class LeafMixin(RootedMixin):
     @property
     def leaf_name(self):
         return self.parts[-1]

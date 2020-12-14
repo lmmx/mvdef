@@ -645,13 +645,10 @@ def get_def_names(linkfile, func_list, import_annos):
                         if n_id not in all_excluded_names:
                             fd_names.add(n_id)
         def_names[m] = NameEntryDict(fd_names, sort=True)
-        if [n for n in fd_names if n not in [*imp_name_lines, *intradef_names]]:
-            breakpoint()
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
         unknowns = [n for n in fd_names if n not in [*imp_name_lines, *intradef_names]]
         if unknowns:
-            breakpoint()
             raise ValueError(f"These names could not be sourced: {unknowns}")
         # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
         # These refs will lead to import statements being copied and/or moved
