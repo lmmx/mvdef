@@ -1,6 +1,16 @@
 from enum import Enum
 
-__all__ = ["TokenisedStr", "NullPathStr", "UntypedPathStr", "FuncDefPathStr", "InnerFuncDefPathStr", "ClassDefPathStr", "InnerClassDefPathStr", "MethodDefPathStr"]
+__all__ = [
+    "TokenisedStr",
+    "NullPathStr",
+    "UntypedPathStr",
+    "FuncDefPathStr",
+    "InnerFuncDefPathStr",
+    "ClassDefPathStr",
+    "InnerClassDefPathStr",
+    "MethodDefPathStr",
+]
+
 
 class PathPartStr(str):
     pass
@@ -29,6 +39,7 @@ class MethodPathPart(PathPartStr):
 class DecoratorPathPart(PathPartStr):
     part_type = "Decorator"
 
+
 class TokenisedStr:
     def __init__(self, path_string):
         self.string = path_string
@@ -54,8 +65,8 @@ class TokenisedStr:
         Decorator = DecoratorPathPart
 
     def parse_from_string(self):
-        self.tokenise_from_string() # sets ._tokens
-        self.parse_from_tokens() # sets .parts
+        self.tokenise_from_string()  # sets ._tokens
+        self.parse_from_tokens()  # sets .parts
 
     def tokenise_from_string(self):
         self._tokens = []
@@ -84,7 +95,7 @@ class TokenisedStr:
     def parse_from_tokens(self):
         if len(self._tokens) == 1:
             # Trivial case
-            self._trivial_parts_constructor() # allow override by UntypedPathStr
+            self._trivial_parts_constructor()  # allow override by UntypedPathStr
             return
         self.parts = []
         tokens = [*self._tokens]  # make a copy to destroy
@@ -146,6 +157,7 @@ class TokenisedStr:
         a = any(t.name not in self._supported_path_types for t in self._sep_tokens)
         return a
 
+
 class RootedMixin:
     @property
     def root_name(self):
@@ -154,6 +166,7 @@ class RootedMixin:
     @property
     def root_type(self):
         return self.root_name.part_type
+
 
 class LeafMixin(RootedMixin):
     @property
@@ -170,6 +183,7 @@ class LeafMixin(RootedMixin):
     def check_part_types(self):
         msg = f"Leaf must be: {self.leaf_enum.name} (not {self.leaf_type})"
         assert self.leaf_check(), msg
+
 
 class ParentedMixin(LeafMixin):
     @property
@@ -188,6 +202,7 @@ class ParentedMixin(LeafMixin):
         msg = f"Parent must be: {self.parent_enum.name} (not {self.parent_type})"
         assert self.parent_check(), msg
 
+
 class UntypedMixin:
     def check_part_types(self):
         pass
@@ -200,15 +215,19 @@ class UntypedMixin:
     def _trivial_parts_constructor(self):
         self.parts = [self.UntypedPathPart(*self._tokens)]
 
+
 class NullPathStr(TokenisedStr, UntypedMixin):
     "The empty path, used for moving into the global namespace."
+
     def __init__(self):
         super().__init__(path_string="")
+
 
 class UntypedPathStr(UntypedMixin, TokenisedStr):
     """
     A path without type checks (only to be used when determining path type).
     """
+
     def check_part_types(self):
         pass
 
@@ -232,6 +251,7 @@ class FuncDefPathStr(TokenisedStr, LeafMixin):
     case it would be used as `foo@setter` to indicate the `def foo` with decorator
     `@foo.setter` rather than the `def foo` with decorator `@property`).
     """
+
     @property
     def leaf_enum(self):
         return self.PathPartEnum.Func
@@ -239,6 +259,7 @@ class FuncDefPathStr(TokenisedStr, LeafMixin):
     @property
     def is_ifunc_path_only(self):
         return all(t.name == "InnerFunc" for t in self._sep_tokens)
+
 
 class InnerFuncDefPathStr(FuncDefPathStr, ParentedMixin):
     """
@@ -249,6 +270,7 @@ class InnerFuncDefPathStr(FuncDefPathStr, ParentedMixin):
     either `ast_util` or `asttokens` (the first for generating the inner function
     indexes, the latter for line numbering associated with the AST nodes).
     """
+
     @property
     def parent_enum(self):
         return self.PathPartEnum.Func
@@ -257,6 +279,7 @@ class InnerFuncDefPathStr(FuncDefPathStr, ParentedMixin):
     def leaf_enum(self):
         return self.PathPartEnum.InnerFunc
 
+
 class ClassDefPathStr(TokenisedStr, LeafMixin):
     """
     A path denoting an AST path to a class (which may be nested as an inner class), or
@@ -264,9 +287,11 @@ class ClassDefPathStr(TokenisedStr, LeafMixin):
 
     `Foo::Bar` is an inner class `Bar` with parent global classdef `Foo`.
     """
+
     @property
     def leaf_enum(self):
         return self.PathPartEnum.Class
+
 
 class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
     """
@@ -277,6 +302,7 @@ class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
     either `ast_util` or `asttokens` (the first for generating the inner function
     indexes, the latter for line numbering associated with the AST nodes).
     """
+
     # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
     def __init__(self, path_string):
         super().__init__(path_string)
@@ -290,6 +316,7 @@ class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
     def leaf_enum(self):
         return self.PathPartEnum.InnerClass
 
+
 class MethodDefPathStr(FuncDefPathStr, ParentedMixin):
     """
     A FuncDefPathStr which has a top level class, which contains a method (these
@@ -300,6 +327,7 @@ class MethodDefPathStr(FuncDefPathStr, ParentedMixin):
     either `ast_util` or `asttokens` (the first for generating the inner function
     indexes, the latter for line numbering associated with the AST nodes).
     """
+
     # fall through to FuncDefPathStr.__init__, setting .string, ._tokens and .parts
     def __init__(self, path_string):
         super().__init__(path_string)

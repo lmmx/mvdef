@@ -134,8 +134,8 @@ def excise_def_lines(def_node, lines):
 
     Ensure 2 lines between global-level nodes, and 1 line between inner nodes.
     """
-    window_size = 2 # used in get_borders
-    inner_window_size = 1 # used in repairing method-excised empty classdefs
+    window_size = 2  # used in get_borders
+    inner_window_size = 1  # used in repairing method-excised empty classdefs
     def_startline = def_node.first_token.start[0]
     def_endline = def_node.last_token.end[0]
     # Subtract 1 from start line index for 0-based "inclusive start/exclusive end"
@@ -165,15 +165,15 @@ def excise_def_lines(def_node, lines):
     # a file, in which case no need to add whitespace, so no need to check for it.
     if hasattr(def_node, "has_siblings") and not def_node.has_siblings:
         repair_lines = [f"{' ' * def_node.col_offset}pass"]
-        repair_lines.extend([""] * inner_window_size) # leave the window of 1 line
+        repair_lines.extend([""] * inner_window_size)  # leave the window of 1 line
     else:
         repair_lines = []
-    for i,r in enumerate(range(*defrange)):
+    for i, r in enumerate(range(*defrange)):
         if i < len(repair_lines):
-            #print(f"Replacing '{lines[r]}' with '{repair_lines[i]}'")
+            # print(f"Replacing '{lines[r]}' with '{repair_lines[i]}'")
             lines[r] = repair_lines[i]
         else:
-            #print(f"Deleting '{lines[r]}'")
+            # print(f"Deleting '{lines[r]}'")
             lines[r] = None  # Mark lines as deleted by setting the string to `None`
     return
 

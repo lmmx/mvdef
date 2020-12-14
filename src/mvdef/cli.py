@@ -79,16 +79,19 @@ class _IntoAction(argparse.Action):
         if items:
             items.pop()  # remove the last `None` appended by _MvAction
         else:
-            raise argparse.ArgumentError(None,
+            raise argparse.ArgumentError(
+                None,
                 f"Cannot set '{option_string}={values}', "
                 "as no function was given to apply it to "
-                f"({option_string} was called before -m/--mv)"
+                f"({option_string} was called before -m/--mv)",
             )
         items.append(values)
         setattr(namespace, self.dest, items)
 
 
-def main(mvdefs, into_paths, src_p, dst_p, report, dry_run, backup, copy_only, classes_only):
+def main(
+    mvdefs, into_paths, src_p, dst_p, report, dry_run, backup, copy_only, classes_only
+):
     if report:
         print("--------------RUNNING mvdef.cli⠶main()--------------", file=stderr)
     src_parsed, dst_parsed = parse_transfer(
@@ -101,7 +104,7 @@ def main(mvdefs, into_paths, src_p, dst_p, report, dry_run, backup, copy_only, c
         test_func=None,
         use_backup=backup,
         copy_only=copy_only,
-        classes_only=classes_only
+        classes_only=classes_only,
     )
     if report:
         print("------------------COMPLETE--------------------------", file=stderr)

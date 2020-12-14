@@ -30,13 +30,25 @@ __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
 
 class LinkedFile:
-    def __init__(self, path, report, nochange, use_backup, mvdefs, into_paths):
+    def __init__(
+        self,
+        path,
+        report,
+        nochange,
+        use_backup,
+        mvdefs,
+        into_paths,
+        copy_only,
+        classes_only,
+    ):
         self.path = path
         self.report = report
         self.nochange = nochange
         self.use_backup = use_backup
         self.mvdefs = mvdefs
         self.into_paths = into_paths
+        self.copy_only = (copy_only,)
+        self.classes_only = (classes_only,)
 
     is_edited = False
 
@@ -98,6 +110,22 @@ class LinkedFile:
     @into_paths.setter
     def into_paths(self, into_paths):
         self._into_paths = into_paths
+
+    @property
+    def copy_only(self):
+        return self._copy_only
+
+    @copy_only.setter
+    def copy_only(self, copy_only):
+        self._copy_only = copy_only
+
+    @property
+    def classes_only(self):
+        return self._classes_only
+
+    @classes_only.setter
+    def classes_only(self, classes_only):
+        self._classes_only = classes_only
 
     @property
     def is_extant(self):
@@ -335,7 +363,17 @@ class DstFile(LinkedFile):
 
 class FileLink:
     def __init__(
-        self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup, copy_only, classes_only
+        self,
+        mvdefs,
+        into_paths,
+        src_p,
+        dst_p,
+        report,
+        nochange,
+        test_func,
+        use_backup,
+        copy_only,
+        classes_only,
     ):
         # First set those with no side effects:
         self.mvdefs = mvdefs
@@ -379,6 +417,8 @@ class FileLink:
             use_backup=use_backup,
             mvdefs=self.mvdefs,
             into_paths=self.into_paths,
+            copy_only=self.copy_only,
+            classes_only=self.classes_only,
         )
         self.dst = DstFile(
             dst_p,
@@ -387,6 +427,8 @@ class FileLink:
             use_backup=use_backup,
             mvdefs=None,
             into_paths=None,
+            copy_only=self.copy_only,
+            classes_only=self.classes_only,
         )
 
     def set_src_defs_to_move(self):
@@ -487,7 +529,16 @@ def parse_transfer(
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
     link = FileLink(
-        mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup, copy_only, classes_only
+        mvdefs,
+        into_paths,
+        src_p,
+        dst_p,
+        report,
+        nochange,
+        test_func,
+        use_backup,
+        copy_only,
+        classes_only,
     )
     # Raise any error encountered when building the AST
     if isinstance(link.src.edits, Exception):

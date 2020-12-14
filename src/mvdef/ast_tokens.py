@@ -1,10 +1,22 @@
 from asttokens import ASTTokens
 from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, walk
-from .def_path_util import UntypedPathStr, NullPathStr, FuncDefPathStr, InnerFuncDefPathStr, MethodDefPathStr
+from .def_path_util import (
+    UntypedPathStr,
+    NullPathStr,
+    FuncDefPathStr,
+    InnerFuncDefPathStr,
+    MethodDefPathStr,
+)
 from .ast_util import ClassPath, InnerClassPath, FuncPath, MethodPath
 from functools import reduce, partial
 
-__all__ = ["get_tokenised", "get_tree", "get_imports", "set_defs_to_move", "locate_import_ends"]
+__all__ = [
+    "get_tokenised",
+    "get_tree",
+    "get_imports",
+    "set_defs_to_move",
+    "locate_import_ends",
+]
 
 
 def get_tokenised(filepath):
@@ -44,10 +56,12 @@ def get_defs_and_classes(tr, trunk_only=True):
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
     return defs, classes
 
+
 ### Helper functions used for finding the node given a path within `set_defs_to_move`
 def _name_check(node, name):
     "Check whether an AST `node`’s `.name` attribute is `name`"
     return node.name == name
+
 
 def _find_node(nodes, name):
     "Return the first node in `nodes` whose `.name` attribute is `name`"
@@ -57,6 +71,7 @@ def _find_node(nodes, name):
     except StopIteration:
         return None
 
+
 def _find_def(node, name):
     """
     Return the first `ast.FunctionDef` subnode in the body of `nodes` whose `.name`
@@ -64,6 +79,7 @@ def _find_def(node, name):
     """
     def_nodes = [n for n in node.body if type(n) is FunctionDef]
     return _find_node(def_nodes, name)
+
 
 def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
     """
@@ -82,19 +98,25 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
             elif i_leaf_type == "Class":
                 into_path_parsed = ClassPath(to)
                 raise NotImplementedError("Not written the check_against_classes yet")
-                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+                into_path_parsed.node = into_path_parsed.check_against_classes(
+                    dst_classes
+                )
             elif i_leaf_type == "Method":
                 if len(into_path_preamble) > 1:
                     raise NotImplementedError(f"The method path is too deep: {to}")
                 into_path_parsed = MethodPath(to)
-                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+                into_path_parsed.node = into_path_parsed.check_against_classes(
+                    dst_classes
+                )
             elif i_leaf_type == "InnerClass":
                 if len(into_path_preamble) > 1:
                     raise NotImplementedError(f"The inner class is too deep: {to}")
                 into_path_parsed = InnerClassPath(to)
-                into_path_parsed.node = into_path_parsed.check_against_classes(dst_classes)
+                into_path_parsed.node = into_path_parsed.check_against_classes(
+                    dst_classes
+                )
             else:
-                #breakpoint()
+                # breakpoint()
                 part_types = [p.part_type for p in into_path_parsed.parts]
                 raise NotImplementedError(f"{to=} gave {part_types=}")
         else:
@@ -114,8 +136,9 @@ def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
             else:
                 raise NameError(f"{into_path_leaf} is not an extant cls/def name")
     else:
-        into_path_parsed.node = to # propagate None
-    return into_path_parsed # now annotated with `.node` attribute
+        into_path_parsed.node = to  # propagate None
+    return into_path_parsed  # now annotated with `.node` attribute
+
 
 def set_defs_to_move(src, dst, trunk_only=True):
     """
@@ -133,16 +156,16 @@ def set_defs_to_move(src, dst, trunk_only=True):
     if any(sep in x for sep in [*":."] for x in def_list):
         target_defs = []
         for s, to in zip(def_list, into_list):
-            path_parsed = UntypedPathStr(s) # not final: may actually be a ClassDef!
+            path_parsed = UntypedPathStr(s)  # not final: may actually be a ClassDef!
             #
-            #---#---#--- begin handling `into_path` ---#---#---#
+            # ---#---#--- begin handling `into_path` ---#---#---#
             into_path_parsed = FuncDefPathStr(to) if to else NullPathStr()
             into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
-            #---#---#--- done handling `into_path` ---#---#---#
+            # ---#---#--- done handling `into_path` ---#---#---#
             #
             # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
             if path_parsed.is_unsupported:
-                #breakpoint()
+                # breakpoint()
                 supported = "inner funcdefs and methods of global-scope classes"
                 raise NotImplementedError(f"Currently only supporting {supported}")
             try:

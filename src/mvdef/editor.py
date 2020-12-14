@@ -234,10 +234,11 @@ def trim_whitespace_lines_pre(lines, else_error=None):
     if any(it):
         first_nonblank_i = len(lines) - len([*it]) - 1
         for _ in range(first_nonblank_i):
-            lines.pop(0) # remove the whitespace prefix lines
+            lines.pop(0)  # remove the whitespace prefix lines
     elif else_error:
         raise else_error
     return lines
+
 
 def copy_src_defs_to_dst(link):
     """
@@ -250,7 +251,7 @@ def copy_src_defs_to_dst(link):
 
     Bound as a method of the `FileLink` class, and used in step 3 of `transfer_mvdefs`.
     """
-    #print("Step 3: copy function definitions {mvdefs} from src to dst")
+    # print("Step 3: copy function definitions {mvdefs} from src to dst")
     # The following line sets .defs_to_move ⇢ sets .trunk ⇢ sets .lines
     link.set_src_defs_to_move()
     for mvdef in link.src.defs_to_move:
@@ -258,7 +259,7 @@ def copy_src_defs_to_dst(link):
         # Simply add an indent for each AST path part (i.e. per classdef/funcdef)
         dst_col_offset = indent * len(mvdef.into_path.parts) if mvdef.into_path else 0
         # Transfer mvdef into the destination file: receive mvdef
-        #print(f"{mvdef=}")
+        # print(f"{mvdef=}")
         def_startline, def_endline = get_defrange(mvdef)
         deflines = link.src.lines[def_startline:def_endline]
         # get_def_lines prepares the lines (whitespace and indentation)
@@ -270,10 +271,10 @@ def copy_src_defs_to_dst(link):
             pre_lines = link.dst.lines[:into_end]
             post_lines = link.dst.lines[into_end:]
             new_lines = get_def_lines(deflines, link.dst.lines, True, indent_delta)
-            if [l for l in post_lines if l]: # check non-empty, ignoring `None` values
+            if [l for l in post_lines if l]:  # check non-empty, ignoring `None` values
                 if len(post_lines) > 1:
                     it = iter(map(str.rstrip, post_lines))
-                    if any(it): # consume generator up to the first nonblank line
+                    if any(it):  # consume generator up to the first nonblank line
                         first_nonblank_i = len(post_lines) - len([*it]) - 1
                         window_size = 1 if post_lines[first_nonblank_i][0] == " " else 2
                         if first_nonblank_i < window_size:
@@ -282,7 +283,7 @@ def copy_src_defs_to_dst(link):
                             for _ in range(window_filler):
                                 post_lines.insert(0, "\n")
                     else:
-                        pass # all remaining lines are blank!
+                        pass  # all remaining lines are blank!
             link.dst.lines = pre_lines + new_lines + post_lines
         else:
             append_lines = get_def_lines(deflines, link.dst.lines, False, indent_delta)
@@ -298,6 +299,7 @@ def copy_src_defs_to_dst(link):
             link.dst.lines += append_lines
         if not link.dst.is_edited:
             link.dst.is_edited = True
+
 
 def remove_copied_defs(src):
     """

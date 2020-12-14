@@ -58,9 +58,7 @@ def main(copy_only=False, classes_only=False):
     report = arg_l.verbose
     backup = arg_l.backup
 
-    config = {
-
-    }
+    config = {}
 
     src_path = Path(arg_l.src).absolute()
     dst_path = Path(arg_l.dst).absolute()
