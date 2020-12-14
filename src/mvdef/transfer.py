@@ -238,7 +238,7 @@ class SrcFile(LinkedFile):
     @property
     def defs_to_move(self):
         if not hasattr(self, "_defs_to_move"):
-            self.set_defs_to_move() # sets defs_to_move
+            self.set_defs_to_move()  # sets defs_to_move
         return self._defs_to_move
 
     @defs_to_move.setter
@@ -334,7 +334,9 @@ class DstFile(LinkedFile):
 
 
 class FileLink:
-    def __init__(self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup):
+    def __init__(
+        self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup
+    ):
         self.mvdefs = mvdefs
         self.into_paths = into_paths
         self.report = report
@@ -359,7 +361,7 @@ class FileLink:
         try:
             # print("Running link.dst.ast_parse(transfers)")
             self.dst.ast_parse(transfers=transfers)  # populate self.dst.edits
-            #breakpoint()
+            # breakpoint()
         except Exception as e:
             self.dst.edits = e
             return
@@ -367,8 +369,22 @@ class FileLink:
     def set_link(self, src_p, dst_p, use_backup, report=None, nochange=None):
         nochange = self.nochange if nochange is None else nochange
         report = self.report if report is None else report
-        self.src = SrcFile(src_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=self.mvdefs, into_paths=self.into_paths)
-        self.dst = DstFile(dst_p, report=report, nochange=nochange, use_backup=use_backup, mvdefs=None, into_paths=None)
+        self.src = SrcFile(
+            src_p,
+            report=report,
+            nochange=nochange,
+            use_backup=use_backup,
+            mvdefs=self.mvdefs,
+            into_paths=self.into_paths,
+        )
+        self.dst = DstFile(
+            dst_p,
+            report=report,
+            nochange=nochange,
+            use_backup=use_backup,
+            mvdefs=None,
+            into_paths=None,
+        )
 
     def set_src_defs_to_move(self):
         self.src.set_defs_to_move(self.dst)
@@ -434,7 +450,16 @@ class FileLink:
 
 # TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(
-    src_p, dst_p, mvdefs, into_paths, test_func=None, report=True, nochange=True, use_backup=True
+    mvdefs,
+    into_paths,
+    src_p,
+    dst_p,
+    report=True,
+    nochange=True,
+    test_func=None,
+    use_backup=True,
+    copy_only=False,
+    classes_only=False,
 ):
     """
     Execute the transfer of function definitions and import statements, optionally
@@ -458,7 +483,9 @@ def parse_transfer(
     # Backs up source and target to a hidden file, restorable in case of error,
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
-    link = FileLink(mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup)
+    link = FileLink(
+        mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup
+    )
     # Raise any error encountered when building the AST
     if isinstance(link.src.edits, Exception):
         global src_err_link

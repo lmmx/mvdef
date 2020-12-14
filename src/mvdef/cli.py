@@ -88,18 +88,20 @@ class _IntoAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
-def main(src_p, dst_p, mvdefs, into_paths, dry_run, report, backup):
+def main(mvdefs, into_paths, src_p, dst_p, report, dry_run, backup, copy_only, classes_only):
     if report:
         print("--------------RUNNING mvdef.cli⠶main()--------------", file=stderr)
     src_parsed, dst_parsed = parse_transfer(
-        src_p,
-        dst_p,
         mvdefs,
         into_paths,
-        test_func=None,
+        src_p,
+        dst_p,
         report=report,
         nochange=dry_run,
+        test_func=None,
         use_backup=backup,
+        copy_only=copy_only,
+        classes_only=classes_only
     )
     if report:
         print("------------------COMPLETE--------------------------", file=stderr)

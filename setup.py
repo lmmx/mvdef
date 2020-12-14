@@ -39,6 +39,9 @@ setup(
     entry_points={
         "console_scripts": [
             "mvdef = mvdef.__main__:main",
+            "mvcls = mvdef.__main__:mvcls",
+            "cpdef = mvdef.__main__:cpdef",
+            "cpcls = mvdef.__main__:cpcls",
         ],
     },
     install_requires=reqs,

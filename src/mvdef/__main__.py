@@ -10,7 +10,7 @@ from .transfer import parse_transfer, FileLink
 prog, *argv = argv  # excise the call to mvdef as prog
 USE_CALL_PATH = False
 if not USE_CALL_PATH:
-    prog = "mvdef" # overwrite the full call path with just 'mvdef'
+    prog = "mvdef"  # overwrite the full call path with just 'mvdef'
 
 
 def demo():
@@ -20,7 +20,7 @@ def demo():
     run_demo(mvdefs=["pprint_dict"], into_paths=[None], dry_run=True, report=True)
 
 
-def main():
+def main(copy_only=False, classes_only=False):
     DEBUGGING_MODE = False
     HIDE_TRACEBACKS = True
     if "--demo" in argv:
@@ -36,7 +36,7 @@ def main():
     parser = ArgumentParser(
         description="Move function definitions and associated import"
         + " statements from one file to another within a library.",
-        prog=prog
+        prog=prog,
     )
     parser.add_argument("src")
     parser.add_argument("dst")
@@ -58,12 +58,27 @@ def main():
     report = arg_l.verbose
     backup = arg_l.backup
 
+    config = {
+
+    }
+
     src_path = Path(arg_l.src).absolute()
     dst_path = Path(arg_l.dst).absolute()
     try:
         if DEBUGGING_MODE:
             global link
-            link = FileLink(mvdefs, into_paths, src_path, dst_path, report, dry_run, None, backup)
+            link = FileLink(
+                mvdefs=mvdefs,
+                into_paths=into_paths,
+                src_p=src_path,
+                dst_p=dst_path,
+                report=report,
+                nochange=dry_run,
+                test_func=None,
+                use_backup=backup,
+                copy_only=copy_only,
+                classes_only=classes_only,
+            )
             # Raise any error encountered when building the AST
             if isinstance(link.src.edits, Exception):
                 global src_err_link
@@ -80,12 +95,35 @@ def main():
                 file=stderr,
             )
         else:
-            run_cli(src_path, dst_path, mvdefs, into_paths, dry_run, report, backup)
+            run_cli(
+                mvdefs=mvdefs,
+                into_paths=into_paths,
+                src_p=src_path,
+                dst_p=dst_path,
+                report=report,
+                dry_run=dry_run,
+                # test_func=None,
+                backup=backup,
+                copy_only=copy_only,
+                classes_only=classes_only,
+            )
     except Exception as e:
         if HIDE_TRACEBACKS:
             print(f"{type(e).__name__} ⠶ {e}")
         else:
             raise e
+
+
+def cpdef():
+    main(copy_only=True, classes_only=False)
+
+
+def mvcls():
+    main(copy_only=False, classes_only=True)
+
+
+def cpcls():
+    main(copy_only=True, classes_only=True)
 
 
 if __name__ == "__main__":

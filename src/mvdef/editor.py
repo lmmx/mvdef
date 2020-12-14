@@ -278,9 +278,8 @@ def copy_src_defs_to_dst(link):
             append_lines = get_def_lines(deflines, link.dst.lines, False, indent_delta)
             if not link.dst.lines:
                 # file may be new, don't prepend newlines if nothing to keep gap between
-                append_lines = trim_whitespace_lines_pre(append_lines)
-                else:
-                    raise ValueError("You're appending blank lines to an empty file!")
+                e = ValueError("You're appending blank lines to an empty file!")
+                append_lines = trim_whitespace_lines_pre(append_lines, else_error=e)
             else:
                 # if lines in DstFile are all blank, trim and don't prefix whitespace
                 if link.dst.lines and not [l for l in link.dst.lines if l.rstrip()]:
@@ -290,12 +289,14 @@ def copy_src_defs_to_dst(link):
         if not link.dst.is_edited:
             link.dst.is_edited = True
 
-def trim_whitespace_lines_pre(lines):
+def trim_whitespace_lines_pre(lines, else_error=None):
     it = iter(l.rstrip() for l in lines)
     if any(it):
         first_nonblank_i = len(lines) - len([*it]) - 1
         for _ in range(first_nonblank_i):
             lines.pop(0) # remove the whitespace prefix lines
+    elif else_error:
+        raise else_error
     return lines
 
 def remove_copied_defs(src):
