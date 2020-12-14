@@ -229,6 +229,16 @@ def receive_imports(link):
     # sets dst.lines
 
 
+def trim_whitespace_lines_pre(lines, else_error=None):
+    it = iter(l.rstrip() for l in lines)
+    if any(it):
+        first_nonblank_i = len(lines) - len([*it]) - 1
+        for _ in range(first_nonblank_i):
+            lines.pop(0) # remove the whitespace prefix lines
+    elif else_error:
+        raise else_error
+    return lines
+
 def copy_src_defs_to_dst(link):
     """
     Transfer mvdef into the destination file i.e. 'receive mvdef', where mvdef is an
@@ -288,16 +298,6 @@ def copy_src_defs_to_dst(link):
             link.dst.lines += append_lines
         if not link.dst.is_edited:
             link.dst.is_edited = True
-
-def trim_whitespace_lines_pre(lines, else_error=None):
-    it = iter(l.rstrip() for l in lines)
-    if any(it):
-        first_nonblank_i = len(lines) - len([*it]) - 1
-        for _ in range(first_nonblank_i):
-            lines.pop(0) # remove the whitespace prefix lines
-    elif else_error:
-        raise else_error
-    return lines
 
 def remove_copied_defs(src):
     """
@@ -366,7 +366,8 @@ def transfer_mvdefs(link):
     if not link.dst.is_edited and (link.dst.rcv_agenda or link.dst.rm_agenda):
         link.dst.is_edited = True
 
-    if link.src.is_edited:
+    # Simplest possible implementation of a copy rather than a move (could be improved)
+    if not link.copy_only and link.src.is_edited:
         link.src.lines = "".join([line for line in link.src.lines if line is not None])
         if not link.src.lines.endswith("\n"):
             link.src.lines += "\n"

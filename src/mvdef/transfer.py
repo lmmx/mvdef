@@ -335,13 +335,16 @@ class DstFile(LinkedFile):
 
 class FileLink:
     def __init__(
-        self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup
+        self, mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup, copy_only, classes_only
     ):
+        # First set those with no side effects:
         self.mvdefs = mvdefs
         self.into_paths = into_paths
         self.report = report
         self.nochange = nochange
-        # print("Setting link")
+        self.copy_only = copy_only
+        self.classes_only = classes_only
+        # Now set up the link
         self.set_link(src_p, dst_p, use_backup=use_backup)
         self.use_backup = use_backup  # will create backups (now!) if True
         self.test_func = test_func  # will run the test_func to check it works
@@ -484,7 +487,7 @@ def parse_transfer(
     # and creating a hidden placeholder if the target doesn't exist yet
     assert True in [report, not nochange], "Nothing to do"
     link = FileLink(
-        mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup
+        mvdefs, into_paths, src_p, dst_p, report, nochange, test_func, use_backup, copy_only, classes_only
     )
     # Raise any error encountered when building the AST
     if isinstance(link.src.edits, Exception):
