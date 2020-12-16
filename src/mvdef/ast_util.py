@@ -797,11 +797,7 @@ class RecursiveIdSetterMixin:
 
     @property
     def _parent_def_kwargs(self):
-        #kwargs_dict = dict.fromkeys(f"parent_{t}d" for t in "cf")
-        #set_key = f"parent_{'c' if self.classes_only else 'f'}d"
-        #kwargs_dict.update({set_key: self})
-        #return {k:v for (k,v) in kwargs_dict.items() if v}
-        return {f"parent_{'c' if self.classes_only else 'f'}d": self}
+        return {f"parent_{'c' if isinstance(self, ClsDef) else 'f'}d": self}
 
     @property
     def intra_cls_type(self):
