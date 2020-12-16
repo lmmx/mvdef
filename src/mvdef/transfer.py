@@ -47,8 +47,8 @@ class LinkedFile:
         self.use_backup = use_backup
         self.mvdefs = mvdefs
         self.into_paths = into_paths
-        self.copy_only = (copy_only,)
-        self.classes_only = (classes_only,)
+        self.copy_only = copy_only
+        self.classes_only = classes_only
 
     is_edited = False
 
@@ -128,6 +128,22 @@ class LinkedFile:
         self._classes_only = classes_only
 
     @property
+    def sel_nodes(self):
+        return self.ast_classes if self.classes_only else self.ast_defs
+
+    @property
+    def nosel_nodes(self):
+        return self.ast_defs if self.classes_only else self.ast_classes
+
+    @property
+    def sel_ids(self):
+        return [n.name for n in self.sel_nodes]
+
+    @property
+    def nosel_ids(self):
+        return [n.name for n in self.nosel_nodes]
+
+    @property
     def is_extant(self):
         return self.path.exists() and self.path.is_file()
 
@@ -174,9 +190,6 @@ class LinkedFile:
     @property
     def trunk(self):
         if not hasattr(self, "_trunk"):
-            # print(f"SETTING TRUNK ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.set_trunk()
         return self._trunk
 
@@ -190,9 +203,6 @@ class LinkedFile:
     @property
     def lines(self):
         if not hasattr(self, "_lines"):
-            # print(f"SETTING LINES ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.readlines()
         return self._lines
 
@@ -207,9 +217,6 @@ class LinkedFile:
     @property
     def imports(self):
         if not hasattr(self, "_imports"):
-            # print(f"SETTING IMPORTS ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.imports = get_imports(self.trunk, trunk_only=True)
         return self._imports
 
@@ -220,9 +227,6 @@ class LinkedFile:
     @property
     def import_counts(self):
         if not hasattr(self, "_import_counts"):
-            # print(f"SETTING IMPORT_COUNTS ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.import_counts = count_imported_names(self.imports)
         return self._import_counts
 
@@ -233,9 +237,6 @@ class LinkedFile:
     @property
     def modules(self):
         if not hasattr(self, "_modules"):
-            # print(f"SETTING MODULES ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.modules = get_module_srcs(self.imports)
         return self._modules
 

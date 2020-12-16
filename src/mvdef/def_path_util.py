@@ -51,6 +51,7 @@ class TokenisedStr:
         InnerFunc = ":"
         Method = "."
         InnerClass = "::"
+        HigherOrderClass = ":::"
         Decorator = "@"
         # WildCard = "*"
         # MultiLevelWildCard = "**"
@@ -81,6 +82,7 @@ class TokenisedStr:
                     sep = self.PathSepEnum._value2member_map_.get(bigram)
                     self._tokens.append(sep)
                     continue  # don't try to parse 1st symbol after using it in 'bigram'
+            # TODO: trigram (see issue #33)
             if symbol in self.PathSepEnum._value2member_map_:
                 sep = self.PathSepEnum._value2member_map_.get(symbol)
                 self._tokens.append(sep)
