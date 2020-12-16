@@ -7,6 +7,7 @@ __all__ = [
     "FuncDefPathStr",
     "InnerFuncDefPathStr",
     "ClassDefPathStr",
+    "HigherOrderClassDefPathStr",
     "InnerClassDefPathStr",
     "MethodDefPathStr",
 ]
@@ -30,6 +31,10 @@ class ClassPathPart(PathPartStr):
 
 class InnerClassPathPart(PathPartStr):
     part_type = "InnerClass"
+
+
+class HigherOrderClassPathPart(PathPartStr):
+    part_type = "HigherOrderClass"
 
 
 class MethodPathPart(PathPartStr):
@@ -62,6 +67,7 @@ class TokenisedStr:
         InnerFunc = InnerFuncPathPart
         Class = ClassPathPart
         InnerClass = InnerClassPathPart
+        HigherOrderClass = HigherOrderClassPathPart
         Method = MethodPathPart
         Decorator = DecoratorPathPart
 
@@ -72,17 +78,30 @@ class TokenisedStr:
     def tokenise_from_string(self):
         self._tokens = []
         parse_string_symbols = [*self.string]
+        # TODO refactor this while loop (#34)
         while parse_string_symbols:
             symbol = parse_string_symbols.pop(0)
             if parse_string_symbols:  # if any symbols left to pop
-                next_symbol = parse_string_symbols[0]
-                bigram = f"{symbol}{next_symbol}"
-                if bigram in self.PathSepEnum._value2member_map_:
-                    parse_string_symbols.pop(0)  # already stored as `next_symbol`
-                    sep = self.PathSepEnum._value2member_map_.get(bigram)
-                    self._tokens.append(sep)
-                    continue  # don't try to parse 1st symbol after using it in 'bigram'
-            # TODO: trigram (see issue #33)
+                next_symbol = parse_string_symbols.pop(0)
+                if parse_string_symbols: # if a 3rd symbol left to pop
+                    last_symbol = parse_string_symbols.pop(0)
+                    trigram = f"{symbol}{next_symbol}{last_symbol}"
+                    if trigram in self.PathSepEnum._value2member_map_:
+                        parse_string_symbols.pop(0)  # already stored as `next_symbol`
+                        sep = self.PathSepEnum._value2member_map_.get(bigram)
+                        self._tokens.append(sep)
+                        continue  # don't try to parse 1st symbol after using it in 'bigram'
+                    else:
+                        raise NameError(f"Unrecognised bigram {bigram}")
+                else:
+                    bigram = f"{symbol}{next_symbol}"
+                    if bigram in self.PathSepEnum._value2member_map_:
+                        parse_string_symbols.pop(0)  # already stored as `next_symbol`
+                        sep = self.PathSepEnum._value2member_map_.get(bigram)
+                        self._tokens.append(sep)
+                        continue  # don't try to parse 1st symbol after using it in 'bigram'
+                    else:
+                        raise NameError(f"Unrecognised bigram {bigram}")
             if symbol in self.PathSepEnum._value2member_map_:
                 sep = self.PathSepEnum._value2member_map_.get(symbol)
                 self._tokens.append(sep)
@@ -111,7 +130,7 @@ class TokenisedStr:
                 assert type(next_tok) is self.PathSepEnum, "2 unseparated string tokens"
                 last_seen_sep = next_tok
                 sep_type = next_tok.name
-                if sep_type in ["InnerFunc", "Decorator"]:  # then tok 1 is a funcdef
+                if sep_type in ["InnerFunc", "HigherOrderClass", "Decorator"]:  # then tok 1 is a funcdef
                     tok_parsed = FuncPathPart(tok)
                 elif sep_type in ["Method", "InnerClass"]:  # then tok 1 is a classdef
                     tok_parsed = ClassPathPart(tok)
@@ -293,6 +312,30 @@ class ClassDefPathStr(TokenisedStr, LeafMixin):
     @property
     def leaf_enum(self):
         return self.PathPartEnum.Class
+
+
+class HigherOrderClassDefPathStr(ClassDefPathStr, ParentedMixin):
+    """
+    A ClassDefPathStr which has a top level funcdef, an 'intradef' inner func (these
+    are checked on __init__), and potentially one or more inner functions below that.
+
+    This class should be subclassed for checking against the (separate) ASTs used in
+    either `ast_util` or `asttokens` (the first for generating the inner function
+    indexes, the latter for line numbering associated with the AST nodes).
+    """
+
+    # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+        self.check_part_types()
+
+    @property
+    def parent_enum(self):
+        return self.PathPartEnum.Func
+
+    @property
+    def leaf_enum(self):
+        return self.PathPartEnum.HigherOrderClass
 
 
 class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):

@@ -10,6 +10,7 @@ from .def_path_util import (
     FuncDefPathStr,
     InnerFuncDefPathStr,
     ClassDefPathStr,
+    HigherOrderClassDefPathStr,
     InnerClassDefPathStr,
     MethodDefPathStr,
 )
@@ -561,6 +562,70 @@ class InnerClassPath(InnerClassDefPathStr):
             return retrieved_cd
 
 
+class HigherOrderClassPath(HigherOrderClassDefPathStr):
+    """
+    A ClassDefPathStr for a class within another class.
+    """
+
+    # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
+    def __init__(self, path_string):
+        super().__init__(path_string)
+
+    def check_against_classes(self, linkfile_classes):
+        global_cls_names = [c.name for c in linkfile_classes]
+        # basically just a sanity check (doesn't filter by top-level class)
+        iclsdef_names = {
+            iclsdef.name: iclsdef
+            for body in [cls.body for cls in linkfile_classes]
+            for iclsdef in body
+            if type(iclsdef) is ast.ClassDef
+        }
+        if self.parent_name not in global_cls_names:
+            raise NameError(f"File does not contain {self.parent_name}")
+        elif self.innerclsdef_name not in iclsdef_names:
+            fail_subpath = "::".join(self.parts[:2])
+            raise NameError(f"File does not contain {fail_subpath}")
+        else:
+            initial_iclsdef = iclsdef_names.get(self.innerclsdef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(
+                        ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
+                    )
+                except Exception as e:
+                    msg = f"File does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_iclsdef
+            return retrieved_cd
+
+    def check_against_linkedfile(self, linkfile):
+        filename = linkfile.path.name
+        global_cls_names = [c.name for c in linkfile.ast_classes]
+        if self.parent_name not in global_cls_names:
+            raise NameError(f"{filename} does not contain {self.parent_name}")
+        elif self.iclsdef_name not in linkfile.innerclsdef_names:
+            fail_subpath = "::".join(self.parts[:2])
+            raise NameError(f"{filename} does not contain {fail_subpath}")
+        else:
+            initial_iclsdef = linkfile.innerclsdef_names.get(self.innerclsdef_name)
+            remaining_parts = self.parts[2:]
+            if remaining_parts:
+                retrieved_cd = None
+                try:
+                    retrieved_cd = reduce(
+                        ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
+                    )
+                except Exception as e:
+                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    raise NameError(msg)
+            else:
+                retrieved_cd = initial_iclsdef
+            return retrieved_cd
+
+
 class MethodPath(MethodDefPathStr):
     """
     A MethodDefPathStr which has a top level class, which contains a method
@@ -650,11 +715,29 @@ def get_def_names(linkfile, def_list, import_annos):
     ie_def_excludes = [*intradef_names, *extradef_names]
     # TODO: exclude class names for method def?
     for m in def_list:
+        m_type = "class" if get_cls else "function"
         sd_names = set()
         m_parsed = UntypedPathStr(m)  # will be remade in InnerFuncPath but it's fast
         # (in theory the purpose of the previous line would be to decide which subclass
         # to use, e.g. to distinguish between an inner func path and a path beginning
         # with a class, but for now it's [trivially] only supporting inner functions)
+        if len(m_parsed.parts) > 1:
+            # use pen/ultimate nodes in the path (i.e. leaf and its parent)
+            root_node = m_parsed.parts[0]
+            leaf_parent_node, leaf_node = m_parsed.parts[-2:]
+            if get_cls:
+                valid_leaf_types = ["InnerClass", "HigherOrderClass"]
+            else:
+                valid_leaf_types = ["Method", "InnerFunc"]
+            msg = "'{leaf_node.part_type}' is not a valid {m_type} part type"
+            assert leaf_node.part_type in valid_leaf_types, msg
+            leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type)
+            # leaf_par_type = getattr(DefTypeEnum, leaf_par_type_name) # wait no...
+            m_path = ...
+        elif m_parsed.parts:
+            leaf_node = m_parsed.parts[0]
+        else:
+            raise NameError(f"No {m_type} '{m}' is defined")
         if len(m_parsed.parts) > 1:
             # Multi-part path, separated by one or more separators `:` (inner func),
             # `.` (method), `::` (inner cls), `:::` (higher order cls), `@` (decorator)
@@ -665,6 +748,7 @@ def get_def_names(linkfile, def_list, import_annos):
                 # InnerFuncPath will error if `m` does not begin with 2 funcdefs
                 # retrieve {func|cls}def from AST
                 sel_def = m_path.check_against_linkedfile(linkfile)  
+                # This is wrong lol TODO turn back to fd_ids or cd_ids
                 sel_ids = (
                     sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
                    # TODO make this a property on the type (which class though?)
@@ -672,6 +756,7 @@ def get_def_names(linkfile, def_list, import_annos):
             elif pt_init == "Class":
                 pt_inner = m_parsed.parts[1].part_type
                 if pt_inner != "Method":
+                    breakpoint()
                     raise NotImplementedError("No support for inner class' methods yet")
                 else:
                     m_path = MethodPath(m)  # subclass MethodDefPathStr
@@ -684,8 +769,7 @@ def get_def_names(linkfile, def_list, import_annos):
         elif m in sel_ids:
             sel_def = sel_nodes[sel_ids.index(m)]
         else:
-            m_type = "class" if get_cls else "function"
-            raise NameError(f"No {m_type} '{m}' is defined")
+            raise NameError(f"No {'class' if get_cls else 'function'} '{m}' is defined")
         sd_params = [] if get_cls else [a.arg for a in sel_def.args.args] # def params (sel_def may be intra)
         assigned = find_assigned_args(sel_def)
         for ast_statement in sel_def.body:
@@ -801,7 +885,7 @@ class RecursiveIdSetterMixin:
 
     @property
     def intra_cls_type(self):
-        return getattr(DefTypeEnum, self.intra_cls_type_name).value
+        return getattr(IntraDefTypeEnum, self.intra_cls_type_name).value
 
     @property
     def intra_cls_idx(self):
@@ -809,7 +893,7 @@ class RecursiveIdSetterMixin:
 
     @property
     def intra_func_type(self):
-        return getattr(DefTypeEnum, self.intra_func_type_name).value
+        return getattr(IntraDefTypeEnum, self.intra_func_type_name).value
 
     @property
     def intra_func_idx(self):
@@ -926,7 +1010,7 @@ class ClsDef(ast.ClassDef, RecursiveIdSetterMixin):
     intra_funcs = methods
     intra_classes = inner_classes
     intra_func_type_name = "Method"
-    intra_cls_type_name = "InnerCls"
+    intra_cls_type_name = "InnerClass"
 
     @property
     def path(self):
@@ -1051,7 +1135,7 @@ class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin):
     intra_funcs = inner_funcs
     intra_classes = ho_classes
     intra_func_type_name = "InnerFunc"
-    intra_cls_type_name = "HigherOrderCls"
+    intra_cls_type_name = "HigherOrderClass"
 
     @property
     def path(self):
@@ -1128,11 +1212,20 @@ class InnerFuncDef(FuncDef):
         self._all_ns_fd_ids = id_list
 
 class DefTypeEnum(Enum):
-    Method = MethodDef
-    InnerCls = InnerClsDef
-    InnerFunc = InnerFuncDef
-    HigherOrderCls = HOClsDef
+    Class = ClsDef
+    Func = FuncDef
 
+class IntraDefTypeEnum(Enum):
+    Method = MethodDef
+    InnerClass = InnerClsDef
+    InnerFunc = InnerFuncDef
+    HigherOrderClass = HOClsDef
+
+class DefTypeToParentTypeEnum(Enum):
+    Method = "Class"
+    InnerClass = "Class"
+    InnerFunc = "Func"
+    HigherOrderClass = "Func"
 
 def parse_mv_funcs(linkfile, trunk):
     """
