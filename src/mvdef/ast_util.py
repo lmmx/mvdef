@@ -722,8 +722,10 @@ def get_def_names(linkfile, def_list, import_annos):
         # to use, e.g. to distinguish between an inner func path and a path beginning
         # with a class, but for now it's [trivially] only supporting inner functions)
         if len(m_parsed.parts) > 1:
-            # use pen/ultimate nodes in the path (i.e. leaf and its parent)
+            # Multi-part path, separated by one or more separators `:` (inner func),
+            # `.` (method), `::` (inner cls), `:::` (higher order cls), `@` (decorator)
             root_node = m_parsed.parts[0]
+            # use pen/ultimate nodes in the path (i.e. leaf and its parent)
             leaf_parent_node, leaf_node = m_parsed.parts[-2:]
             if get_cls:
                 valid_leaf_types = ["InnerClass", "HigherOrderClass"]
@@ -731,45 +733,20 @@ def get_def_names(linkfile, def_list, import_annos):
                 valid_leaf_types = ["Method", "InnerFunc"]
             msg = "'{leaf_node.part_type}' is not a valid {m_type} part type"
             assert leaf_node.part_type in valid_leaf_types, msg
-            leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type)
+            leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type).value
             # leaf_par_type = getattr(DefTypeEnum, leaf_par_type_name) # wait no...
-            m_path = ...
-        elif m_parsed.parts:
-            leaf_node = m_parsed.parts[0]
-        else:
-            raise NameError(f"No {m_type} '{m}' is defined")
-        if len(m_parsed.parts) > 1:
-            # Multi-part path, separated by one or more separators `:` (inner func),
-            # `.` (method), `::` (inner cls), `:::` (higher order cls), `@` (decorator)
-            # I think this should be root_type
-            pt_init = m_parsed.parts[0].part_type  # initial part type
-            if pt_init == "Func":
-                m_path = InnerFuncPath(m)  # subclass InnerFuncDefPathStr
-                # InnerFuncPath will error if `m` does not begin with 2 funcdefs
-                # retrieve {func|cls}def from AST
-                sel_def = m_path.check_against_linkedfile(linkfile)  
-                # This is wrong lol TODO turn back to fd_ids or cd_ids
-                sel_ids = (
-                    sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
-                   # TODO make this a property on the type (which class though?)
-                )  # inner {func|cls}def IDs, includes global def namespace
-            elif pt_init == "Class":
-                pt_inner = m_parsed.parts[1].part_type
-                if pt_inner != "Method":
-                    breakpoint()
-                    raise NotImplementedError("No support for inner class' methods yet")
-                else:
-                    m_path = MethodPath(m)  # subclass MethodDefPathStr
-                    sel_def = m_path.check_against_linkedfile(
-                        linkfile
-                    )  # retrieve funcdef from AST
-                    # fd_ids = fd.all_ns_md_ids # method def IDs, includes global def namespace
-            else:
-                raise NotImplementedError(f"Did not expect to support {pt_init}")
+            m_path_type = getattr(IntraDefPathTypeEnum, leaf_node.part_type).value
+            m_path = m_path_type(m)
+            # retrieve {func|cls}def from AST
+            sel_def = m_path.check_against_linkedfile(linkfile)  
+            sel_ids = (
+                sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
+               # TODO make this a property on the type (which class though?)
+            )  # inner {func|cls}def IDs, includes global def namespace
         elif m in sel_ids:
             sel_def = sel_nodes[sel_ids.index(m)]
         else:
-            raise NameError(f"No {'class' if get_cls else 'function'} '{m}' is defined")
+            raise NameError(f"No {m_type} '{m}' is defined")
         sd_params = [] if get_cls else [a.arg for a in sel_def.args.args] # def params (sel_def may be intra)
         assigned = find_assigned_args(sel_def)
         for ast_statement in sel_def.body:
@@ -1226,6 +1203,12 @@ class DefTypeToParentTypeEnum(Enum):
     InnerClass = "Class"
     InnerFunc = "Func"
     HigherOrderClass = "Func"
+
+class IntraDefPathTypeEnum(Enum):
+    Method = MethodPath
+    InnerClass = InnerClassPath
+    InnerFunc = InnerFuncPath
+    HigherOrderClass = HigherOrderClassPath
 
 def parse_mv_funcs(linkfile, trunk):
     """

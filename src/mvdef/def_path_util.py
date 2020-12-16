@@ -79,35 +79,29 @@ class TokenisedStr:
         self._tokens = []
         parse_string_symbols = [*self.string]
         # TODO refactor this while loop (#34)
+        all_separators = self.PathSepEnum._value2member_map_
         while parse_string_symbols:
             symbol = parse_string_symbols.pop(0)
-            if parse_string_symbols:  # if any symbols left to pop
-                next_symbol = parse_string_symbols.pop(0)
-                if parse_string_symbols: # if a 3rd symbol left to pop
-                    last_symbol = parse_string_symbols.pop(0)
-                    trigram = f"{symbol}{next_symbol}{last_symbol}"
-                    if trigram in self.PathSepEnum._value2member_map_:
-                        parse_string_symbols.pop(0)  # already stored as `next_symbol`
-                        sep = self.PathSepEnum._value2member_map_.get(bigram)
-                        self._tokens.append(sep)
-                        continue  # don't try to parse 1st symbol after using it in 'bigram'
-                    else:
-                        raise NameError(f"Unrecognised bigram {bigram}")
-                else:
-                    bigram = f"{symbol}{next_symbol}"
-                    if bigram in self.PathSepEnum._value2member_map_:
-                        parse_string_symbols.pop(0)  # already stored as `next_symbol`
-                        sep = self.PathSepEnum._value2member_map_.get(bigram)
-                        self._tokens.append(sep)
-                        continue  # don't try to parse 1st symbol after using it in 'bigram'
-                    else:
-                        raise NameError(f"Unrecognised bigram {bigram}")
-            if symbol in self.PathSepEnum._value2member_map_:
-                sep = self.PathSepEnum._value2member_map_.get(symbol)
+            if len(parse_string_symbols) > 1:
+                trigram = symbol + "".join(parse_string_symbols[:2])
+                if trigram in all_separators:
+                    sep = all_separators.get(trigram)
+                    self._tokens.append(sep)
+                    del parse_string_symbols[:2] # pop two extra symbols
+                    continue
+            if parse_string_symbols:
+                bigram = symbol + parse_string_symbols[0]
+                if bigram in all_separators:
+                    sep = all_separators.get(bigram)
+                    self._tokens.append(sep)
+                    parse_string_symbols.pop(0) # pop extra symbol
+                    continue
+            if symbol in all_separators:
+                sep = all_separators.get(symbol)
                 self._tokens.append(sep)
             elif self._tokens and isinstance(self._tokens[-1], str):
                 self._tokens[-1] += symbol
-            else:  # either the first part or the last part was a separator so append
+            else:  # either the first part, or the last part was a separator, so append
                 self._tokens.append(symbol)
 
     def _trivial_parts_constructor(self):
@@ -221,7 +215,7 @@ class ParentedMixin(LeafMixin):
     def check_part_types(self):
         super().check_part_types()
         msg = f"Parent must be: {self.parent_enum.name} (not {self.parent_type})"
-        assert self.parent_check(), msg
+        assert self.parent_check(), breakpoint() + msg
 
 
 class UntypedMixin:
