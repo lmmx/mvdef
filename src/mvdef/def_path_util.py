@@ -12,7 +12,6 @@ __all__ = [
     "MethodDefPathStr",
 ]
 
-
 class PathPartStr(str):
     pass
 
@@ -70,6 +69,13 @@ class TokenisedStr:
         HigherOrderClass = HigherOrderClassPathPart
         Method = MethodPathPart
         Decorator = DecoratorPathPart
+
+    class DefTypeToParentTypeEnum(Enum):
+        "Duplicate of the enum in ast_util.py (TODO: refactor)"
+        Method = "Class"
+        InnerClass = "Class"
+        InnerFunc = "Func"
+        HigherOrderClass = "Func"
 
     def parse_from_string(self):
         self.tokenise_from_string()  # sets ._tokens
@@ -165,7 +171,7 @@ class TokenisedStr:
     ### Helper functions used to check which type of path the FuncDefPath is
     @property
     def _supported_path_types(self):
-        return ("InnerFunc", "Method")
+        return ("InnerFunc", "Method", "InnerClass", "HigherOrderClass")
 
     @property
     def is_unsupported(self):
@@ -211,14 +217,17 @@ class ParentedMixin(LeafMixin):
 
     def parent_check(self):
         if hasattr(self, "parent_type_name"):
-            return self.parent_type_name == self.parent_enum.name
+            check = self.parent_type_name == self.parent_enum.name
+        elif self.parent_type in self.DefTypeToParentTypeEnum._member_map_:
+            check = self.DefTypeToParentTypeEnum[self.parent_type].value == self.parent_enum.name
         else:
-            return self.parent_type == self.parent_enum.name
+            check = self.parent_type == self.parent_enum.name
+        return check
 
     def check_part_types(self):
         super().check_part_types()
         msg = f"Parent must be: {self.parent_enum.name} (not {self.parent_type})"
-        assert self.parent_check(), msg
+        assert self.parent_check(), breakpoint() + msg
 
 
 class UntypedMixin:

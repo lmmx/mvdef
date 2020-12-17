@@ -131,7 +131,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
     src_defs, src_classes = get_defs_and_classes(src.trunk, trunk_only=trunk_only)
     dst_defs, dst_classes = get_defs_and_classes(dst.trunk, trunk_only=trunk_only)
     # Note that you may want to set `into_path.node` even if the mvdef is top-level!
-    if any(sep in x for sep in [*":."] for x in def_list):
+    if any(sepchar in x for sepchar in [*":."] for x in def_list):
         target_defs = []
         for s, to in zip(def_list, into_list):
             path_parsed = UntypedPathStr(s)  # not final: may actually be a ClassDef!
@@ -143,7 +143,6 @@ def set_defs_to_move(src, dst, trunk_only=True):
             #
             # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
             if path_parsed.is_unsupported:
-                # breakpoint()
                 supported = "inner funcdefs and methods of global-scope classes"
                 raise NotImplementedError(f"Currently only supporting {supported}")
             try:
