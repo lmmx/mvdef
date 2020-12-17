@@ -14,7 +14,7 @@ from .def_path_util import (
     InnerClassDefPathStr,
     MethodDefPathStr,
 )
-from .def_helpers import _find_node, _find_cls, _find_def 
+from .def_helpers import _find_node
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -413,8 +413,9 @@ class PathGetterMixin:
         def_bases = DefTypeEnum._value2member_map_
         next_base_name = next(b for b in next_def_type.__bases__ if b in def_bases)
         next_def_base_type = DefTypeEnum(next_base_name).name
-        finder = _find_cls if next_def_base_type == "Class" else _find_def
-        retrieved_def = finder(self, path_part)
+        def_is_a_cls = next_def_base_type == "Class"
+        intras = self.intra_classes if def_is_a_cls else self.intra_funcs
+        retrieved_def = _find_node(intras, path_part)
         return retrieved_def
 
 
@@ -789,7 +790,7 @@ def get_def_names(linkfile, def_list, import_annos):
             m_path = m_path_type(m, parent_type_name=leaf_par_type_name)
             # retrieve {func|cls}def from AST
             sel_def = m_path.check_against_linkedfile(linkfile)  
-            breakpoint() # getting an AttributeError on all_ns_fd_ids for an inner cls method
+            #breakpoint() # getting an AttributeError on all_ns_fd_ids for inner cls method
             sel_ids = (
                 sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
                # TODO make this a property on the type (which class though?)
@@ -971,6 +972,7 @@ class ClsDef(ast.ClassDef, RecursiveIdSetterMixin, PathGetterMixin):
         self.global_fd_ids = ast_fun_ids
         self.is_inner = is_inner
         if not self.is_inner:
+            print(f"Recursive check for {self.name} happens here!")
             self.check_for_inner_defs()
 
     def get_method(self, meth_name):
@@ -1096,6 +1098,7 @@ class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin, PathGetterMixin):
         self.global_fd_ids = ast_fun_ids
         self.is_inner = is_inner
         if not self.is_inner:
+            print(f"Recursive check for {self.name} happens here!")
             self.check_for_inner_defs()
 
     def get_inner_func(self, func_name):
@@ -1217,7 +1220,7 @@ class InnerFuncDef(FuncDef):
         self.parent_name = parent_fd.name
         self.parent_path = parent_fd.path
         self.parent_line_range = parent_fd.line_range
-        super().__init__(fd, is_inner=True) # moved to end to match ClsDef subclasses
+        super().__init__(fd, self.classes_only, is_inner=True) # moved to end to match ClsDef subclasses
 
     @property
     def path(self):
@@ -1311,6 +1314,8 @@ def parse_mv_funcs(linkfile, trunk):
     ast_cd_ids = [c.name for c in ast_clsdefs]
     linkfile.ast_defs = [FuncDef(n, ast_cls_ids=ast_cd_ids, ast_fun_ids=ast_fd_ids, classes_only=linkfile.classes_only) for n in ast_funcdefs]
     linkfile.ast_classes = [ClsDef(n, ast_cls_ids=ast_cd_ids, ast_fun_ids=ast_fd_ids, classes_only=linkfile.classes_only) for n in ast_clsdefs]
+    #breakpoint()
+    #print("Hello")
     # Any nodes in the AST that are funcdefs inside funcdefs are 'intra' (i.e. 'inside')
     intra = [
         *chain.from_iterable(
