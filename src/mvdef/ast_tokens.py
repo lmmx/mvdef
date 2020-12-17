@@ -8,7 +8,8 @@ from .def_path_util import (
     MethodDefPathStr,
 )
 from .ast_util import ClassPath, InnerClassPath, FuncPath, MethodPath
-from functools import reduce, partial
+from .def_helpers import _name_check, _find_node, _find_def
+from functools import reduce
 
 __all__ = [
     "get_tokenised",
@@ -56,30 +57,7 @@ def get_defs_and_classes(tr, trunk_only=True):
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
     return defs, classes
 
-
-### Helper functions used for finding the node given a path within `set_defs_to_move`
-def _name_check(node, name):
-    "Check whether an AST `node`’s `.name` attribute is `name`"
-    return node.name == name
-
-
-def _find_node(nodes, name):
-    "Return the first node in `nodes` whose `.name` attribute is `name`"
-    p_name_check = partial(_name_check, name=name)
-    try:
-        return next(filter(p_name_check, nodes))
-    except StopIteration:
-        return None
-
-
-def _find_def(node, name):
-    """
-    Return the first `ast.FunctionDef` subnode in the body of `nodes` whose `.name`
-    attribute is `name`
-    """
-    def_nodes = [n for n in node.body if type(n) is FunctionDef]
-    return _find_node(def_nodes, name)
-
+## Helper functions excised
 
 def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
     """

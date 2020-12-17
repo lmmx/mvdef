@@ -210,12 +210,15 @@ class ParentedMixin(LeafMixin):
         return self.parent_name.part_type
 
     def parent_check(self):
-        return self.parent_type == self.parent_enum.name
+        if hasattr(self, "parent_type_name"):
+            return self.parent_type_name == self.parent_enum.name
+        else:
+            return self.parent_type == self.parent_enum.name
 
     def check_part_types(self):
         super().check_part_types()
         msg = f"Parent must be: {self.parent_enum.name} (not {self.parent_type})"
-        assert self.parent_check(), breakpoint() + msg
+        assert self.parent_check(), msg
 
 
 class UntypedMixin:

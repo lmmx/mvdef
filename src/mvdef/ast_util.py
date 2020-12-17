@@ -14,6 +14,7 @@ from .def_path_util import (
     InnerClassDefPathStr,
     MethodDefPathStr,
 )
+from .def_helpers import _find_node, _find_cls, _find_def 
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -386,13 +387,46 @@ class NameEntryDict(dict):
             super().__init__({n: {} for n in names})
 
 
+class PathGetterMixin:
+    """
+    Used in all `Def` classes (`FuncDef`, `ClsDef` and all subclasses) to provide
+    a generic way to retrieve the inner funcdef/clsdef so as to retrieve a path
+    to a leaf funcdef/clsdef.
+
+    (I don't think this even needs to be mixed in but it's handy to access if it is)
+    """
+    def retrieve_def(self, path_part):
+        """
+        Attempt to retrieve the next funcdef/clsdef indicated by `path_part`
+        (an instance one of the `PathPart` classes iterated over via `reduce`
+        in `check_against_linkedfile` from one of the `Path` classes).
+        """
+        # can use either IntraDefPathTypeEnum/IntraDefTypeEnum (latter more consistent)
+        if path_part.part_type not in IntraDefTypeEnum._member_map_:
+            if path_part in DefTypeEnum._member_map_:
+                # handle global defs in check_against_linkedfile to get an initial def
+                msg = f"{path_part=} is not supposed to be a top-level def type"
+            else:
+                msg = f"{path_part=} is not a recognised def type"
+            raise TypeError(f"{msg} (path_part.part_type=)")
+        next_def_type = IntraDefTypeEnum[path_part.part_type].value # e.g. MethodDef
+        def_bases = DefTypeEnum._value2member_map_
+        next_base_name = next(b for b in next_def_type.__bases__ if b in def_bases)
+        next_def_base_type = DefTypeEnum(next_base_name).name
+        finder = _find_cls if next_def_base_type == "Class" else _find_def
+        retrieved_def = finder(self, path_part)
+        return retrieved_def
+
+
 class FuncPath(FuncDefPathStr):
     """
     A FuncDefPathStr for a top-level function definition
     """
 
     # fall through to FuncDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
@@ -415,7 +449,7 @@ class FuncPath(FuncDefPathStr):
                     )
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (452raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_clsdef
@@ -432,7 +466,9 @@ class InnerFuncPath(InnerFuncDefPathStr):
     """
 
     # fall through to FuncDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
@@ -454,7 +490,7 @@ class InnerFuncPath(InnerFuncDefPathStr):
                     )
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (493raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_fd = initial_intradef
@@ -467,7 +503,9 @@ class ClassPath(ClassDefPathStr):
     """
 
     # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_linkedfile(self, linkfile):
@@ -491,7 +529,7 @@ class ClassPath(ClassDefPathStr):
                     )
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (532raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_clsdef
@@ -504,7 +542,9 @@ class InnerClassPath(InnerClassDefPathStr):
     """
 
     # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_classes(self, linkfile_classes):
@@ -531,7 +571,7 @@ class InnerClassPath(InnerClassDefPathStr):
                         ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
                     )
                 except Exception as e:
-                    msg = f"File does not contain {self.string} (raised {e})"
+                    msg = f"File does not contain {self.string} (574raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_iclsdef
@@ -555,7 +595,7 @@ class InnerClassPath(InnerClassDefPathStr):
                         ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
                     )
                 except Exception as e:
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (598raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_iclsdef
@@ -568,7 +608,9 @@ class HigherOrderClassPath(HigherOrderClassDefPathStr):
     """
 
     # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_classes(self, linkfile_classes):
@@ -595,7 +637,7 @@ class HigherOrderClassPath(HigherOrderClassDefPathStr):
                         ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
                     )
                 except Exception as e:
-                    msg = f"File does not contain {self.string} (raised {e})"
+                    msg = f"File does not contain {self.string} (640raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_iclsdef
@@ -619,7 +661,7 @@ class HigherOrderClassPath(HigherOrderClassDefPathStr):
                         ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
                     )
                 except Exception as e:
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (664raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_cd = initial_iclsdef
@@ -637,7 +679,9 @@ class MethodPath(MethodDefPathStr):
     """
 
     # fall through to FuncDefPathStr.__init__, setting .string, ._tokens and .parts
-    def __init__(self, path_string):
+    def __init__(self, path_string, parent_type_name=None):
+        if parent_type_name:
+            self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
     def check_against_classes(self, linkfile_classes):
@@ -665,7 +709,7 @@ class MethodPath(MethodDefPathStr):
                     )
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"File does not contain {self.string} (raised {e})"
+                    msg = f"File does not contain {self.string} (712raised {e})"
                     raise NameError(msg)
             else:
                 retrieved_fd = initial_methdef
@@ -673,27 +717,33 @@ class MethodPath(MethodDefPathStr):
 
     def check_against_linkedfile(self, linkfile):
         filename = linkfile.path.name
-        global_cls_names = [c.name for c in linkfile.ast_classes]
-        if self.parent_name not in global_cls_names:
-            raise NameError(f"{filename} does not contain {self.parent_name}")
-        elif self.leaf_name not in linkfile.methdef_names:
-            fail_subpath = ".".join(self.parts[:2])
-            raise NameError(f"{filename} does not contain {fail_subpath}")
+        if linkfile.classes_only:
+            global_cls_names, global_fun_names = linkfile.sel_ids, linkfile.nosel_ids
         else:
-            initial_methdef = linkfile.methdef_names.get(self.leaf_name)
-            remaining_parts = self.parts[2:]
+            global_fun_names, global_cls_names = linkfile.sel_ids, linkfile.nosel_ids
+        if (
+            (self.root_type == "Class" and self.root_name not in global_cls_names)
+            or (self.root_type == "Func" and self.root_name not in global_fun_names)
+        ):
+            msg = f"{filename} does not contain root {self.root_type} {self.root_name}"
+            raise NameError(msg)
+        else:
+            global_classes, global_funcs = linkfile.ast_classes, linkfile.ast_defs
+            poss_roots = global_classes if self.root_type == "Class" else global_funcs
+            initial_def = _find_node(poss_roots, self.root_name)
+            remaining_parts = self.parts[1:]
             if remaining_parts:
                 retrieved_fd = None
                 try:
                     retrieved_fd = reduce(
-                        FuncDef.get_inner_func, remaining_parts, initial_methdef
+                        PathGetterMixin.retrieve_def, remaining_parts, initial_def
                     )
                 except Exception as e:
                     # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"{filename} does not contain {self.string} (raised {e})"
+                    msg = f"{filename} does not contain {self.string} (743raised {e})"
                     raise NameError(msg)
             else:
-                retrieved_fd = initial_methdef
+                retrieved_fd = initial_def
             return retrieved_fd
 
 
@@ -736,9 +786,10 @@ def get_def_names(linkfile, def_list, import_annos):
             leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type).value
             # leaf_par_type = getattr(DefTypeEnum, leaf_par_type_name) # wait no...
             m_path_type = getattr(IntraDefPathTypeEnum, leaf_node.part_type).value
-            m_path = m_path_type(m)
+            m_path = m_path_type(m, parent_type_name=leaf_par_type_name)
             # retrieve {func|cls}def from AST
             sel_def = m_path.check_against_linkedfile(linkfile)  
+            breakpoint() # getting an AttributeError on all_ns_fd_ids for an inner cls method
             sel_ids = (
                 sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
                # TODO make this a property on the type (which class though?)
@@ -907,7 +958,7 @@ class NamespaceIdSetterMixin:
     def all_ns_fd_ids(self, id_list):
         self._all_ns_fd_ids = id_list
     
-class ClsDef(ast.ClassDef, RecursiveIdSetterMixin):
+class ClsDef(ast.ClassDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
     Wrap `ast.ClassDef` to permit recursive search for methods and inner classes
     upon creation in `parse_mv_funcs`.
@@ -1032,7 +1083,7 @@ class InnerClsDef(ClsDef, NamespaceIdSetterMixin):
         parent_path = self.parent_path
         return f"{parent_path}::{self.name}"
 
-class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin):
+class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
     Wrap `ast.FunctionDef` to permit recursive search for inner functions upon
     creation in `parse_mv_funcs`.
@@ -1129,7 +1180,8 @@ class MethodDef(FuncDef):
         self.parent_name = parent_cd.name
         self.parent_path = parent_cd.path
         self.parent_line_range = parent_cd.line_range
-        super().__init__(fd, self.classes_only, is_inner=True) # moved to end to match ClsDef subclasses
+        # moved to end to match ClsDef subclasses
+        super().__init__(fd, self.classes_only, is_inner=True)
 
     @property
     def path(self):
