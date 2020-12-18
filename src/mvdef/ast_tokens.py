@@ -7,8 +7,18 @@ from .def_path_util import (
     InnerFuncDefPathStr,
     MethodDefPathStr,
 )
-from .ast_util import ClassPath, InnerClassPath, FuncPath, MethodPath
-from .def_helpers import _name_check, _find_node, _find_def
+from .ast_util import (
+    get_base_type_name,
+    has_clsdef_base,
+    DefPathTypeEnum,
+    IntraDefPathTypeEnum,
+    DefTypeEnum,
+    ClassPath,
+    InnerClassPath,
+    FuncPath,
+    MethodPath,
+)
+from .def_helpers import _name_check, _find_node, _find_def, _find_cls
 from functools import reduce
 
 __all__ = [
@@ -57,65 +67,56 @@ def get_defs_and_classes(tr, trunk_only=True):
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
     return defs, classes
 
-## Helper functions excised
+## (Some helper functions excised to def_helpers.py, TODO excise more)
 
-def get_to_node(to, into_path_parsed, dst_defs, dst_classes):
+def per_path_part_finder(parent_def, path_part, annotate_siblings=True):
+    finder = _find_cls if has_clsdef_base(path_part) else _find_def
+    sd = finder(parent_def, path_part)
+    sd.has_siblings = any(n for n in parent_def.body if n is not sd)
+    return sd
+
+def get_to_node(to, into_path, dst_funcs, dst_classes):
     """
     Annotate the parsed `into_path` with a `.node` attribute, which will be used later
     when determining the line to insert the newly moved funcdef at in the `DstFile`.
     """
     if to:
         # Cannot use `check_against_linkedfile` without type of leaf node
-        *into_path_preamble, into_path_leaf = into_path_parsed.parts
-        if into_path_preamble:
+        # (since it's only a defined method for typed DefPath classes)
+        into_path_root, into_path_leaf = into_path.parts[0], into_path.parts[-1]
+        if len(into_path.parts) > 1:
             # More than 1 part therefore can detect leaf node type from sep
+            i_root_type = into_path_root.part_type
             i_leaf_type = into_path_leaf.part_type
-            if i_leaf_type == "Func":
-                into_path_parsed = FuncPath(to)
-                into_path_parsed.node = into_path_parsed.check_against_defs(dst_defs)
-            elif i_leaf_type == "Class":
-                into_path_parsed = ClassPath(to)
-                raise NotImplementedError("Not written the check_against_classes yet")
-                into_path_parsed.node = into_path_parsed.check_against_classes(
-                    dst_classes
-                )
-            elif i_leaf_type == "Method":
-                if len(into_path_preamble) > 1:
-                    raise NotImplementedError(f"The method path is too deep: {to}")
-                into_path_parsed = MethodPath(to)
-                into_path_parsed.node = into_path_parsed.check_against_classes(
-                    dst_classes
-                )
-            elif i_leaf_type == "InnerClass":
-                if len(into_path_preamble) > 1:
-                    raise NotImplementedError(f"The inner class is too deep: {to}")
-                into_path_parsed = InnerClassPath(to)
-                into_path_parsed.node = into_path_parsed.check_against_classes(
-                    dst_classes
-                )
+            if i_leaf_type in DefPathTypeEnum._member_names_:
+                i_leaf_defpath_type = DefPathTypeEnum[i_leaf_type].value
+            elif i_leaf_type in IntraDefPathTypeEnum._member_names_:
+                i_leaf_defpath_type = IntraDefPathTypeEnum[i_leaf_type].value
             else:
-                # breakpoint()
-                part_types = [p.part_type for p in into_path_parsed.parts]
-                raise NotImplementedError(f"{to=} gave {part_types=}")
+                part_types = [p.part_type for p in into_path.parts]
+                raise NotImplementedError(f"{to=} has {part_types=}. Leaf unsupported")
+            if i_root_type in DefPathTypeEnum._member_names_:
+                base_type_name = i_root_type # either "Func" or "Class"
+            else:
+                base_type_name = get_base_type_name(i_root_type)
+            into_path = i_leaf_defpath_type(to)
+            target_defs = dst_classes if base_type_name == "Class" else dst_funcs
+            into_path.node = into_path.check_against_defs(target_defs)
         else:
-            # Cannot detect, must check dst_defs and dst_classes
-            matched_def = [f for f in dst_defs if into_path_leaf == f.name]
-            matched_cls = [c for c in dst_classes if into_path_leaf == c.name]
-            if all([matched_def, matched_cls]):
-                raise NameError(f"Ambiguous whether {into_path_leaf} is a cls/def")
-            if matched_def:
-                d_name = into_path_parsed.parts[0]
-                initial_def = _find_node(matched_def, d_name)
-                into_path_parsed.node = initial_def
-            elif matched_cls:
-                c_name = into_path_parsed.parts[0]
-                initial_cls = _find_node(matched_cls, c_name)
-                into_path_parsed.node = initial_cls
-            else:
-                raise NameError(f"{into_path_leaf} is not an extant cls/def name")
+            # Cannot detect, must check dst_funcs and dst_classes
+            matched_f = [f for f in dst_funcs if into_path_leaf == f.name]
+            matched_c = [c for c in dst_classes if into_path_leaf == c.name]
+            matches = [matched_f, matched_c]
+            if all(matches):
+                raise NameError(f"Ambiguous whether {into_path_leaf=} is a cls/func")
+            elif not any(matches):
+                raise NameError(f"{into_path_leaf=} is not an extant cls/def name")
+            d_root = into_path.parts[0]
+            initial_def = _find_node(matched_f if matched_f else matched_c, d_root)
+            into_path.node = initial_def
     else:
-        into_path_parsed.node = to  # propagate None
-    return into_path_parsed  # now annotated with `.node` attribute
+        into_path.node = to  # propagate None
+    return into_path # now annotated with `.node` attribute
 
 
 def set_defs_to_move(src, dst, trunk_only=True):
@@ -126,73 +127,45 @@ def set_defs_to_move(src, dst, trunk_only=True):
     """
     def_list = src.mvdefs
     into_list = src.into_paths
+    get_cls = src.classes_only
     if not trunk_only:
-        raise NotImplementedError("Won't work (see src_defs/classes/_find_node below)")
-    src_defs, src_classes = get_defs_and_classes(src.trunk, trunk_only=trunk_only)
-    dst_defs, dst_classes = get_defs_and_classes(dst.trunk, trunk_only=trunk_only)
+        raise NotImplementedError("Won't work (see src_funcs/classes/_find_node below)")
+    src_funcs, src_classes = get_defs_and_classes(src.trunk, trunk_only=trunk_only)
+    dst_funcs, dst_classes = get_defs_and_classes(dst.trunk, trunk_only=trunk_only)
     # Note that you may want to set `into_path.node` even if the mvdef is top-level!
-    if any(sepchar in x for sepchar in [*":."] for x in def_list):
-        target_defs = []
-        for s, to in zip(def_list, into_list):
-            path_parsed = UntypedPathStr(s)  # not final: may actually be a ClassDef!
-            #
-            # ---#---#--- begin handling `into_path` ---#---#---#
-            into_path_parsed = FuncDefPathStr(to) if to else NullPathStr()
-            into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
-            # ---#---#--- done handling `into_path` ---#---#---#
-            #
-            # handle into_path_parsed.parts[0].part_type, if Func then inner func etc
-            if path_parsed.is_unsupported:
-                supported = "inner funcdefs and methods of global-scope classes"
-                raise NotImplementedError(f"Currently only supporting {supported}")
-            try:
-                assert to is not None, "Abort attempt to parse null funcdef path"
-                func_path_parsed = FuncDefPathStr(to)
-                assert func_path_parsed.is_ifunc_path_only, "Path isn't just innerfuncs"
-                def_list_path = InnerFuncDefPathStr(s)
-                f_name = def_list_path.root_name
-                # inner funcdefs went here
-                initial_def = _find_node(src_defs, f_name)
-                fd = reduce(_find_def, def_list_path.parts[1:], initial_def)
-                fd.path = path_parsed
-                fd.into_path = into_path_parsed
-                if len(def_list_path.parts[1:]) == 1:
-                    parent_def = initial_def
-                    fd.has_siblings = any(x for x in parent_def.body if x is not fd)
-                else:
-                    # store parent if inner class, then check it for other siblings
-                    raise NotImplementedError("TODO: store parent if it's inner class")
-                target_defs.append(fd)
-            except AssertionError:
-                # either `to` is None, or `check_part_types`/`is_ifunc_path_only` failed
-                # presume method
-                def_list_path = MethodDefPathStr(s)
-                c_name = def_list_path.parent_name
-                # inner funcdefs went here
-                initial_cls = _find_node(src_classes, c_name)
-                fd = reduce(_find_def, def_list_path.parts[1:], initial_cls)
-                fd.path = path_parsed
-                fd.into_path = into_path_parsed
-                target_defs.append(fd)
-                if len(def_list_path.parts[1:]) == 1:
-                    parent_cls = initial_cls
-                    fd.has_siblings = any(x for x in parent_cls.body if x is not fd)
-                else:
-                    # store parent if inner class, then check it for other siblings
-                    raise NotImplementedError("TODO: store parent if it's inner class")
-        # To be consistent with the trivial case below, the defs must remain in
-        # the same order they appeared in the AST, i.e. in ascending line order
-        target_defs = sorted(target_defs, key=lambda d: d.lineno)
-    else:
-        # Only trivial single part path(s), i.e. global-scope funcdef name(s)
-        target_defs = [fd for fd in src_defs if fd.name in def_list]
-        for fd in target_defs:
-            to = into_list[def_list.index(fd.name)]
-            path_parsed = FuncDefPathStr(fd.name)
-            into_path_parsed = FuncDefPathStr(to) if to else NullPathStr()
-            into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
-            fd.path = path_parsed
-            fd.into_path = into_path_parsed
+    # TODO: can I just take out this if statement ?
+    target_defs = []
+    for d, to in zip(def_list, into_list):
+        path_parsed = UntypedPathStr(d)  # not final: may actually be a ClassDef!
+        if path_parsed.is_unsupported:
+            supported = "inner funcdefs and methods of global-scope classes"
+            raise NotImplementedError(f"Currently only supporting {supported}")
+        into_path_parsed = UntypedPathStr(to) if to else NullPathStr()
+        into_path_parsed = get_to_node(to, into_path_parsed, dst_funcs, dst_classes)
+        d_root = path_parsed.parts[0]
+        # -------------- was a try block
+        src_defs = src_classes if has_clsdef_base(d_root, intradef=False) else src_funcs
+        initial_def = _find_node(src_defs, d_root)
+        sd = reduce(per_path_part_finder, path_parsed.parts[1:], initial_def)
+        sd.path = path_parsed
+        sd.into_path = into_path_parsed
+        target_defs.append(sd)
+    # To be consistent with the trivial case below, the defs must remain in
+    # the same order they appeared in the AST, i.e. in ascending line order
+    target_defs = sorted(target_defs, key=lambda d: d.lineno)
+    # There was previously an "if separator char in def_list..." condition, then this:
+    #else:
+    #    # Only trivial single part path(s), i.e. global-scope name(s)
+    #    src_defs, dst_defs = (src_classes, dst_classes) if get_cls else (src_funcs, dst_funcs)
+    #    target_defs = [d for d in src_defs if d.name in def_list]
+    #    path_str_type = ClsDefPathStr if get_cls else FuncDefPathStr
+    #    for sd in target_defs:
+    #        to = into_list[def_list.index(sd.name)]
+    #        path_parsed = path_str_type(sd.name)
+    #        into_path_parsed = UntypedPathStr(to) if to else NullPathStr()
+    #        into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
+    #        sd.path = path_parsed
+    #        sd.into_path = into_path_parsed
     src.defs_to_move = target_defs
 
 

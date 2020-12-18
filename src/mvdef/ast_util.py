@@ -1,5 +1,5 @@
 import ast
-from ast import FunctionDef
+from ast import ClassDef, FunctionDef
 import builtins
 from pathlib import Path
 from .agenda_util import pprint_agenda
@@ -386,6 +386,29 @@ class NameEntryDict(dict):
                 names = sorted(names)
             super().__init__({n: {} for n in names})
 
+def get_base_type_name(type_name):
+    """
+    Take a type name from the IntraDefTypeEnum names and return the name of the base
+    type, e.g. input the MethodDef type and get out the name "Func", indicating that a
+    method is a function
+    """
+    msg = f"{type_name} is not an inner def type name (i.e. a name in IntraDefTypeEnum)"
+    if type_name in IntraDefTypeEnum._member_names_:
+        def_bases = DefTypeEnum._value2member_map_
+        base_type = next(b for b in type_name.__bases__ if b in def_bases)
+        base_type_name = DefTypeEnum(next_base_name).name
+    else:
+        if type_name in DefTypeEnum._member_names_:
+            base_type_name = type_name # already a base type name ("Class" or "Func")
+        else:
+            raise ValueError(msg)
+    return base_type_name
+
+def has_clsdef_base(path_part, intradef=True):
+    next_def_type_name = path_part.part_type # e.g. "Method"
+    next_def_base_type_name = get_base_type_name(next_def_type_name) # Method --> Func
+    def_is_a_cls = next_def_base_type_name == "Class"
+    return def_is_a_cls
 
 class PathGetterMixin:
     """
@@ -409,11 +432,7 @@ class PathGetterMixin:
             else:
                 msg = f"{path_part=} is not a recognised def type"
             raise TypeError(f"{msg} (path_part.part_type=)")
-        next_def_type = IntraDefTypeEnum[path_part.part_type].value # e.g. MethodDef
-        def_bases = DefTypeEnum._value2member_map_
-        next_base_name = next(b for b in next_def_type.__bases__ if b in def_bases)
-        next_def_base_type = DefTypeEnum(next_base_name).name
-        def_is_a_cls = next_def_base_type == "Class"
+        def_is_a_cls = has_clsdef_base(path_part)
         intras = self.intra_classes if def_is_a_cls else self.intra_funcs
         retrieved_def = _find_node(intras, path_part)
         return retrieved_def
@@ -451,13 +470,13 @@ class LinkFileCheckerMixin:
             return retrieved_def
 
     def check_against_defs(self, global_def_nodes):
-        filename = linkfile.path.name
         global_def_names = [d.name for d in global_def_nodes]
-        is_cls, is_fun = (lambda x: isinstance(x, y) for y in ClassDef, FunctionDef)
+        is_cls = lambda c: isinstance(c, ClassDef)
+        is_fun = lambda f: isinstance(f, FunctionDef)
         cls_check = (self.root_type == "Class" and all(map(is_cls, global_def_nodes)))
         fun_check = (self.root_type == "Func" and all(map(is_fun, global_def_nodes)))
         msg = f"Defs passed were not of type {self.root_type}"
-        assert cls_check or fun_check, msg
+        assert cls_check or fun_check, breakpoint() + msg
         initial_def = _find_node(global_def_nodes, self.root_name)
         msg = f"{global_def_nodes} does not contain root {self.root_type} {self.root_name}"
         assert initial_def is not None, msg
@@ -1273,6 +1292,10 @@ class DefTypeToParentTypeEnum(Enum):
     InnerClass = "Class"
     InnerFunc = "Func"
     HigherOrderClass = "Func"
+
+class DefPathTypeEnum(Enum):
+    Class = ClassPath
+    Func = FuncPath
 
 class IntraDefPathTypeEnum(Enum):
     Method = MethodPath
