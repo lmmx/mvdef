@@ -14,7 +14,7 @@ from .def_path_util import (
     InnerClassDefPathStr,
     MethodDefPathStr,
 )
-from .def_helpers import _find_node
+from .def_helpers import _find_node, _find_cls, _find_def
 from sys import stderr
 from itertools import chain
 from functools import reduce
@@ -395,17 +395,21 @@ def get_base_type_name(type_name):
     msg = f"{type_name} is not an inner def type name (i.e. a name in IntraDefTypeEnum)"
     if type_name in IntraDefTypeEnum._member_names_:
         def_bases = DefTypeEnum._value2member_map_
-        base_type = next(b for b in type_name.__bases__ if b in def_bases)
-        base_type_name = DefTypeEnum(next_base_name).name
+        type_class = IntraDefTypeEnum[type_name].value
+        base_type = next(b for b in type_class.__bases__ if b in def_bases)
+        base_type_name = DefTypeEnum(base_type).name
     else:
         if type_name in DefTypeEnum._member_names_:
             base_type_name = type_name # already a base type name ("Class" or "Func")
         else:
+            breakpoint()
+            print("Hewwo")
             raise ValueError(msg)
     return base_type_name
 
 def has_clsdef_base(path_part, intradef=True):
     next_def_type_name = path_part.part_type # e.g. "Method"
+    print(f"{next_def_type_name=}")
     next_def_base_type_name = get_base_type_name(next_def_type_name) # Method --> Func
     def_is_a_cls = next_def_base_type_name == "Class"
     return def_is_a_cls
@@ -432,9 +436,32 @@ class PathGetterMixin:
             else:
                 msg = f"{path_part=} is not a recognised def type"
             raise TypeError(f"{msg} (path_part.part_type=)")
+        print(f"retrieve_def::{path_part=}")
         def_is_a_cls = has_clsdef_base(path_part)
         intras = self.intra_classes if def_is_a_cls else self.intra_funcs
         retrieved_def = _find_node(intras, path_part)
+        return retrieved_def
+
+    def retrieve_def_from_body(self, path_part):
+        """
+        Attempt to retrieve the next funcdef/clsdef indicated by `path_part`
+        (an instance one of the `PathPart` classes iterated over via `reduce`
+        in `check_against_linkedfile` from one of the `Path` classes). Use the
+        body rather than `intra_classes` and `intra_funcs`
+        """
+        # can use either IntraDefPathTypeEnum/IntraDefTypeEnum (latter more consistent)
+        if path_part.part_type not in IntraDefTypeEnum._member_map_:
+            if path_part in DefTypeEnum._member_map_:
+                # handle global defs in check_against_linkedfile to get an initial def
+                msg = f"{path_part=} is not supposed to be a top-level def type"
+            else:
+                msg = f"{path_part=} is not a recognised def type"
+            raise TypeError(f"{msg} (path_part.part_type=)")
+        print(f"retrieve_def_from_body::{path_part=}")
+        def_is_a_cls = has_clsdef_base(path_part)
+        print(f"{def_is_a_cls=}")
+        finder = _find_cls if def_is_a_cls else _find_def
+        retrieved_def = finder(self, path_part)
         return retrieved_def
 
 
@@ -484,7 +511,7 @@ class LinkFileCheckerMixin:
         if remaining_parts:
             try:
                 retrieved_def = reduce(
-                    PathGetterMixin.retrieve_def, remaining_parts, initial_def
+                    PathGetterMixin.retrieve_def_from_body, remaining_parts, initial_def
                 )
                 print(f"Successfully reduced from {initial_def.name}-->{remaining_parts}")
             except Exception as e:

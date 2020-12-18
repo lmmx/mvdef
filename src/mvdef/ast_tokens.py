@@ -136,10 +136,12 @@ def set_defs_to_move(src, dst, trunk_only=True):
     # TODO: can I just take out this if statement ?
     target_defs = []
     for d, to in zip(def_list, into_list):
-        path_parsed = UntypedPathStr(d)  # not final: may actually be a ClassDef!
+        path_parsed = UntypedPathStr(d) # not final: may actually be a ClassDef!
         if path_parsed.is_unsupported:
             supported = "inner funcdefs and methods of global-scope classes"
             raise NotImplementedError(f"Currently only supporting {supported}")
+        elif len(path_parsed.parts) == 1:
+            path_parsed = ClassPath(d) if get_cls else FuncPath(d)
         into_path_parsed = UntypedPathStr(to) if to else NullPathStr()
         into_path_parsed = get_to_node(to, into_path_parsed, dst_funcs, dst_classes)
         d_root = path_parsed.parts[0]
