@@ -1,15 +1,23 @@
 # mvdef
 
-Move function definitions from one file to another, moving or copying
-associated import statements along with them.
+Package providing command line tools to move/copy Python functions/classes
+and their associated import statements between files.
 
 ## Installation
 
-To get `mvdef` on your command line, install from [PyPi](https://pypi.org/project/mvdef/)
+To get the 4 `mvdef` tools on your command line, install from [PyPi](https://pypi.org/project/mvdef/)
 
 ```sh
 pip install mvdef
 ```
+
+All commands share identical usage syntax, but either move/copy the functions/classes indicated:
+
+- `cpdef`
+- `mvcls`
+- `cpcls`
+
+(Note that you may not mix and match these operations within a single call)
 
 ## Recipes
 
@@ -38,9 +46,8 @@ Some points to note about these flags:
   - `.` to indicate the method of a class
   - `:` to indicate the inner function of a function
   - `::` to indicate the inner class of a class
-
-> The multi-part paths are a work in progress, and currently mostly
-> restricted to paths a couple of parts deep, but watch this space!
+  - `:::` to indicate the higher order class of a function
+    - (i.e. a class inside a funcdef, which I was advised might also be known as "a regret")
 
 Additionally:
 
@@ -116,6 +123,24 @@ mvdef -m foo -i Bar src.py dst.py
 This moves the lines of the funcdef `foo` from `src.py` to the end of the classdef `Bar`
 (and note that this will indent the lines of `foo` by 4 spaces).
 
+#### Moving methods between classes
+
+```sh
+mvdef -m A.__init__ -i B src.py dst.py
+```
+
+will move the method `__init__` from the class `A` in `src.py` into the class `B` in `dst.py`
+
+- Note that unlike the Unix tools `mv` and `cp`, the `mvdef` tools do not overwrite a function
+  if it already exists, so if the class `B` already has an `__init__` function it will simply
+  end up with 2 `__init__` functions, its original will not be overwritten.
+- Additionally, the default position for newly moved (or copied) defs is at the end of the AST
+  node (or the end of the namespace if no `-i`/`--into` node is specified), so in the case that
+  the destination namespace ends up with duplicates, e.g. the `B` class with 2 `__init__` functions,
+  the newly moved one would "act last" i.e. it would take priority when instantiating the class,
+  as of course the latest definition overwrites any earlier definition of the same ID.
+
+
 #### Multiple moves
 
 ```sh
@@ -133,14 +158,13 @@ will move:
 
 Paths to `-mv`/`--mv` and `-i`/`--into` will soon support:
 
-- **wildcards**: to avoid having to specify a full path to a particular function
-  - e.g. `-m **foo`
 - **decorators**: to indicate a particular version of funcdefs with identical names
   - e.g. for `property` decorators which have a `@property` and a `@foo.setter` variant
+  - see [#10](https://github.com/lmmx/mvdef/issues/10)
+- **wildcards**: to avoid having to specify a full path to a particular function
+  - e.g. `-m **foo`
+  - see [#28](https://github.com/lmmx/mvdef/issues/28)
   
-...but first support needs to be improved for paths of the existing types, at greater depths.
-(WIP)
-
 #### Moving with imports: a simple case study
 
 Consider the file `hello.py`:

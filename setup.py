@@ -16,7 +16,10 @@ setup(
     name="mvdef",
     author="Louis Maddox",
     author_email="louismmx@gmail.com",
-    description="Package to move functions and their import statements between files",
+    description=(
+        "Package providing command line tools to move/copy function/classes"
+        "and their associated import statements between files"
+    ),
     license="MIT License",
     long_description=long_description,
     long_description_content_type="text/markdown",
