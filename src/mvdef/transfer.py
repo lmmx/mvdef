@@ -5,8 +5,6 @@ from .ast_util import (
     parse_mv_funcs,
     get_def_names,
     set_nondef_names,
-    set_intradef_names,
-    set_methdef_names,
     set_extradef_names,
 )
 from .backup import backup
@@ -22,9 +20,7 @@ from .editor import (
 from .import_util import count_imported_names, get_module_srcs, imp_def_subsets
 from itertools import chain
 
-# from .traceback_util import pprint_stack_trace
 from sys import stderr
-from traceback import print_stack, extract_stack, format_list
 
 __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]
 
@@ -129,11 +125,11 @@ class LinkedFile:
 
     @property
     def sel_nodes(self):
-        return self.ast_classes if self.classes_only else self.ast_defs
+        return self.ast_classes if self.classes_only else self.ast_funcs
 
     @property
     def nosel_nodes(self):
-        return self.ast_defs if self.classes_only else self.ast_classes
+        return self.ast_funcs if self.classes_only else self.ast_classes
 
     @property
     def sel_ids(self):
@@ -153,8 +149,6 @@ class LinkedFile:
     imp_def_subsets = imp_def_subsets  # called by `process_ast`
     get_def_names = get_def_names
     set_nondef_names = set_nondef_names
-    set_intradef_names = set_intradef_names
-    set_methdef_names = set_methdef_names
     set_extradef_names = set_extradef_names
 
     @property
@@ -282,8 +276,6 @@ class SrcFile(LinkedFile):
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
             # print(f"SETTING RM_AGENDA ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -321,8 +313,6 @@ class DstFile(LinkedFile):
     def rcv_agenda(self):
         if not hasattr(self, "_rcv_agenda"):
             # print(f"SETTING RCV_AGENDA ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.set_rcv_agenda()
         return self._rcv_agenda
 
@@ -338,8 +328,6 @@ class DstFile(LinkedFile):
     def rm_agenda(self):
         if not hasattr(self, "_rm_agenda"):
             # print(f"SETTING RM_AGENDA ON {self}")
-            # stack = extract_stack()
-            # pprint_stack_trace(stack)
             self.set_rm_agenda()
         return self._rm_agenda
 
@@ -403,7 +391,6 @@ class FileLink:
         try:
             # print("Running link.dst.ast_parse(transfers)")
             self.dst.ast_parse(transfers=transfers)  # populate self.dst.edits
-            # breakpoint()
         except Exception as e:
             self.dst.edits = e
             return
@@ -494,7 +481,6 @@ class FileLink:
     transfer_mvdefs = transfer_mvdefs
 
 
-# TODO: Move parse_example to AST once logic is figured out for the demo
 def parse_transfer(
     mvdefs,
     into_paths,

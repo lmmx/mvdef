@@ -101,17 +101,25 @@ def get_to_node(to, into_path, dst_funcs, dst_classes):
                 base_type_name = get_base_type_name(i_root_type)
             into_path = i_leaf_defpath_type(to)
             target_defs = dst_classes if base_type_name == "Class" else dst_funcs
+            if not target_defs:
+                msg = "Trying to check against an empty list will fail"
+                helper = f"are you sure this path {to} is correct?"
+                raise ValueError(f"{msg} ({helper})")
             into_path.node = into_path.check_against_defs(target_defs)
         else:
             # Cannot detect, must check dst_funcs and dst_classes
-            matched_f = [f for f in dst_funcs if into_path_leaf == f.name]
-            matched_c = [c for c in dst_classes if into_path_leaf == c.name]
+            # into_path will be UntypedPathStr so the part will be UntypedPathPart
+            # (so access .string rather than the part directly)
+            matched_f = [f for f in dst_funcs if into_path_leaf.string == f.name]
+            matched_c = [c for c in dst_classes if into_path_leaf.string == c.name]
             matches = [matched_f, matched_c]
             if all(matches):
                 raise NameError(f"Ambiguous whether {into_path_leaf=} is a cls/func")
             elif not any(matches):
                 raise NameError(f"{into_path_leaf=} is not an extant cls/def name")
             d_root = into_path.parts[0]
+            if not isinstance(d_root, str):
+                d_root = d_root.string
             initial_def = _find_node(matched_f if matched_f else matched_c, d_root)
             into_path.node = initial_def
     else:
@@ -133,7 +141,6 @@ def set_defs_to_move(src, dst, trunk_only=True):
     src_funcs, src_classes = get_defs_and_classes(src.trunk, trunk_only=trunk_only)
     dst_funcs, dst_classes = get_defs_and_classes(dst.trunk, trunk_only=trunk_only)
     # Note that you may want to set `into_path.node` even if the mvdef is top-level!
-    # TODO: can I just take out this if statement ?
     target_defs = []
     for d, to in zip(def_list, into_list):
         path_parsed = UntypedPathStr(d) # not final: may actually be a ClassDef!
@@ -145,6 +152,8 @@ def set_defs_to_move(src, dst, trunk_only=True):
         into_path_parsed = UntypedPathStr(to) if to else NullPathStr()
         into_path_parsed = get_to_node(to, into_path_parsed, dst_funcs, dst_classes)
         d_root = path_parsed.parts[0]
+        if not isinstance(d_root, str):
+            d_root = d_root.string
         # -------------- was a try block
         src_defs = src_classes if has_clsdef_base(d_root, intradef=False) else src_funcs
         initial_def = _find_node(src_defs, d_root)
@@ -155,19 +164,6 @@ def set_defs_to_move(src, dst, trunk_only=True):
     # To be consistent with the trivial case below, the defs must remain in
     # the same order they appeared in the AST, i.e. in ascending line order
     target_defs = sorted(target_defs, key=lambda d: d.lineno)
-    # There was previously an "if separator char in def_list..." condition, then this:
-    #else:
-    #    # Only trivial single part path(s), i.e. global-scope name(s)
-    #    src_defs, dst_defs = (src_classes, dst_classes) if get_cls else (src_funcs, dst_funcs)
-    #    target_defs = [d for d in src_defs if d.name in def_list]
-    #    path_str_type = ClsDefPathStr if get_cls else FuncDefPathStr
-    #    for sd in target_defs:
-    #        to = into_list[def_list.index(sd.name)]
-    #        path_parsed = path_str_type(sd.name)
-    #        into_path_parsed = UntypedPathStr(to) if to else NullPathStr()
-    #        into_path_parsed = get_to_node(to, into_path_parsed, dst_defs, dst_classes)
-    #        sd.path = path_parsed
-    #        sd.into_path = into_path_parsed
     src.defs_to_move = target_defs
 
 

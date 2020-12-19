@@ -20,7 +20,8 @@ def _find_node(nodes, name):
     "Return the first node in `nodes` whose `.name` attribute is `name`"
     p_name_check = partial(_name_check, name=name)
     it = filter(p_name_check, nodes)
-    return _catch_next(it)
+    val = _catch_next(it)
+    return val
 
 
 def _find_def(node, name):

@@ -84,7 +84,6 @@ class TokenisedStr:
     def tokenise_from_string(self):
         self._tokens = []
         parse_string_symbols = [*self.string]
-        # TODO refactor this while loop (#34)
         all_separators = self.PathSepEnum._value2member_map_
         while parse_string_symbols:
             symbol = parse_string_symbols.pop(0)
@@ -227,7 +226,7 @@ class ParentedMixin(LeafMixin):
     def check_part_types(self):
         super().check_part_types()
         msg = f"Parent must be: {self.parent_enum.name} (not {self.parent_type})"
-        assert self.parent_check(), breakpoint() + msg
+        assert self.parent_check(), msg
 
 
 class UntypedMixin:
@@ -261,22 +260,13 @@ class UntypedPathStr(UntypedMixin, TokenisedStr):
 
 class FuncDefPathStr(TokenisedStr, LeafMixin):
     """
-    A path denoting an AST path to a function (which may be nested as an inner function)
-    or method (which may be nested within an inner class), or any combination
-    therein (e.g. the inner function of a method of an inner class, etc.)
+    A path denoting an AST path to a function (which may be nested as an inner function
+    in a funcdef; or as a method in a classdef), or any further nesting therein
+    (e.g. the inner function of an inner function, etc.).
 
-    E.g. `foo:bar` is an inner function `bar` with parent global funcdef `foo`,
-    `Foo.bar` is a method `bar` on the global-scope classdef `Foo`,
-    `Foo::Bar.baz` is a method `baz` on the inner class `Bar` within global-scope
-    classdef `Foo`,
-    `Foo::Bar.baz:bax` is an inner function `bax` on the `baz` method of inner class
-    `Bar` within the global-scope classdef `Foo`.
-
-    Additionally, `@` may be used to indicate a specific decorated version of either a
-    function or a method (though initially this is intended for use to distinguish
-    identically named methods with `@property`/`@DEFNAME.setter` decorators, and in this
-    case it would be used as `foo@setter` to indicate the `def foo` with decorator
-    `@foo.setter` rather than the `def foo` with decorator `@property`).
+    Subclasses should be used to indicate such nested classes, this class itself
+    should only be instantiated for a 'top-level' funcdef, i.e. in the trunk of
+    the AST.
     """
 
     @property
@@ -290,8 +280,8 @@ class FuncDefPathStr(TokenisedStr, LeafMixin):
 
 class InnerFuncDefPathStr(FuncDefPathStr, ParentedMixin):
     """
-    A FuncDefPathStr which has a top level funcdef, an 'intradef' inner func (these
-    are checked on __init__), and potentially one or more inner functions below that.
+    A FuncDefPathStr in which both the leaf and the leaf's parent are funcdefs.
+    This is checked on __init__.
 
     This class should be subclassed for checking against the (separate) ASTs used in
     either `ast_util` or `asttokens` (the first for generating the inner function
@@ -309,10 +299,12 @@ class InnerFuncDefPathStr(FuncDefPathStr, ParentedMixin):
 
 class ClassDefPathStr(TokenisedStr, LeafMixin):
     """
-    A path denoting an AST path to a class (which may be nested as an inner class), or
-    any nesting therein (e.g. the inner class of an inner class, etc.)
-
-    `Foo::Bar` is an inner class `Bar` with parent global classdef `Foo`.
+    A path denoting an AST path to a class (which may be nested as an inner class
+    in a classdef; or as a higher order class in a funcdef), or
+    any further nesting therein (e.g. the inner class of an inner class, etc.).
+    Subclasses should be used to indicate such nested classes, this class itself
+    should only be instantiated for a 'top-level' classdef, i.e. in the trunk of
+    the AST.
     """
 
     @property
@@ -322,12 +314,11 @@ class ClassDefPathStr(TokenisedStr, LeafMixin):
 
 class HigherOrderClassDefPathStr(ClassDefPathStr, ParentedMixin):
     """
-    A ClassDefPathStr which has a top level funcdef, an 'intradef' inner func (these
-    are checked on __init__), and potentially one or more inner functions below that.
+    A ClassDefPathStr whose leaf is a classdef and whose leaf's parent is a funcdef.
+    This is checked on __init__.
 
     This class should be subclassed for checking against the (separate) ASTs used in
-    either `ast_util` or `asttokens` (the first for generating the inner function
-    indexes, the latter for line numbering associated with the AST nodes).
+    either `ast_util` or `asttokens`.
     """
 
     # fall through to ClassDefPathStr.__init__, setting .string, ._tokens and .parts
@@ -346,9 +337,9 @@ class HigherOrderClassDefPathStr(ClassDefPathStr, ParentedMixin):
 
 class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
     """
-    A ClassDefPathStr which has a top level funcdef, an 'intradef' inner func (these
-    are checked on __init__), and potentially one or more inner functions below that.
-
+    A ClassDefPathStr in which both the leaf and the leaf's parent are classdefs.
+    This is checked on __init__.
+    
     This class should be subclassed for checking against the (separate) ASTs used in
     either `ast_util` or `asttokens` (the first for generating the inner function
     indexes, the latter for line numbering associated with the AST nodes).
@@ -370,9 +361,8 @@ class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
 
 class MethodDefPathStr(FuncDefPathStr, ParentedMixin):
     """
-    A FuncDefPathStr which has a top level class, which contains a method (these
-    are checked on __init__), and potentially one or more inner functions below that*.
-    *[TODO: confirm against finished implementation if this is the case]
+    A FuncDefPathStr whose leaf's parent is a class (and whose leaf is the method func).
+    These are checked on __init__.
 
     This class should be subclassed for checking against the (separate) ASTs used in
     either `ast_util` or `asttokens` (the first for generating the inner function

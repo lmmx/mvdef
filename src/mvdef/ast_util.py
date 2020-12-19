@@ -24,7 +24,6 @@ __all__ = [
     "retrieve_ast_agenda",
     "process_ast",
     "find_assigned_args",
-    "set_intradef_names",
     "set_extradef_names",
     "set_nondef_names",
     "get_def_names",
@@ -152,7 +151,7 @@ def process_ast(linkfile, trunk, transfers=None):
     describes how it would be possible to carry out the required edits at the level
     of Python file changes. As such it is computed even on a 'dry run'.
     """
-    linkfile.parse_mv_funcs(trunk)  # sets ast_defs, {mv,nonmv,extra,un}def_names
+    linkfile.parse_mv_funcs(trunk)  # sets ast_funcs, {mv,nonmv,extra,un}def_names
     imported_names = get_imported_name_sources(trunk, report=linkfile.report)
     if linkfile.report:
         print(f"• Determining edit agenda for {linkfile.path.name}:", file=stderr)
@@ -303,16 +302,6 @@ def find_assigned_args(fd):
     return assigned_args
 
 
-def set_intradef_names(linkfile, intra_nodes):
-    "Record inner functions."
-    linkfile.intradef_names = {i.name: i for i in intra_nodes}
-
-
-def set_methdef_names(linkfile, method_nodes):
-    "Record methods."
-    linkfile.methdef_names = {m.name: m for m in method_nodes}
-
-
 def set_extradef_names(linkfile, extra_nodes):
     """
     Return the names used in the AST trunk nodes which are outside of both function
@@ -402,14 +391,11 @@ def get_base_type_name(type_name):
         if type_name in DefTypeEnum._member_names_:
             base_type_name = type_name # already a base type name ("Class" or "Func")
         else:
-            breakpoint()
-            print("Hewwo")
             raise ValueError(msg)
     return base_type_name
 
 def has_clsdef_base(path_part, intradef=True):
     next_def_type_name = path_part.part_type # e.g. "Method"
-    print(f"{next_def_type_name=}")
     next_def_base_type_name = get_base_type_name(next_def_type_name) # Method --> Func
     def_is_a_cls = next_def_base_type_name == "Class"
     return def_is_a_cls
@@ -436,7 +422,6 @@ class PathGetterMixin:
             else:
                 msg = f"{path_part=} is not a recognised def type"
             raise TypeError(f"{msg} (path_part.part_type=)")
-        print(f"retrieve_def::{path_part=}")
         def_is_a_cls = has_clsdef_base(path_part)
         intras = self.intra_classes if def_is_a_cls else self.intra_funcs
         retrieved_def = _find_node(intras, path_part)
@@ -457,9 +442,7 @@ class PathGetterMixin:
             else:
                 msg = f"{path_part=} is not a recognised def type"
             raise TypeError(f"{msg} (path_part.part_type=)")
-        print(f"retrieve_def_from_body::{path_part=}")
         def_is_a_cls = has_clsdef_base(path_part)
-        print(f"{def_is_a_cls=}")
         finder = _find_cls if def_is_a_cls else _find_def
         retrieved_def = finder(self, path_part)
         return retrieved_def
@@ -479,7 +462,7 @@ class LinkFileCheckerMixin:
             msg = f"{filename} does not contain root {self.root_type} {self.root_name}"
             raise NameError(msg)
         else:
-            global_classes, global_funcs = linkfile.ast_classes, linkfile.ast_defs
+            global_classes, global_funcs = linkfile.ast_classes, linkfile.ast_funcs
             poss_roots = global_classes if self.root_type == "Class" else global_funcs
             initial_def = _find_node(poss_roots, self.root_name)
             remaining_parts = self.parts[1:]
@@ -488,7 +471,6 @@ class LinkFileCheckerMixin:
                     retrieved_def = reduce(
                         PathGetterMixin.retrieve_def, remaining_parts, initial_def
                     )
-                    print(f"Successfully reduced from {initial_def.name}-->{remaining_parts}")
                 except Exception as e:
                     msg = f"{filename} does not contain {self.string} (447raised {e})"
                     raise NameError(msg)
@@ -497,13 +479,14 @@ class LinkFileCheckerMixin:
             return retrieved_def
 
     def check_against_defs(self, global_def_nodes):
+        assert global_def_nodes, "check_against_defs was called with an empty list"
         global_def_names = [d.name for d in global_def_nodes]
         is_cls = lambda c: isinstance(c, ClassDef)
         is_fun = lambda f: isinstance(f, FunctionDef)
         cls_check = (self.root_type == "Class" and all(map(is_cls, global_def_nodes)))
         fun_check = (self.root_type == "Func" and all(map(is_fun, global_def_nodes)))
         msg = f"Defs passed were not of type {self.root_type}"
-        assert cls_check or fun_check, breakpoint() + msg
+        assert cls_check or fun_check, msg
         initial_def = _find_node(global_def_nodes, self.root_name)
         msg = f"{global_def_nodes} does not contain root {self.root_type} {self.root_name}"
         assert initial_def is not None, msg
@@ -513,7 +496,6 @@ class LinkFileCheckerMixin:
                 retrieved_def = reduce(
                     PathGetterMixin.retrieve_def_from_body, remaining_parts, initial_def
                 )
-                print(f"Successfully reduced from {initial_def.name}-->{remaining_parts}")
             except Exception as e:
                 msg = f"Failed to retrieve {self.string} (472raised {e})"
                 raise NameError(msg)
@@ -532,32 +514,6 @@ class FuncPath(FuncDefPathStr, LinkFileCheckerMixin):
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
-    #def check_against_linkedfile(self, linkfile):
-    #    filename = linkfile.path.name
-    #    global_def_names = [d.name for d in linkfile.ast_defs]
-    #    if self.global_def_name not in global_def_names:
-    #        raise NameError(f"{filename} does not contain {self.global_def_name}")
-    #    else:
-    #        global_def_names = [d.name for d in linkfile.ast_defs]
-    #        # clsdef_names isn't an attribute of linkfile... is this ever reached
-    #        raise NotImplementedError("TODO: set clsdef_names?")
-    #        initial_funcdef = linkfile.clsdef_names.get(self.clsdef_name)
-    #        remaining_parts = self.parts[1:]
-    #        if remaining_parts:
-    #            raise NotImplementedError("Only implemented top-level class so far")
-    #            retrieved_cd = None
-    #            try:
-    #                retrieved_cd = reduce(
-    #                    ClassDef.get_inner_class, remaining_parts, initial_clsdef
-    #                )
-    #            except Exception as e:
-    #                # raise NameError(f"No inner function '{m}' is defined")
-    #                msg = f"{filename} does not contain {self.string} (452raised {e})"
-    #                raise NameError(msg)
-    #        else:
-    #            retrieved_cd = initial_clsdef
-    #        return retrieved_cd
-
 
 class InnerFuncPath(InnerFuncDefPathStr, LinkFileCheckerMixin):
     """
@@ -574,31 +530,6 @@ class InnerFuncPath(InnerFuncDefPathStr, LinkFileCheckerMixin):
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
-    #def check_against_linkedfile(self, linkfile):
-    #    filename = linkfile.path.name
-    #    global_def_names = [f.name for f in linkfile.ast_defs]  # TODO DRY as property
-    #    if self.global_def_name not in global_def_names:
-    #        raise NameError(f"{filename} does not contain {self.global_def_name}")
-    #    elif self.intradef_name not in linkfile.intradef_names:
-    #        fail_subpath = ":".join(self.parts[:2])
-    #        raise NameError(f"{filename} does not contain {fail_subpath}")
-    #    else:
-    #        initial_intradef = linkfile.intradef_names.get(self.intradef_name)
-    #        remaining_parts = self.parts[2:]
-    #        if remaining_parts:
-    #            retrieved_fd = None
-    #            try:
-    #                retrieved_fd = reduce(
-    #                    FuncDef.get_inner_func, remaining_parts, initial_intradef
-    #                )
-    #            except Exception as e:
-    #                # raise NameError(f"No inner function '{m}' is defined")
-    #                msg = f"{filename} does not contain {self.string} (493raised {e})"
-    #                raise NameError(msg)
-    #        else:
-    #            retrieved_fd = initial_intradef
-    #        return retrieved_fd
-
 
 class ClassPath(ClassDefPathStr, LinkFileCheckerMixin):
     """
@@ -610,33 +541,6 @@ class ClassPath(ClassDefPathStr, LinkFileCheckerMixin):
         if parent_type_name:
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
-
-    #def check_against_linkedfile(self, linkfile):
-    #    filename = linkfile.path.name
-    #    global_cls_names = [c.name for c in linkfile.ast_classes]
-    #    if self.leaf_name not in global_cls_names:
-    #        raise NameError(f"{filename} does not contain {self.leaf_name}")
-    #    else:
-    #        global_cls_names = [c.name for c in linkfile.ast_classes]
-    #        # clsdef_names isn't an attribute of linkfile... is this ever reached
-    #        raise NotImplementedError("TODO: set clsdef_names?")
-    #        # could very easily do it with a property looking at ast_classes
-    #        initial_clsdef = linkfile.clsdef_names.get(self.clsdef_name)
-    #        remaining_parts = self.parts[1:]
-    #        if remaining_parts:
-    #            raise NotImplementedError("Only implemented top-level class so far")
-    #            retrieved_cd = None
-    #            try:
-    #                retrieved_cd = reduce(
-    #                    ClassDef.get_inner_class, remaining_parts, initial_clsdef
-    #                )
-    #            except Exception as e:
-    #                # raise NameError(f"No inner function '{m}' is defined")
-    #                msg = f"{filename} does not contain {self.string} (532raised {e})"
-    #                raise NameError(msg)
-    #        else:
-    #            retrieved_cd = initial_clsdef
-    #        return retrieved_cd
 
 
 class InnerClassPath(InnerClassDefPathStr, LinkFileCheckerMixin):
@@ -650,60 +554,6 @@ class InnerClassPath(InnerClassDefPathStr, LinkFileCheckerMixin):
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
-    def check_against_classes(self, linkfile_classes):
-        global_cls_names = [c.name for c in linkfile_classes]
-        # basically just a sanity check (doesn't filter by top-level class)
-        iclsdef_names = {
-            iclsdef.name: iclsdef
-            for body in [cls.body for cls in linkfile_classes]
-            for iclsdef in body
-            if type(iclsdef) is ast.ClassDef
-        }
-        if self.parent_name not in global_cls_names:
-            raise NameError(f"File does not contain {self.parent_name}")
-        elif self.innerclsdef_name not in iclsdef_names:
-            fail_subpath = "::".join(self.parts[:2])
-            raise NameError(f"File does not contain {fail_subpath}")
-        else:
-            initial_iclsdef = iclsdef_names.get(self.innerclsdef_name)
-            remaining_parts = self.parts[2:]
-            if remaining_parts:
-                retrieved_cd = None
-                try:
-                    retrieved_cd = reduce(
-                        ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
-                    )
-                except Exception as e:
-                    msg = f"File does not contain {self.string} (574raised {e})"
-                    raise NameError(msg)
-            else:
-                retrieved_cd = initial_iclsdef
-            return retrieved_cd
-
-    #def check_against_linkedfile(self, linkfile):
-    #    filename = linkfile.path.name
-    #    global_cls_names = [c.name for c in linkfile.ast_classes]
-    #    if self.parent_name not in global_cls_names:
-    #        raise NameError(f"{filename} does not contain {self.parent_name}")
-    #    elif self.iclsdef_name not in linkfile.innerclsdef_names:
-    #        fail_subpath = "::".join(self.parts[:2])
-    #        raise NameError(f"{filename} does not contain {fail_subpath}")
-    #    else:
-    #        initial_iclsdef = linkfile.innerclsdef_names.get(self.innerclsdef_name)
-    #        remaining_parts = self.parts[2:]
-    #        if remaining_parts:
-    #            retrieved_cd = None
-    #            try:
-    #                retrieved_cd = reduce(
-    #                    ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
-    #                )
-    #            except Exception as e:
-    #                msg = f"{filename} does not contain {self.string} (598raised {e})"
-    #                raise NameError(msg)
-    #        else:
-    #            retrieved_cd = initial_iclsdef
-    #        return retrieved_cd
-
 
 class HigherOrderClassPath(HigherOrderClassDefPathStr, LinkFileCheckerMixin):
     """
@@ -716,59 +566,6 @@ class HigherOrderClassPath(HigherOrderClassDefPathStr, LinkFileCheckerMixin):
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
-    def check_against_classes(self, linkfile_classes):
-        global_cls_names = [c.name for c in linkfile_classes]
-        # basically just a sanity check (doesn't filter by top-level class)
-        iclsdef_names = {
-            iclsdef.name: iclsdef
-            for body in [cls.body for cls in linkfile_classes]
-            for iclsdef in body
-            if type(iclsdef) is ast.ClassDef
-        }
-        if self.parent_name not in global_cls_names:
-            raise NameError(f"File does not contain {self.parent_name}")
-        elif self.innerclsdef_name not in iclsdef_names:
-            fail_subpath = "::".join(self.parts[:2])
-            raise NameError(f"File does not contain {fail_subpath}")
-        else:
-            initial_iclsdef = iclsdef_names.get(self.innerclsdef_name)
-            remaining_parts = self.parts[2:]
-            if remaining_parts:
-                retrieved_cd = None
-                try:
-                    retrieved_cd = reduce(
-                        ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
-                    )
-                except Exception as e:
-                    msg = f"File does not contain {self.string} (640raised {e})"
-                    raise NameError(msg)
-            else:
-                retrieved_cd = initial_iclsdef
-            return retrieved_cd
-
-    #def check_against_linkedfile(self, linkfile):
-    #    filename = linkfile.path.name
-    #    global_cls_names = [c.name for c in linkfile.ast_classes]
-    #    if self.parent_name not in global_cls_names:
-    #        raise NameError(f"{filename} does not contain {self.parent_name}")
-    #    elif self.iclsdef_name not in linkfile.innerclsdef_names:
-    #        fail_subpath = "::".join(self.parts[:2])
-    #        raise NameError(f"{filename} does not contain {fail_subpath}")
-    #    else:
-    #        initial_iclsdef = linkfile.innerclsdef_names.get(self.innerclsdef_name)
-    #        remaining_parts = self.parts[2:]
-    #        if remaining_parts:
-    #            retrieved_cd = None
-    #            try:
-    #                retrieved_cd = reduce(
-    #                    ClsDef.get_inner_cls, remaining_parts, initial_iclsdef
-    #                )
-    #            except Exception as e:
-    #                msg = f"{filename} does not contain {self.string} (664raised {e})"
-    #                raise NameError(msg)
-    #        else:
-    #            retrieved_cd = initial_iclsdef
-    #        return retrieved_cd
 
 class MethodPath(MethodDefPathStr, LinkFileCheckerMixin):
     """
@@ -786,37 +583,6 @@ class MethodPath(MethodDefPathStr, LinkFileCheckerMixin):
             self.parent_type_name = parent_type_name
         super().__init__(path_string)
 
-    def check_against_classes(self, linkfile_classes):
-        global_cls_names = [c.name for c in linkfile_classes]
-        # basically just a sanity check (doesn't filter by top-level class)
-        methdef_names = {
-            method.name: method
-            for body in [cls.body for cls in linkfile_classes]
-            for method in body
-            if type(method) is ast.FunctionDef
-        }
-        if self.parent_name not in global_cls_names:
-            raise NameError(f"File does not contain {self.parent_name}")
-        elif self.leaf_name not in methdef_names:
-            fail_subpath = ".".join(self.parts[:2])
-            raise NameError(f"File does not contain {fail_subpath}")
-        else:
-            initial_methdef = methdef_names.get(self.leaf_name)
-            remaining_parts = self.parts[2:]
-            if remaining_parts:
-                retrieved_fd = None
-                try:
-                    retrieved_fd = reduce(
-                        FuncDef.get_inner_func, remaining_parts, initial_methdef
-                    )
-                except Exception as e:
-                    # raise NameError(f"No inner function '{m}' is defined")
-                    msg = f"File does not contain {self.string} (712raised {e})"
-                    raise NameError(msg)
-            else:
-                retrieved_fd = initial_methdef
-            return retrieved_fd
-
 
 def get_def_names(linkfile, def_list, import_annos):
     """
@@ -827,12 +593,10 @@ def get_def_names(linkfile, def_list, import_annos):
     get_cls = linkfile.classes_only
     imp_name_lines, imp_name_dicts = import_annos
     def_namedict = NameDict(def_list)
-    intradef_names = linkfile.intradef_names  # N.B. inner funcs of top level defs only
     extradef_names = linkfile.extradef_names
-    # ast_defs/ast_classes parameterised as "selected" based on linkfile.classes_only
+    # ast_funcs/ast_classes parameterised as "selected" based on linkfile.classes_only
     sel_nodes, nosel_nodes = linkfile.sel_nodes, linkfile.nosel_nodes
     sel_ids, nosel_ids = linkfile.sel_ids, linkfile.nosel_ids # nosel_ids not used?
-    ie_def_excludes = [*intradef_names, *extradef_names]
     for m in def_list:
         m_type = "class" if get_cls else "function"
         sd_names = set()
@@ -845,14 +609,13 @@ def get_def_names(linkfile, def_list, import_annos):
                 valid_leaf_types = ["InnerClass", "HigherOrderClass"]
             else:
                 valid_leaf_types = ["Method", "InnerFunc"]
-            msg = "'{leaf_node.part_type}' is not a valid {m_type} part type"
+            msg = f"'{leaf_node.part_type}' is not a valid {m_type} part type"
             assert leaf_node.part_type in valid_leaf_types, msg
             leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type).value
             m_path_type = getattr(IntraDefPathTypeEnum, leaf_node.part_type).value
             m_path = m_path_type(m, parent_type_name=leaf_par_type_name)
             # retrieve {func|cls}def from AST
             sel_def = m_path.check_against_linkedfile(linkfile)  
-            #breakpoint() # getting an AttributeError on all_ns_fd_ids for inner cls method
             sel_ids = (
                 sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
                # TODO make this a property on the type (which class though?)
@@ -865,7 +628,7 @@ def get_def_names(linkfile, def_list, import_annos):
         sd_params = [] if get_cls else [a.arg for a in sel_def.args.args]
         assigned = find_assigned_args(sel_def)
         for ast_statement in sel_def.body:
-            exc = dir(builtins) + sel_ids + sd_params + assigned + ie_def_excludes
+            exc = dir(builtins) + sel_ids + sd_params + assigned + [*extradef_names]
             for node in ast.walk(ast_statement):
                 if type(node) == ast.Name:
                     n_id = node.id
@@ -874,7 +637,7 @@ def get_def_names(linkfile, def_list, import_annos):
         def_namedict[m] = NameEntryDict(sd_names, sort=True)
         # All names successfully found and can finish if remaining names are
         # in the set of funcdef names, comparing them tothe import statements
-        unknowns = [n for n in sd_names if n not in [*imp_name_lines, *intradef_names]]
+        unknowns = [n for n in sd_names if n not in imp_name_lines]
         if unknowns:
             raise ValueError(f"These names could not be sourced: {unknowns}")
         # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
@@ -1368,6 +1131,7 @@ def parse_mv_funcs(linkfile, trunk):
     is handed off to the helper function `set_nondef_names`.
     """
     mvdefs = linkfile.mvdefs
+    get_cls = linkfile.classes_only
     if mvdefs is None:
         mvdefs = []  # prepare for `get_def_names`, don't pass a `None` directly
     report_VERBOSE = False  # Silencing debug print statements
@@ -1376,26 +1140,19 @@ def parse_mv_funcs(linkfile, trunk):
     ast_funcdefs = [n for n in trunk if type(n) is ast.FunctionDef]
     ast_fd_ids = [f.name for f in ast_funcdefs]
     ast_clsdefs = [n for n in trunk if type(n) is ast.ClassDef]
+    ast_defs = ast_clsdefs if get_cls else ast_funcdefs
     ast_cd_ids = [c.name for c in ast_clsdefs]
-    linkfile.ast_defs = [FuncDef(n, ast_cls_ids=ast_cd_ids, ast_fun_ids=ast_fd_ids, classes_only=linkfile.classes_only) for n in ast_funcdefs]
-    linkfile.ast_classes = [ClsDef(n, ast_cls_ids=ast_cd_ids, ast_fun_ids=ast_fd_ids, classes_only=linkfile.classes_only) for n in ast_clsdefs]
-    #breakpoint()
-    #print("Hello")
-    # Any nodes in the AST that are funcdefs inside funcdefs are 'intra' (i.e. 'inside')
-    intra = [
-        *chain.from_iterable(
-            x.inner_funcs for x in linkfile.ast_defs if x.has_inner_func
-        )
-    ]
-    linkfile.set_intradef_names(intra)
-    methods = [
-        *chain.from_iterable(x.methods for x in linkfile.ast_classes if x.has_method)
-    ]
-    linkfile.set_methdef_names(methods)
+    def_params = {
+        "ast_cls_ids": ast_cd_ids,
+        "ast_fun_ids": ast_fd_ids,
+        "classes_only": linkfile.classes_only
+    }
+    linkfile.ast_funcs = [FuncDef(n, **def_params) for n in ast_funcdefs]
+    linkfile.ast_classes = [ClsDef(n, **def_params) for n in ast_clsdefs]
     # Any nodes in the AST that aren't imports or ast_defs are 'extra' (as in 'outside')
-    extra = [n for n in trunk if type(n) not in [*import_types, ast.FunctionDef]]
+    ast_sel_type = ClassDef if get_cls else FunctionDef
+    extra = [n for n in trunk if type(n) not in [*import_types, ast_sel_type]]
     # Omit names used outside of function definitions so as not to remove them
-    # TODO: probably want to switch this based on classes_only
     linkfile.set_extradef_names(extra)  # sets extradef_names by walking the extra nodes
     if report_VERBOSE:
         print("extra:", extra, file=stderr)
@@ -1406,7 +1163,8 @@ def parse_mv_funcs(linkfile, trunk):
         pprint_def_names(linkfile.mvdef_names)
     # ------------------------------------------------------------------------ #
     # Next obtain nonmvdef_names
-    nomvdefs = [f.name for f in linkfile.ast_defs if f.name not in mvdefs]
+    linkfile_defs = linkfile.ast_classes if get_cls else linkfile.ast_funcs
+    nomvdefs = [f.name for f in linkfile_defs if f.name not in mvdefs]
     linkfile.nonmvdef_names = linkfile.get_def_names(nomvdefs, import_annos)
     if report_VERBOSE:
         print("non-mvdef names:", file=stderr)
