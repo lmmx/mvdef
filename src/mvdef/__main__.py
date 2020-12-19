@@ -8,10 +8,14 @@ from .cli import main as run_cli, _MvAction, _IntoAction, validate_into_flag
 from .transfer import parse_transfer, FileLink
 
 prog, *argv = argv  # excise the call to mvdef as prog
-USE_CALL_PATH = False
-if not USE_CALL_PATH:
+USE_CALL_PATH = True
+if USE_CALL_PATH:
+    prog = Path(prog).name # "mvcls"/"cpcls"/"cpdef" if called via another entrypoint
+else:
     prog = "mvdef"  # overwrite the full call path with just 'mvdef'
 
+action = "Move" if prog.startswith("mv") else "Copy"
+target = "function" if prog.endswith("def") else "class"
 
 def demo():
     """
@@ -34,7 +38,7 @@ def main(copy_only=False, classes_only=False):
         HIDE_TRACEBACKS = False
 
     parser = ArgumentParser(
-        description="Move function definitions and associated import"
+        description=f"{action} {target} definitions and associated import"
         + " statements from one file to another within a library.",
         prog=prog,
     )
