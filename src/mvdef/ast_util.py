@@ -375,6 +375,7 @@ class NameEntryDict(dict):
                 names = sorted(names)
             super().__init__({n: {} for n in names})
 
+
 def get_base_type_name(type_name):
     """
     Take a type name from the IntraDefTypeEnum names and return the name of the base
@@ -389,16 +390,18 @@ def get_base_type_name(type_name):
         base_type_name = DefTypeEnum(base_type).name
     else:
         if type_name in DefTypeEnum._member_names_:
-            base_type_name = type_name # already a base type name ("Class" or "Func")
+            base_type_name = type_name  # already a base type name ("Class" or "Func")
         else:
             raise ValueError(msg)
     return base_type_name
 
+
 def has_clsdef_base(path_part, intradef=True):
-    next_def_type_name = path_part.part_type # e.g. "Method"
-    next_def_base_type_name = get_base_type_name(next_def_type_name) # Method --> Func
+    next_def_type_name = path_part.part_type  # e.g. "Method"
+    next_def_base_type_name = get_base_type_name(next_def_type_name)  # Method --> Func
     def_is_a_cls = next_def_base_type_name == "Class"
     return def_is_a_cls
+
 
 class PathGetterMixin:
     """
@@ -408,6 +411,7 @@ class PathGetterMixin:
 
     (I don't think this even needs to be mixed in but it's handy to access if it is)
     """
+
     def retrieve_def(self, path_part):
         """
         Attempt to retrieve the next funcdef/clsdef indicated by `path_part`
@@ -451,13 +455,14 @@ class PathGetterMixin:
 class LinkFileCheckerMixin:
     def check_against_linkedfile(self, linkfile):
         filename = linkfile.path.name
-        if linkfile.classes_only: # use pre-extracted IDs rather than do fresh listcomps
+        if (
+            linkfile.classes_only
+        ):  # use pre-extracted IDs rather than do fresh listcomps
             global_cls_names, global_fun_names = linkfile.sel_ids, linkfile.nosel_ids
         else:
             global_fun_names, global_cls_names = linkfile.sel_ids, linkfile.nosel_ids
-        if (
-            (self.root_type == "Class" and self.root_name not in global_cls_names)
-            or (self.root_type == "Func" and self.root_name not in global_fun_names)
+        if (self.root_type == "Class" and self.root_name not in global_cls_names) or (
+            self.root_type == "Func" and self.root_name not in global_fun_names
         ):
             msg = f"{filename} does not contain root {self.root_type} {self.root_name}"
             raise NameError(msg)
@@ -483,8 +488,8 @@ class LinkFileCheckerMixin:
         global_def_names = [d.name for d in global_def_nodes]
         is_cls = lambda c: isinstance(c, ClassDef)
         is_fun = lambda f: isinstance(f, FunctionDef)
-        cls_check = (self.root_type == "Class" and all(map(is_cls, global_def_nodes)))
-        fun_check = (self.root_type == "Func" and all(map(is_fun, global_def_nodes)))
+        cls_check = self.root_type == "Class" and all(map(is_cls, global_def_nodes))
+        fun_check = self.root_type == "Func" and all(map(is_fun, global_def_nodes))
         msg = f"Defs passed were not of type {self.root_type}"
         assert cls_check or fun_check, msg
         initial_def = _find_node(global_def_nodes, self.root_name)
@@ -502,6 +507,7 @@ class LinkFileCheckerMixin:
         else:
             retrieved_def = initial_def
         return retrieved_def
+
 
 class FuncPath(FuncDefPathStr, LinkFileCheckerMixin):
     """
@@ -596,7 +602,7 @@ def get_def_names(linkfile, def_list, import_annos):
     extradef_names = linkfile.extradef_names
     # ast_funcs/ast_classes parameterised as "selected" based on linkfile.classes_only
     sel_nodes, nosel_nodes = linkfile.sel_nodes, linkfile.nosel_nodes
-    sel_ids, nosel_ids = linkfile.sel_ids, linkfile.nosel_ids # nosel_ids not used?
+    sel_ids, nosel_ids = linkfile.sel_ids, linkfile.nosel_ids  # nosel_ids not used?
     for m in def_list:
         m_type = "class" if get_cls else "function"
         sd_names = set()
@@ -611,14 +617,18 @@ def get_def_names(linkfile, def_list, import_annos):
                 valid_leaf_types = ["Method", "InnerFunc"]
             msg = f"'{leaf_node.part_type}' is not a valid {m_type} part type"
             assert leaf_node.part_type in valid_leaf_types, msg
-            leaf_par_type_name = getattr(DefTypeToParentTypeEnum, leaf_node.part_type).value
+            leaf_par_type_name = getattr(
+                DefTypeToParentTypeEnum, leaf_node.part_type
+            ).value
             m_path_type = getattr(IntraDefPathTypeEnum, leaf_node.part_type).value
             m_path = m_path_type(m, parent_type_name=leaf_par_type_name)
             # retrieve {func|cls}def from AST
-            sel_def = m_path.check_against_linkedfile(linkfile)  
+            sel_def = m_path.check_against_linkedfile(linkfile)
             sel_ids = (
-                sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
-               # TODO make this a property on the type (which class though?)
+                sel_def.all_ns_cd_ids
+                if get_cls
+                else sel_def.all_ns_fd_ids
+                # TODO make this a property on the type (which class though?)
             )  # inner {func|cls}def IDs, includes global def namespace
         elif m in sel_ids:
             sel_def = sel_nodes[sel_ids.index(m)]
@@ -646,6 +656,7 @@ def get_def_names(linkfile, def_list, import_annos):
         update_def_names_from_imports(m, mv_imp_refs, imp_name_dicts, def_namedict)
     return def_namedict
 
+
 def update_def_names_from_imports(def_name, mv_imp_refs, imp_name_dicts, def_names):
     # TODO inspect def_names before/after this routine runs and add an informative
     # docstring/change its name to something better (named in midst of a refactor)
@@ -665,13 +676,16 @@ def update_def_names_from_imports(def_name, mv_imp_refs, imp_name_dicts, def_nam
                 "import": list(imp_name_dicts[n].keys())[n_i],
             }
         )
-        def_names.add_subentry(def_name, k, new_entry) # mutate in place
+        def_names.add_subentry(def_name, k, new_entry)  # mutate in place
+
 
 def _list_names_of_type(nodes, of_type):
     return [n.name for n in nodes if isinstance(n, of_type)]
 
+
 def _index_nodes_of_type(nodes, of_type):
-    return [i for i,n in enumerate(nodes) if isinstance(n, of_type)]
+    return [i for i, n in enumerate(nodes) if isinstance(n, of_type)]
+
 
 class RecursiveIdSetterMixin:
     """
@@ -680,6 +694,7 @@ class RecursiveIdSetterMixin:
 
     Note that methods have been omitted (but are trivial to obtain from the result)
     """
+
     def _set_up_inner_node(self, node):
         node.check_for_inner_defs()
         if self.is_inner:
@@ -721,18 +736,14 @@ class RecursiveIdSetterMixin:
         if parent_namespace_ids:
             self.all_ns_fd_ids.extend(parent_namespace_ids)
         if self.has_intra_func:
-            self.all_ns_fd_ids.extend(
-                _list_names_of_type(self.body, ast.FunctionDef)
-            )
+            self.all_ns_fd_ids.extend(_list_names_of_type(self.body, ast.FunctionDef))
 
     def set_ns_cd_ids(self, parent_namespace_ids=None):
         self.all_ns_cd_ids = []
         if parent_namespace_ids:
             self.all_ns_cd_ids.extend(parent_namespace_ids)
         if self.has_intra_cls:
-            self.all_ns_cd_ids.extend(
-                _list_names_of_type(self.body, ast.ClassDef)
-            )
+            self.all_ns_cd_ids.extend(_list_names_of_type(self.body, ast.ClassDef))
 
     @property
     def _parent_def_kwargs(self):
@@ -760,13 +771,16 @@ class RecursiveIdSetterMixin:
 
     def set_intra_classes(self):
         self.intra_classes = [
-            self.intra_cls_type(cd=self.body[i], **self._parent_def_kwargs) for i in self.intra_cls_idx
+            self.intra_cls_type(cd=self.body[i], **self._parent_def_kwargs)
+            for i in self.intra_cls_idx
         ]
 
     def set_intra_funcs(self):
         self.intra_funcs = [
-            self.intra_func_type(fd=self.body[i], **self._parent_def_kwargs) for i in self.intra_func_idx
+            self.intra_func_type(fd=self.body[i], **self._parent_def_kwargs)
+            for i in self.intra_func_idx
         ]
+
 
 class NamespaceIdSetterMixin:
     @property
@@ -784,14 +798,17 @@ class NamespaceIdSetterMixin:
     @all_ns_fd_ids.setter
     def all_ns_fd_ids(self, id_list):
         self._all_ns_fd_ids = id_list
-    
+
+
 class ClsDef(ast.ClassDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
     Wrap `ast.ClassDef` to permit recursive search for methods and inner classes
     upon creation in `parse_mv_funcs`.
     """
 
-    def __init__(self, clsdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False):
+    def __init__(
+        self, clsdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False
+    ):
         super().__init__(**vars(clsdef))
         self.classes_only = classes_only
         self.global_cd_ids = ast_cls_ids
@@ -871,6 +888,7 @@ class ClsDef(ast.ClassDef, RecursiveIdSetterMixin, PathGetterMixin):
     def path(self):
         return self.name
 
+
 class HOClsDef(ClsDef, NamespaceIdSetterMixin):
     """
     Wrap `ClsDef` (in turn wrapping `ast.ClassDef`) to store a reference to the
@@ -882,7 +900,9 @@ class HOClsDef(ClsDef, NamespaceIdSetterMixin):
         self.parent_name = parent_fd.name
         self.parent_path = parent_fd.path
         self.parent_line_range = parent_fd.line_range
-        super().__init__(cd, self.classes_only, is_inner=True)  # I moved this to the end to get it to run
+        super().__init__(
+            cd, self.classes_only, is_inner=True
+        )  # I moved this to the end to get it to run
         # but unsure if it's actually correct to do so or just a hotfix that'll bite me
 
     @property
@@ -902,7 +922,9 @@ class InnerClsDef(ClsDef, NamespaceIdSetterMixin):
         self.parent_name = parent_cd.name
         self.parent_path = parent_cd.path
         self.parent_line_range = parent_cd.line_range
-        super().__init__(cd, self.classes_only, is_inner=True)  # I moved this to the end to get it to run
+        super().__init__(
+            cd, self.classes_only, is_inner=True
+        )  # I moved this to the end to get it to run
         # but unsure if it's actually correct to do so or just a hotfix that'll bite me
 
     @property
@@ -910,13 +932,16 @@ class InnerClsDef(ClsDef, NamespaceIdSetterMixin):
         parent_path = self.parent_path
         return f"{parent_path}::{self.name}"
 
+
 class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
     Wrap `ast.FunctionDef` to permit recursive search for inner functions upon
     creation in `parse_mv_funcs`.
     """
 
-    def __init__(self, funcdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False):
+    def __init__(
+        self, funcdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False
+    ):
         super().__init__(**vars(funcdef))
         self.classes_only = classes_only
         self.global_cd_ids = ast_cls_ids
@@ -996,6 +1021,7 @@ class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin, PathGetterMixin):
     def path(self):
         return self.name
 
+
 class MethodDef(FuncDef):
     """
     Wrap `FuncDef` (in turn wrapping `ast.FunctionDef`) to store a reference to the
@@ -1037,6 +1063,7 @@ class InnerFuncDef(FuncDef):
     Wrap `FuncDef` (in turn wrapping `ast.FunctionDef`) to store a reference to the
     parent funcdef's line range on an inner function.
     """
+
     # TODO: Note you could use a mixin to remove the duplicate code between this and all other
     # subclasses of clsdef and funcdef
     def __init__(self, fd, parent_fd):
@@ -1044,7 +1071,9 @@ class InnerFuncDef(FuncDef):
         self.parent_name = parent_fd.name
         self.parent_path = parent_fd.path
         self.parent_line_range = parent_fd.line_range
-        super().__init__(fd, self.classes_only, is_inner=True) # moved to end to match ClsDef subclasses
+        super().__init__(
+            fd, self.classes_only, is_inner=True
+        )  # moved to end to match ClsDef subclasses
 
     @property
     def path(self):
@@ -1067,9 +1096,11 @@ class InnerFuncDef(FuncDef):
     def all_ns_fd_ids(self, id_list):
         self._all_ns_fd_ids = id_list
 
+
 class DefTypeEnum(Enum):
     Class = ClsDef
     Func = FuncDef
+
 
 class IntraDefTypeEnum(Enum):
     Method = MethodDef
@@ -1077,21 +1108,25 @@ class IntraDefTypeEnum(Enum):
     InnerFunc = InnerFuncDef
     HigherOrderClass = HOClsDef
 
+
 class DefTypeToParentTypeEnum(Enum):
     Method = "Class"
     InnerClass = "Class"
     InnerFunc = "Func"
     HigherOrderClass = "Func"
 
+
 class DefPathTypeEnum(Enum):
     Class = ClassPath
     Func = FuncPath
+
 
 class IntraDefPathTypeEnum(Enum):
     Method = MethodPath
     InnerClass = InnerClassPath
     InnerFunc = InnerFuncPath
     HigherOrderClass = HigherOrderClassPath
+
 
 def parse_mv_funcs(linkfile, trunk):
     """
@@ -1145,7 +1180,7 @@ def parse_mv_funcs(linkfile, trunk):
     def_params = {
         "ast_cls_ids": ast_cd_ids,
         "ast_fun_ids": ast_fd_ids,
-        "classes_only": linkfile.classes_only
+        "classes_only": linkfile.classes_only,
     }
     linkfile.ast_funcs = [FuncDef(n, **def_params) for n in ast_funcdefs]
     linkfile.ast_classes = [ClsDef(n, **def_params) for n in ast_clsdefs]

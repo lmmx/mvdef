@@ -12,6 +12,7 @@ __all__ = [
     "MethodDefPathStr",
 ]
 
+
 class PathPartStr(str):
     pass
 
@@ -92,14 +93,14 @@ class TokenisedStr:
                 if trigram in all_separators:
                     sep = all_separators.get(trigram)
                     self._tokens.append(sep)
-                    del parse_string_symbols[:2] # pop two extra symbols
+                    del parse_string_symbols[:2]  # pop two extra symbols
                     continue
             if parse_string_symbols:
                 bigram = symbol + parse_string_symbols[0]
                 if bigram in all_separators:
                     sep = all_separators.get(bigram)
                     self._tokens.append(sep)
-                    parse_string_symbols.pop(0) # pop extra symbol
+                    parse_string_symbols.pop(0)  # pop extra symbol
                     continue
             if symbol in all_separators:
                 sep = all_separators.get(symbol)
@@ -129,7 +130,11 @@ class TokenisedStr:
                 assert type(next_tok) is self.PathSepEnum, "2 unseparated string tokens"
                 last_seen_sep = next_tok
                 sep_type = next_tok.name
-                if sep_type in ["InnerFunc", "HigherOrderClass", "Decorator"]:  # then tok 1 is a funcdef
+                if sep_type in [
+                    "InnerFunc",
+                    "HigherOrderClass",
+                    "Decorator",
+                ]:  # then tok 1 is a funcdef
                     tok_parsed = FuncPathPart(tok)
                 elif sep_type in ["Method", "InnerClass"]:  # then tok 1 is a classdef
                     tok_parsed = ClassPathPart(tok)
@@ -218,7 +223,10 @@ class ParentedMixin(LeafMixin):
         if hasattr(self, "parent_type_name"):
             check = self.parent_type_name == self.parent_enum.name
         elif self.parent_type in self.DefTypeToParentTypeEnum._member_map_:
-            check = self.DefTypeToParentTypeEnum[self.parent_type].value == self.parent_enum.name
+            check = (
+                self.DefTypeToParentTypeEnum[self.parent_type].value
+                == self.parent_enum.name
+            )
         else:
             check = self.parent_type == self.parent_enum.name
         return check
@@ -339,7 +347,7 @@ class InnerClassDefPathStr(ClassDefPathStr, ParentedMixin):
     """
     A ClassDefPathStr in which both the leaf and the leaf's parent are classdefs.
     This is checked on __init__.
-    
+
     This class should be subclassed for checking against the (separate) ASTs used in
     either `ast_util` or `asttokens` (the first for generating the inner function
     indexes, the latter for line numbering associated with the AST nodes).

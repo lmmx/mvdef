@@ -10,12 +10,13 @@ from .transfer import parse_transfer, FileLink
 prog, *argv = argv  # excise the call to mvdef as prog
 USE_CALL_PATH = True
 if USE_CALL_PATH:
-    prog = Path(prog).name # "mvcls"/"cpcls"/"cpdef" if called via another entrypoint
+    prog = Path(prog).name  # "mvcls"/"cpcls"/"cpdef" if called via another entrypoint
 else:
     prog = "mvdef"  # overwrite the full call path with just 'mvdef'
 
 action = "Move" if prog.startswith("mv") else "Copy"
 target = "function" if prog.endswith("def") else "class"
+
 
 def demo():
     """

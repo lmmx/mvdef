@@ -40,4 +40,3 @@ def _find_cls(node, name):
     """
     cls_nodes = [n for n in node.body if type(n) is ClassDef]
     return _find_node(cls_nodes, name)
-

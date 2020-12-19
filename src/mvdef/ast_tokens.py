@@ -67,13 +67,16 @@ def get_defs_and_classes(tr, trunk_only=True):
     classes = [t for t in (tr if trunk_only else walk(tr)) if type(t) is ClassDef]
     return defs, classes
 
+
 ## (Some helper functions excised to def_helpers.py, TODO excise more)
+
 
 def per_path_part_finder(parent_def, path_part, annotate_siblings=True):
     finder = _find_cls if has_clsdef_base(path_part) else _find_def
     sd = finder(parent_def, path_part)
     sd.has_siblings = any(n for n in parent_def.body if n is not sd)
     return sd
+
 
 def get_to_node(to, into_path, dst_funcs, dst_classes):
     """
@@ -96,7 +99,7 @@ def get_to_node(to, into_path, dst_funcs, dst_classes):
                 part_types = [p.part_type for p in into_path.parts]
                 raise NotImplementedError(f"{to=} has {part_types=}. Leaf unsupported")
             if i_root_type in DefPathTypeEnum._member_names_:
-                base_type_name = i_root_type # either "Func" or "Class"
+                base_type_name = i_root_type  # either "Func" or "Class"
             else:
                 base_type_name = get_base_type_name(i_root_type)
             into_path = i_leaf_defpath_type(to)
@@ -124,7 +127,7 @@ def get_to_node(to, into_path, dst_funcs, dst_classes):
             into_path.node = initial_def
     else:
         into_path.node = to  # propagate None
-    return into_path # now annotated with `.node` attribute
+    return into_path  # now annotated with `.node` attribute
 
 
 def set_defs_to_move(src, dst, trunk_only=True):
@@ -143,7 +146,7 @@ def set_defs_to_move(src, dst, trunk_only=True):
     # Note that you may want to set `into_path.node` even if the mvdef is top-level!
     target_defs = []
     for d, to in zip(def_list, into_list):
-        path_parsed = UntypedPathStr(d) # not final: may actually be a ClassDef!
+        path_parsed = UntypedPathStr(d)  # not final: may actually be a ClassDef!
         if path_parsed.is_unsupported:
             supported = "inner funcdefs and methods of global-scope classes"
             raise NotImplementedError(f"Currently only supporting {supported}")
