@@ -1,25 +1,31 @@
+# flake8: noqa
+from ast import ClassDef, FunctionDef
+from ast import Import as IType
+from ast import ImportFrom as IFType
+from ast import walk
+from functools import reduce
+
 from asttokens import ASTTokens
-from ast import Import as IType, ImportFrom as IFType, ClassDef, FunctionDef, walk
+
+from .ast_util import (
+    ClassPath,
+    DefPathTypeEnum,
+    DefTypeEnum,
+    FuncPath,
+    InnerClassPath,
+    IntraDefPathTypeEnum,
+    MethodPath,
+    get_base_type_name,
+    has_clsdef_base,
+)
+from .def_helpers import _find_cls, _find_def, _find_node, _name_check
 from .def_path_util import (
-    UntypedPathStr,
-    NullPathStr,
     FuncDefPathStr,
     InnerFuncDefPathStr,
     MethodDefPathStr,
+    NullPathStr,
+    UntypedPathStr,
 )
-from .ast_util import (
-    get_base_type_name,
-    has_clsdef_base,
-    DefPathTypeEnum,
-    IntraDefPathTypeEnum,
-    DefTypeEnum,
-    ClassPath,
-    InnerClassPath,
-    FuncPath,
-    MethodPath,
-)
-from .def_helpers import _name_check, _find_node, _find_def, _find_cls
-from functools import reduce
 
 __all__ = [
     "get_tokenised",

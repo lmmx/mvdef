@@ -1,4 +1,4 @@
-asttokens
-astor
 argcomplete
+astor
+asttokens
 numpy

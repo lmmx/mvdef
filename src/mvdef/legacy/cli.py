@@ -1,7 +1,8 @@
-from .transfer import parse_transfer
-from sys import stderr
-from itertools import chain
 import argparse
+from itertools import chain
+from sys import stderr
+
+from .transfer import parse_transfer
 
 __all__ = ["main", "validate_into_flag"]
 

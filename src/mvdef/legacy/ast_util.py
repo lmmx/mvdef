@@ -1,24 +1,26 @@
+# flake8: noqa
 import ast
-from ast import ClassDef, FunctionDef
 import builtins
+from ast import ClassDef, FunctionDef
+from enum import Enum
+from functools import reduce
+from itertools import chain
 from pathlib import Path
+from sys import stderr
+
 from .agenda_util import pprint_agenda
-from .deprecations import pprint_def_names
-from .import_util import get_imported_name_sources, annotate_imports
+from .def_helpers import _find_cls, _find_def, _find_node
 from .def_path_util import (
-    UntypedPathStr,
-    FuncDefPathStr,
-    InnerFuncDefPathStr,
     ClassDefPathStr,
+    FuncDefPathStr,
     HigherOrderClassDefPathStr,
     InnerClassDefPathStr,
+    InnerFuncDefPathStr,
     MethodDefPathStr,
+    UntypedPathStr,
 )
-from .def_helpers import _find_node, _find_cls, _find_def
-from sys import stderr
-from itertools import chain
-from functools import reduce
-from enum import Enum
+from .deprecations import pprint_def_names
+from .import_util import annotate_imports, get_imported_name_sources
 
 __all__ = [
     "retrieve_ast_agenda",

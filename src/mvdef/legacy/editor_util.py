@@ -1,6 +1,9 @@
-from .io_util import terminal_whitespace
-from numpy import where
+# flake8: noqa
 from os import linesep as nl
+
+from numpy import where
+
+from .io_util import terminal_whitespace
 
 __all__ = [
     "get_defrange",

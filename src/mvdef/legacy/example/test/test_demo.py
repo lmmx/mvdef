@@ -1,7 +1,10 @@
-import numpy as np
-from ..demo_program import pprint_dict, print_some_url
+# flake8: noqa
 from os.path import sep
 from sys import stderr
+
+import numpy as np
+
+from ..demo_program import pprint_dict, print_some_url
 
 
 def test_pprint_dict(d={"foo": 1, "bar": 2}):

@@ -1,10 +1,14 @@
+# flake8: noqa
 import ast
-from ast import Import as IType, ImportFrom as IFType
-from astor import to_source
-from asttokens import ASTTokens
-from .colours import colour_str as colour
+from ast import Import as IType
+from ast import ImportFrom as IFType
 from os import linesep as nl
 from sys import stderr
+
+from astor import to_source
+from asttokens import ASTTokens
+
+from .colours import colour_str as colour
 
 __all__ = [
     "get_import_stmt_str",

@@ -1,11 +1,10 @@
+# flake8: noqa
 import functools as ft
-from pprint import pprint, pformat
 import urllib.request as req
-from os.path import (
-    basename as bname,
-    sep as pathsep,
-    islink,
-)
+from os.path import basename as bname
+from os.path import islink
+from os.path import sep as pathsep
+from pprint import pformat, pprint
 
 
 def pprint_dict(d, return_string=True):

@@ -1,6 +1,6 @@
 from .__env__ import example_dir
-from .transfer import parse_transfer
 from .example.test.test_demo import test_report as demotest
+from .transfer import parse_transfer
 
 __all__ = ["main"]
 

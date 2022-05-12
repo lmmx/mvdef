@@ -1,52 +1,104 @@
-from setuptools import setup, find_packages
+import re
+from pathlib import Path
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+from setuptools import find_packages, setup
 
-with open("requirements.txt", "r") as fh:
-    reqs = fh.read().splitlines()
+########################################################################################
+
+NAME = "mvdef"
+PROJECT_URLS = {
+    "Documentation": "https://mvdef.readthedocs.io/",
+    "Bug Tracker": "https://github.com/lmmx/mvdef/issues",
+    "Source Code": "https://github.com/lmmx/mvdef",
+}
+CLASSIFIERS = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+INSTALL_REQUIRES = Path("requirements.txt").read_text().splitlines()
+EXTRAS_REQUIRE = {
+    "docs": [
+        "sphinx>=4",  # required for property :attr: role
+        "sphinx_rtd_theme",
+        "sphinx-autodoc-typehints",  # don't pin to 1.11.1
+    ],
+    "tests": ["coverage[toml]>=5.5", "pytest"],
+}
+EXTRAS_REQUIRE["dev"] = (
+    EXTRAS_REQUIRE["tests"] + EXTRAS_REQUIRE["docs"] + ["pre-commit"]
+)
+PYTHON_REQUIRES = ">=3.9"
+LONG_DESCRIPTION = Path("README.md").read_text()
+PACKAGE_DATA = {"mvdef": ["py.typed"]}
+
+########################################################################################
+
 
 def local_scheme(version):
     return ""
 
+
 def version_scheme(version):
     return version.tag.base_version
 
-setup(
-    name="mvdef",
-    author="Louis Maddox",
-    author_email="louismmx@gmail.com",
-    description=(
-        "Package providing command line tools to move/copy function/classes"
-        "and their associated import statements between files"
-    ),
-    license="MIT License",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/lmmx/mvdef",
-    packages=find_packages("src"),
-    package_dir={"": "src"},
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
-        "License :: OSI Approved :: MIT License",
-        "Intended Audience :: Developers",
-    ],
-    include_package_data=True, # no package data yet but no problem
-    use_scm_version={
-        "write_to": "version.py",
-        "version_scheme": version_scheme,
-        "local_scheme": local_scheme,
-    },
-    setup_requires=["setuptools_scm"],
-    entry_points={
-        "console_scripts": [
-            "mvdef = mvdef.__main__:main",
-            "mvcls = mvdef.__main__:mvcls",
-            "cpdef = mvdef.__main__:cpdef",
-            "cpcls = mvdef.__main__:cpcls",
-        ],
-    },
-    install_requires=reqs,
-    python_requires=">=3",
-)
+
+########################################################################################
+
+
+META_PATH = Path(__file__).parent.absolute() / "src" / NAME / "__init__.py"
+META_FILE = META_PATH.read_text()
+
+
+def find_meta(meta):
+    "Extract __*meta*__ from META_FILE."
+    meta_match = re.search(rf"^__{meta}__ = ['\"]([^'\"]*)['\"]", META_FILE, re.M)
+    if meta_match:
+        return meta_match.group(1)
+    raise RuntimeError("Unable to find __{meta}__ string.".format(meta=meta))
+
+
+if __name__ == "__main__":
+    setup(
+        name=NAME,
+        description=find_meta("description"),
+        license=find_meta("license"),
+        url=find_meta("url"),
+        project_urls=PROJECT_URLS,
+        author=find_meta("author"),
+        author_email=find_meta("email"),
+        maintainer=find_meta("author"),
+        maintainer_email=find_meta("email"),
+        long_description=LONG_DESCRIPTION,
+        long_description_content_type="text/markdown",
+        packages=find_packages("src"),
+        package_dir={"": "src"},
+        package_data=PACKAGE_DATA,
+        include_package_data=True,
+        zip_safe=False,
+        classifiers=CLASSIFIERS,
+        use_scm_version={
+            "write_to": "version.py",
+            "version_scheme": version_scheme,
+            "local_scheme": local_scheme,
+        },
+        setup_requires=["setuptools_scm"],
+        entry_points={
+            "console_scripts": [
+                "mvdef = mvdef.legacy.__main__:main",
+                "mvcls = mvdef.legacy.__main__:mvcls",
+                "cpdef = mvdef.legacy.__main__:cpdef",
+                "cpcls = mvdef.legacy.__main__:cpcls",
+            ],
+        },
+        install_requires=INSTALL_REQUIRES,
+        extras_require=EXTRAS_REQUIRE,
+        python_requires=PYTHON_REQUIRES,
+    )

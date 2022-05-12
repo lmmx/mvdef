@@ -1,4 +1,5 @@
-from .editor_util import get_def_lines, get_defrange, excise_def_lines, overwrite_import
+# flake8: noqa
+from .editor_util import excise_def_lines, get_def_lines, get_defrange, overwrite_import
 from .import_util import get_import_stmt_str
 
 __all__ = [

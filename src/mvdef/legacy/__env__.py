@@ -1,6 +1,8 @@
 from pathlib import Path
+
+from . import __package__ as module_name
+from . import __path__ as module_dir
 from .example import __path__ as example_dir
-from . import __path__ as module_dir, __package__ as module_name
 
 try:
     assert len(module_dir) == 1
@@ -14,7 +16,7 @@ except AssertionError as e:
     raise ValueError(e, "Module directory should be a directory that already exists")
 
 try:
-    assert module_dir.name == module_name
+    assert f"{module_dir.parent.name}.{module_dir.name}" == module_name
 except AssertionError as e:
     raise ValueError(e, "Module directory name doesn't match record of module name")
 

@@ -1,11 +1,15 @@
-from sys import argv, stderr
-from pathlib import Path
+# flake8: noqa
 from argparse import ArgumentParser
+from pathlib import Path
+from sys import argv, stderr
+
 import argcomplete
 
+from .cli import _IntoAction, _MvAction
+from .cli import main as run_cli
+from .cli import validate_into_flag
 from .demo import main as run_demo
-from .cli import main as run_cli, _MvAction, _IntoAction, validate_into_flag
-from .transfer import parse_transfer, FileLink
+from .transfer import FileLink, parse_transfer
 
 prog, *argv = argv  # excise the call to mvdef as prog
 USE_CALL_PATH = True

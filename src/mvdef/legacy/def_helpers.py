@@ -1,5 +1,6 @@
-from functools import partial
+# flake8: noqa
 from ast import ClassDef, FunctionDef
+from functools import partial
 
 __all__ = ["_find_node", "_find_def", "_find_cls"]
 
