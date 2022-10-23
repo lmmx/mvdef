@@ -2,7 +2,7 @@
 from os.path import sep
 from sys import stderr
 
-import numpy as np
+import textwrap as tw
 
 from ..demo_program import pprint_dict, print_some_url
 

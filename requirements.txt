@@ -1,4 +1,3 @@
 argcomplete
 astor
 asttokens
-numpy
