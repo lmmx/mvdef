@@ -2,3 +2,4 @@ argcomplete
 astor
 asttokens
 defopt
+pyflakes
