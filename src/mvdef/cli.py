@@ -8,4 +8,6 @@ def cli():
     mover = defopt.run(MvDef, no_negated_flags=True, cli_options="has_default")
     blocker = mover.check()
     if blocker is None:
-        mover.move()
+        moved = mover.move()
+        if mover.dry_run:
+            print(moved)

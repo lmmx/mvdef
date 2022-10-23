@@ -49,5 +49,15 @@ class MvDef:
                 return self.src_checker.fail(msg)
         return None
 
-    def move(self):
-        print("Let's move")
+    def move(self) -> str | None:
+        if self.dry_run:
+            return self.get_diff()
+        else:
+            return self.execute()
+
+    def get_diff(self) -> str:
+        return "Diff goes here..."
+
+    def execute(self) -> None:
+        print("Executing...")
+        return
