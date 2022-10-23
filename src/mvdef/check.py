@@ -3,7 +3,7 @@ from sys import stderr
 
 from pyflakes import checker
 
-from .exceptions import MvDefException
+from .exceptions import CheckFailure
 
 __all__ = ["Checker", "CheckFailure"]
 
@@ -11,20 +11,19 @@ __all__ = ["Checker", "CheckFailure"]
 class Checker(checker.Checker):
     verbose: bool
 
-    class CheckFailure(MvDefException):
-        """MvDef: check failed"""
-
     def __init__(self, *args, **kwargs):
         self.verbose = kwargs.pop("verbose", False)
         self.escalate = kwargs.pop("escalate", False)
         self.funcdefs = []
         super().__init__(*args, **kwargs)
 
-    def fail(self, msg) -> None:
+    def fail(self, msg) -> CheckFailure | None:
+        exc = CheckFailure(msg)
         if self.escalate:
-            raise self.CheckFailure(msg)
+            raise exc
         else:
             self.err(msg)
+            return exc
 
     def err(self, msg) -> None:
         print(msg, file=stderr)

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .exceptions import CheckFailure
 from .log_utils import set_up_logging
 from .parse import parse_file
 
@@ -35,13 +36,18 @@ class MvDef:
         self.logger = set_up_logging(__name__, verbose=self.verbose)
         self.log(self)
 
-    def check(self) -> None:
+    def check(self) -> CheckFailure | None:
         self.src_checker = parse_file(
             self.src, verbose=self.verbose, escalate=self.escalate, ensure_exists=True
         )
         if absent := (set(self.mv) - {f.name for f in self.src_checker.funcdefs}):
             msg = f"Definition{'s'[:len(absent)-1]} not in {self.src}: {absent}"
-            self.src_checker.fail(msg)
-            # implicit return
+            return self.src_checker.fail(msg)
         elif self.dst.exists():
             self.dst_checker = parse_file(self.dst, verbose=self.verbose)
+            if False:
+                return self.src_checker.fail(msg)
+        return None
+
+    def move(self):
+        print("Let's move")
