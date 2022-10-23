@@ -92,10 +92,11 @@ if __name__ == "__main__":
         setup_requires=["setuptools_scm"],
         entry_points={
             "console_scripts": [
-                "mvdef = mvdef.legacy.__main__:main",
-                "mvcls = mvdef.legacy.__main__:mvcls",
-                "cpdef = mvdef.legacy.__main__:cpdef",
-                "cpcls = mvdef.legacy.__main__:cpcls",
+                "mvdef = mvdef.cli:cli",
+                "oldmvdef = mvdef.legacy.__main__:main",
+                "oldmvcls = mvdef.legacy.__main__:mvcls",
+                "oldcpdef = mvdef.legacy.__main__:cpdef",
+                "oldcpcls = mvdef.legacy.__main__:cpcls",
             ],
         },
         install_requires=INSTALL_REQUIRES,

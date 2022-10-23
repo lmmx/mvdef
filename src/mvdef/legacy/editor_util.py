@@ -1,8 +1,6 @@
 # flake8: noqa
 from os import linesep as nl
 
-from numpy import where
-
 from .io_util import terminal_whitespace
 
 __all__ = [
@@ -203,12 +201,12 @@ def get_borders(defrange, lines, window_size=2):
     """
     d_start, d_end = defrange
     # Get non-`None` line indexes to a max. of `window_size` away from the start
-    pre_i = where([l is not None for l in lines[:d_start][::-1]])[0][:window_size]
+    where_pre = [i for i, l in enumerate(lines[:d_start][::-1]) if l is not None]
     # Reverse list of index offset from d_start back to normal order, get abs. index
-    pre = d_start - 1 - pre_i[::-1]
-    post_i = where([l is not None for l in lines[d_end:]])[0][:window_size]
-    post = d_end + post_i
-    return pre.tolist(), post.tolist()
+    pre = [d_start - 1 - idx for idx in where_pre[:window_size][::-1]]
+    where_post = [i for i, l in enumerate(lines[d_end:]) if l is not None]
+    post = [d_end + idx for idx in where_post[:window_size]]
+    return pre, post
 
 
 def overwrite_import(imp_node, replacement_str, lines):
