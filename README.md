@@ -23,18 +23,17 @@ pip install mvdef
 ## Usage
 
 ```
-usage: mvdef [-h] -m [MV ...] [-b] [-d] [-e] [-v] src dst
+usage: mvdef [-h] -m [MV ...] [-d] [-e] [-v] src dst
 
 Move function definitions from one file to another, moving/copying
 associated import statements along with them.
 
-- src: source file to take definitions from
-- dst: destination file (may not exist)
-- mv: names to move from the source file (default: [])
-- backup: whether to create a backup with the suffix `.bak` (default: False)
-- dry_run: whether to only preview the changes (default: False)
-- escalate: whether to raise an error upon failure (default: False)
-- verbose: whether to log anything (default: False)
+- src       source file to take definitions from
+- dst       destination file (may not exist)
+- mv        names to move from the source file      (default: [])
+- dry_run   whether to only preview the changes     (default: False)
+- escalate  whether to raise an error upon failure  (default: False)
+- verbose   whether to log anything                 (default: False)
 
 positional arguments:
   src
@@ -43,7 +42,6 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -m [MV ...], --mv [MV ...]
-  -b, --backup          (default: False)
   -d, --dry-run         (default: False)
   -e, --escalate        (default: False)
   -v, --verbose         (default: False)
