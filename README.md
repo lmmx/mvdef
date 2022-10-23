@@ -25,15 +25,17 @@ pip install mvdef
 ```
 usage: mvdef [-h] -m [MV ...] [-d] [-e] [-v] src dst
 
-Move function definitions from one file to another, moving/copying
-associated import statements along with them.
+  Move function definitions from one file to another, moving/copying
+  associated import statements along with them.
 
-- src       source file to take definitions from
-- dst       destination file (may not exist)
-- mv        names to move from the source file      (default: [])
-- dry_run   whether to only preview the changes     (default: False)
-- escalate  whether to raise an error upon failure  (default: False)
-- verbose   whether to log anything                 (default: False)
+  Option     Description                                Type (default)
+  —————————— —————————————————————————————————————————— ——————————————
+• src        source file to take definitions from       Path
+• dst        destination file (may not exist)           Path
+• mv         names to move from the source file         list of str
+• dry_run    whether to only preview the change diffs   bool (False)
+• escalate   whether to raise an error upon failure     bool (False)
+• verbose    whether to log anything                    bool (False)
 
 positional arguments:
   src
@@ -42,9 +44,9 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -m [MV ...], --mv [MV ...]
-  -d, --dry-run         (default: False)
-  -e, --escalate        (default: False)
-  -v, --verbose         (default: False)
+  -d, --dry-run
+  -e, --escalate
+  -v, --verbose
 ```
 
 > _mvdef_ is available from [PyPI](https://pypi.org/project/mvdef), and
