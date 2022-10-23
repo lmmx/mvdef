@@ -1,5 +1,7 @@
 import defopt
-from .transfer import mvdef
+
+from .transfer import MvDef
+
 
 def cli():
-    defopt.run(mvdef)
+    defopt.run(MvDef, no_negated_flags=True, cli_options="has_default")
