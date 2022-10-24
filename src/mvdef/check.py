@@ -14,8 +14,20 @@ class Checker(checker.Checker):
     def __init__(self, *args, **kwargs):
         self.verbose = kwargs.pop("verbose", False)
         self.escalate = kwargs.pop("escalate", False)
+        self.target_cls = kwargs.pop("target_cls", False)
+        self.target_all = kwargs.pop("target_all", False)
         self.funcdefs = []
+        self.classdefs = []
+        self.alldefs = []
         super().__init__(*args, **kwargs)
+
+    @property
+    def target_defs(self) -> list[AST]:
+        """Expand to classdefs or either in future"""
+        if self.target_all:
+            return self.alldefs
+        else:
+            return self.classdefs if self.target_cls else self.funcdefs
 
     def fail(self, msg) -> CheckFailure | None:
         exc = CheckFailure(msg)
@@ -34,10 +46,17 @@ class Checker(checker.Checker):
         if node is not None:
             setattr(node, "depth", self.get_ancestors(node, count=True))
 
+    def CLASSDEF(self, node: AST) -> None:
+        """Subclass override"""
+        super().CLASSDEF(node=node)
+        self.classdefs.append(node)
+        self.alldefs.append(node)
+
     def FUNCTIONDEF(self, node: AST) -> None:
         """Subclass override"""
         super().FUNCTIONDEF(node=node)
         self.funcdefs.append(node)
+        self.alldefs.append(node)
 
     def describe_node(self, node: AST) -> None:
         line_range = f"{node.lineno}-{node.end_lineno}"

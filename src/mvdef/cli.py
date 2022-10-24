@@ -12,7 +12,7 @@ def cli():
     if blocker is None:
         if mover.dry_run:
             src_diff, dst_diff = mover.diffs()
-            print(src_diff)
-            print(dst_diff)
+            print("---" + src_diff + "---")
+            print("+++" + dst_diff + "+++")
         else:
             mover.move()
