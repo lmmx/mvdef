@@ -18,12 +18,12 @@ class Agenda:
     def bring(self, mv, *, src: Path) -> None:
         self.targets = mv
         for target in mv:
-            raise ValueError("Bring call paused")
+            raise NotImplementedError("Bring call paused")
 
     def remove(self, mv, *, src: Path) -> None:
         self.targets = mv
         for target in mv:
-            ...
+            raise NotImplementedError("Remove call paused")
 
     def diff(self) -> str:
         return f"{self.targeted}"

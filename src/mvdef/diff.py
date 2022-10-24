@@ -21,7 +21,7 @@ class Differ:
     def is_src(self) -> bool:
         return self.dst is None
 
-    def scan(self, src_checker: Checker, *, dst_checker: Checker | None = None) -> None:
+    def scan(self, src_check: Checker, *, dst_check: Checker | None = None) -> None:
         """
         Build the Agenda for a given source/destination file. Unless the agenda is for
         a destination file that doesn't exist yet, use the AST built when checking it.
@@ -30,7 +30,7 @@ class Differ:
         for target in self.agenda.targets:
             # TODO: restart here (comes from transfer:MvDef.diffs -> agenda:Agenda)
             possible_targets = [
-                f for f in src_checker.target_defs if f.name in self.agenda.targets
+                f for f in src_check.target_defs if f.name in self.agenda.targets
             ]
             if len(possible_targets) > 1:
                 raise NotImplementedError("Not handled name ambiguity yet")

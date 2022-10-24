@@ -48,19 +48,19 @@ class MvDef:
         kwargs = {
             k: getattr(self, k) for k in "escalate verbose cls_defs all_defs".split()
         }
-        self.src_checker = parse_file(self.src, ensure_exists=True, **kwargs)
-        if absent := (set(self.mv) - {f.name for f in self.src_checker.target_defs}):
+        self.src_check = parse_file(self.src, ensure_exists=True, **kwargs)
+        if absent := (set(self.mv) - {f.name for f in self.src_check.target_defs}):
             msg = f"Definition{'s'[:len(absent)-1]} not in {self.src}: {absent}"
-            return self.src_checker.fail(msg)
+            return self.src_check.fail(msg)
         elif self.dst.exists():
-            self.dst_checker = parse_file(self.dst, **kwargs)
+            self.dst_check = parse_file(self.dst, **kwargs)
             if False:
-                return self.src_checker.fail(msg)
+                return self.src_check.fail(msg)
         return None
 
     def diffs(self) -> tuple[str, str]:
-        self.src_diff.scan(self.src_checker)
-        self.dst_diff.scan(self.src_checker, dst_checker=self.dst_checker)
+        self.src_diff.scan(self.src_check)
+        self.dst_diff.scan(self.src_check, dst_check=self.dst_check)
         return self.src_diff.unidiff(), self.dst_diff.unidiff()
 
     def move(self) -> str | None:
