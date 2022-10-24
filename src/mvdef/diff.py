@@ -15,7 +15,7 @@ class Differ:
     verbose: bool = False
 
     def __post_init__(self) -> None:
-        self.agenda = Agenda(targets=self.mv)
+        self.agenda = Agenda()
 
     @property
     def is_src(self) -> bool:
@@ -38,10 +38,13 @@ class Differ:
                 targeted_node = possible_targets.pop()
             self.agenda.targeted.update({target: targeted_node})
 
+    def populate_agenda(self) -> None:
+        if self.is_src:
+            self.agenda.remove(self.mv, src=self.src)
+        else:
+            self.agenda.bring(self.mv, src=self.src, dst=self.dst)
+
     def unidiff(self) -> str:
         if self.agenda.empty:
-            if self.is_src:
-                self.agenda.remove(self.mv, src=self.src)
-            else:
-                self.agenda.bring(self.mv, src=self.src)
-        return self.agenda.diff()
+            self.populate_agenda()
+        return self.agenda.unidiff()

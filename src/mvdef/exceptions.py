@@ -1,4 +1,4 @@
-__all__ = ["MvDefException"]
+__all__ = ["MvDefException", "CheckFailure", "AgendaFailure"]
 
 
 class MvDefException(Exception):
@@ -9,3 +9,7 @@ class MvDefException(Exception):
 
 class CheckFailure(MvDefException):
     """MvDef: check failed"""
+
+
+class AgendaFailure(MvDefException):
+    """MvDef: agenda failed"""
