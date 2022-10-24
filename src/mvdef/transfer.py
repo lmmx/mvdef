@@ -20,6 +20,8 @@ class MvDef:
     • mv         names to move from the source file         list of str
     • dry_run    whether to only preview the change diffs   bool (False)
     • escalate   whether to raise an error upon failure     bool (False)
+    • cls_defs   whether to target only class definitions   bool (False)
+    • all_defs   whether to target both class and funcdefs  bool (False)
     • verbose    whether to log anything                    bool (False)
     """
 
@@ -28,6 +30,8 @@ class MvDef:
     mv: list[str]
     dry_run: bool = False
     escalate: bool = False
+    cls_defs: bool = False
+    all_defs: bool = False
     verbose: bool = False
 
     def log(self, msg):
@@ -41,14 +45,15 @@ class MvDef:
         self.dst_diff = Differ(self.src, dst=self.dst, **diff_kwargs)
 
     def check(self) -> CheckFailure | None:
-        self.src_checker = parse_file(
-            self.src, verbose=self.verbose, escalate=self.escalate, ensure_exists=True
-        )
-        if absent := (set(self.mv) - {f.name for f in self.src_checker.funcdefs}):
+        kwargs = {
+            k: getattr(self, k) for k in "escalate verbose cls_defs all_defs".split()
+        }
+        self.src_checker = parse_file(self.src, ensure_exists=True, **kwargs)
+        if absent := (set(self.mv) - {f.name for f in self.src_checker.target_defs}):
             msg = f"Definition{'s'[:len(absent)-1]} not in {self.src}: {absent}"
             return self.src_checker.fail(msg)
         elif self.dst.exists():
-            self.dst_checker = parse_file(self.dst, verbose=self.verbose)
+            self.dst_checker = parse_file(self.dst, **kwargs)
             if False:
                 return self.src_checker.fail(msg)
         return None

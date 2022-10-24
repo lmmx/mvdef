@@ -10,12 +10,18 @@ __all__ = ["Checker", "CheckFailure"]
 
 class Checker(checker.Checker):
     verbose: bool
+    escalate: bool
+    target_cls: bool
+    target_all: bool
+    funcdefs: list[AST]
+    classdefs: list[AST]
+    alldefs: list[AST]
 
     def __init__(self, *args, **kwargs):
         self.verbose = kwargs.pop("verbose", False)
         self.escalate = kwargs.pop("escalate", False)
-        self.target_cls = kwargs.pop("target_cls", False)
-        self.target_all = kwargs.pop("target_all", False)
+        self.target_cls = kwargs.pop("cls_defs", False)
+        self.target_all = kwargs.pop("all_defs", False)
         self.funcdefs = []
         self.classdefs = []
         self.alldefs = []

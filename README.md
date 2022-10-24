@@ -23,7 +23,7 @@ pip install mvdef
 ## Usage
 
 ```
-usage: mvdef [-h] -m [MV ...] [-d] [-e] [-v] src dst
+usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 
   Move function definitions from one file to another, moving/copying
   associated import statements along with them.
@@ -35,6 +35,8 @@ usage: mvdef [-h] -m [MV ...] [-d] [-e] [-v] src dst
 • mv         names to move from the source file         list of str
 • dry_run    whether to only preview the change diffs   bool (False)
 • escalate   whether to raise an error upon failure     bool (False)
+• cls_defs   whether to target only class definitions   bool (False)
+• all_defs   whether to target both class and funcdefs  bool (False)
 • verbose    whether to log anything                    bool (False)
 
 positional arguments:
@@ -46,6 +48,8 @@ options:
   -m [MV ...], --mv [MV ...]
   -d, --dry-run
   -e, --escalate
+  -c, --cls-defs
+  -a, --all-defs
   -v, --verbose
 ```
 

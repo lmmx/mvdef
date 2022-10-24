@@ -9,8 +9,11 @@ __all__ = ["parse", "parse_file"]
 
 
 def parse(
-    codestring, *, file: str | Path = "", verbose: bool = False, escalate: bool = False
+    codestring, *, file: str | Path = "", verbose: bool = False, **kwargs
 ) -> Checker | None:
+    """
+    kwargs::{escalate: bool = False, target_cls: bool = False, target_all: bool = False}
+    """
     report = reporter._makeDefaultReporter()
     filename = str(file)
     try:
@@ -20,7 +23,7 @@ def parse(
     except Exception:
         report.unexpectedError(filename, "problem decoding source")
     else:
-        w = Checker(tree, filename=filename, verbose=verbose, escalate=escalate)
+        w = Checker(tree, filename=filename, verbose=verbose, **kwargs)
         w.messages.sort(key=lambda m: m.lineno)
         if verbose:
             for m in w.messages:
@@ -33,8 +36,8 @@ def parse(
 
 
 def parse_file(
-    file: Path, *, verbose=False, escalate=False, ensure_exists=True
+    file: Path, *, verbose=False, ensure_exists=True, **kwargs
 ) -> Checker | None:
     if ensure_exists:
         assert file.exists() and file.is_file(), f"{file} is not an existing file"
-    return parse(file.read_text(), file=file, verbose=verbose, escalate=escalate)
+    return parse(file.read_text(), file=file, verbose=verbose, **kwargs)
