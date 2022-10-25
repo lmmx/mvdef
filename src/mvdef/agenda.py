@@ -24,7 +24,7 @@ class OrderOfBusiness:
     cop: list[SourcedAgendum] = field(default_factory=list)
     chop: list[Agendum] = field(default_factory=list)
 
-    def unidiff(self, a: list[str], b: list[str], filename: str) -> str:
+    def get_unidiff_text(self, a: list[str], b: list[str], filename: str) -> str:
         from_file, to_file = f"original/{filename}", f"fixed/{filename}"
         diff = unified_diff(a=a, b=b, fromfile=from_file, tofile=to_file)
         text = ""
@@ -78,15 +78,13 @@ class Agenda:
         filtered = self.targeted.apply(input_text)
         return filtered
 
-    def unidiff(self, target_file: Path, old: str | None = None) -> str:
+    def unidiff(self, target_file: Path, old: str) -> str:
         """
         Unified diff from applying the `targeted` agenda to the target file. If the
         file does not exist yet, pass in an empty string for `old` to avoid reading it.
         """
-        if old is None:
-            old = target_file.read_text()
         new = self.simulate(input_text=old)
-        diff = self.targeted.unidiff(
+        diff = self.targeted.get_unidiff_text(
             a=old.splitlines(keepends=True),
             b=new.splitlines(keepends=True),
             filename=target_file.name,

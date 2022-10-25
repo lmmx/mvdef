@@ -31,13 +31,16 @@ class Differ:
     def unidiff(self) -> str:
         if self.agenda.empty:
             self.populate_agenda()
-        must_read = self.is_src or self.target_file.exists()
-        old = self.target_file.read_text() if must_read else ""
-        return self.agenda.unidiff(target_file=self.target_file, old=old)
+        return self.agenda.unidiff(target_file=self.target_file, old=self.old_target())
 
     @property
     def target_file(self) -> Path:
         return self.src if self.is_src else self.dst
+
+    def old_target(self) -> str:
+        must_read = self.is_src or self.target_file.exists()
+        old = self.target_file.read_text() if must_read else ""
+        return old
 
     def execute(self) -> None:
         """
@@ -47,7 +50,7 @@ class Differ:
         Also autoflake, which doesn't:
         https://github.com/PyCQA/autoflake/blob/main/autoflake.py#L970
         """
-        after = self.agenda.simulate()
+        after = self.agenda.simulate(input_text=self.old_target())
         with NamedTemporaryFile(delete=False, dir=self.target_file.parent) as output:
             tmp_path = Path(output.name)
             tmp_path.write_text(after)
