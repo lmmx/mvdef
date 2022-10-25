@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from difflib import unified_diff
 from pathlib import Path
 
 from .exceptions import AgendaFailure
@@ -23,10 +24,19 @@ class OrderOfBusiness:
     cop: list[SourcedAgendum] = field(default_factory=list)
     chop: list[Agendum] = field(default_factory=list)
 
-    def unidiff(self) -> str:
-        cops = [f"---{cop}---" for cop in self.cop]
-        chops = [f"+++{chop}+++" for chop in self.chop]
-        return "\n".join(cops + chops)
+    def unidiff(self, a: list[str], b: list[str], filename: str) -> str:
+        from_file, to_file = f"original/{filename}", f"fixed/{filename}"
+        diff = unified_diff(a=a, b=b, fromfile=from_file, tofile=to_file)
+        text = ""
+        for line in diff:
+            text += line
+            # Work around missing newline (http://bugs.python.org/issue2142).
+            if not line.endswith("\n"):
+                text += "\n" + r"\ No newline at end of file" + "\n"
+        return text
+
+    def apply(self, input_text: str) -> str:
+        return input_text + "foo\n"
 
 
 class Agenda:
@@ -64,6 +74,21 @@ class Agenda:
     def remove(self, mv, *, src: Path) -> None:
         self.chop([Agendum(name=target, file=src) for target in mv])
 
-    def unidiff(self) -> str:
-        """Fake it til you make it"""
-        return self.targeted.unidiff()
+    def simulate(self, input_text: str) -> str:
+        filtered = self.targeted.apply(input_text)
+        return filtered
+
+    def unidiff(self, target_file: Path, old: str | None = None) -> str:
+        """
+        Unified diff from applying the `targeted` agenda to the target file. If the
+        file does not exist yet, pass in an empty string for `old` to avoid reading it.
+        """
+        if old is None:
+            old = target_file.read_text()
+        new = self.simulate(input_text=old)
+        diff = self.targeted.unidiff(
+            a=old.splitlines(keepends=True),
+            b=new.splitlines(keepends=True),
+            filename=target_file.name,
+        )
+        return diff

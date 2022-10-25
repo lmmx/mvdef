@@ -59,21 +59,14 @@ class MvDef:
         return None
 
     def diffs(self) -> tuple[str, str]:
-        self.src_diff.scan(self.src_check)
-        self.dst_diff.scan(self.src_check, dst_check=self.dst_check)
-        # Once scanned, the edit agenda can be built, but it is not until
-        # the `Differ.unidiff()` method is called
-        self.src_diff.populate_agenda()
-        self.dst_diff.populate_agenda()
+        # populate_agenda() is done implicitly by unidiff()
         src_unidiff = self.src_diff.unidiff()
         dst_unidiff = self.dst_diff.unidiff()
         return src_unidiff, dst_unidiff
 
-    def move(self) -> str | None:
-        if self.dry_run:
-            return None
-        return self.execute_diffs()
-
-    def execute_diffs(self) -> None:
-        print("Executing...")
+    def move(self) -> None:
+        """Execute diffs"""
+        if not self.dry_run:
+            self.src_diff.execute()
+            self.dst_diff.execute()
         return

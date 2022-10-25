@@ -1,5 +1,6 @@
 from dataclasses import KW_ONLY, dataclass
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from .agenda import Agenda
 from .check import Checker
@@ -21,23 +22,6 @@ class Differ:
     def is_src(self) -> bool:
         return self.dst is None
 
-    def scan(self, src_check: Checker, *, dst_check: Checker | None = None) -> None:
-        """
-        Build the Agenda for a given source/destination file. Unless the agenda is for
-        a destination file that doesn't exist yet, use the AST built when checking it.
-        """
-        targeted = []
-        for target in self.agenda.targets:
-            # TODO: restart here (comes from transfer:MvDef.diffs -> agenda:Agenda)
-            possible_targets = [
-                f for f in src_check.target_defs if f.name in self.agenda.targets
-            ]
-            if len(possible_targets) > 1:
-                raise NotImplementedError("Not handled name ambiguity yet")
-            else:
-                targeted_node = possible_targets.pop()
-            self.agenda.targeted.update({target: targeted_node})
-
     def populate_agenda(self) -> None:
         if self.is_src:
             self.agenda.remove(self.mv, src=self.src)
@@ -47,4 +31,24 @@ class Differ:
     def unidiff(self) -> str:
         if self.agenda.empty:
             self.populate_agenda()
-        return self.agenda.unidiff()
+        must_read = self.is_src or self.target_file.exists()
+        old = self.target_file.read_text() if must_read else ""
+        return self.agenda.unidiff(target_file=self.target_file, old=old)
+
+    @property
+    def target_file(self) -> Path:
+        return self.src if self.is_src else self.dst
+
+    def execute(self) -> None:
+        """
+        See autoflake8, which uses rename (replace) with NamedTemporaryFile:
+        https://github.com/fsouza/autoflake8/blob/main/autoflake8/fix.py#L668
+
+        Also autoflake, which doesn't:
+        https://github.com/PyCQA/autoflake/blob/main/autoflake.py#L970
+        """
+        after = self.agenda.simulate()
+        with NamedTemporaryFile(delete=False, dir=self.target_file.parent) as output:
+            tmp_path = Path(output.name)
+            tmp_path.write_text(after)
+        tmp_path.rename(self.target_file)

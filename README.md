@@ -83,9 +83,11 @@ does not contain a class named `A` as requested.
 
 If the source file has the required definitions to fulfil the request,
 then the `MvDef.diffs()` method gets called next,
-which sets to work on the empty agendas on the `Differ` objects for the 2 files.
+populates the empty agendas on the `Differ` objects for the 2 files,
+then produces the diffs they imply.
 
-...(WIP)
+If the dry run setting is not used, the source and destination files are overwritten
+with the changes, instead of just displaying the diffs.
 
 > _mvdef_ is available from [PyPI](https://pypi.org/project/mvdef), and
 > the code is on [GitHub](https://github.com/lmmx/mvdef)
