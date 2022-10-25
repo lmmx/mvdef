@@ -53,5 +53,39 @@ options:
   -v, --verbose
 ```
 
+## How it works
+
+### The structure of a command
+
+When you call `mvdef foo.py bar.py -d -c -m A`, equivalent to:
+
+```sh
+mvdef foo.py bar.py --dry-run --cls-defs --mv A
+```
+
+You're requesting to show the file diffs it'd take (`--dry-run`)
+to move the class definition (`--cls-defs`) named `A` (`--mv A`)
+from `foo.py` (the `src`, first positional argument)
+to `bar.py` (the `dst`, second positional argument).
+
+### Parsing the request
+
+The request to move a definition is stored on a dataclass `mvdef.transfer.MvDef`
+immediately upon invoking the program command.
+
+Upon creation, this class stores 2 attributes `src_diff` and `dst_diff`
+(both are `mvdef.diff.Differ` objects) which will coordinate the creation of patches,
+or 'diffs'. These start their life with empty agendas (`mvdef.agenda.Agenda`).
+
+Next, the main `MvDef` class calls its `check()` method, which returns an exception
+(or raises it if `escalate` is True), preventing further work if the source file
+does not contain a class named `A` as requested.
+
+If the source file has the required definitions to fulfil the request,
+then the `MvDef.diffs()` method gets called next,
+which sets to work on the empty agendas on the `Differ` objects for the 2 files.
+
+...(WIP)
+
 > _mvdef_ is available from [PyPI](https://pypi.org/project/mvdef), and
 > the code is on [GitHub](https://github.com/lmmx/mvdef)
