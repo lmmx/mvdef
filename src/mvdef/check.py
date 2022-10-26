@@ -18,6 +18,7 @@ class Checker(checker.Checker):
     alldefs: list[AST]
 
     def __init__(self, *args, **kwargs):
+        self.code = kwargs.pop("code")
         self.verbose = kwargs.pop("verbose", False)
         self.escalate = kwargs.pop("escalate", False)
         self.target_cls = kwargs.pop("cls_defs", False)

@@ -23,7 +23,7 @@ def parse(
     except Exception:
         report.unexpectedError(filename, "problem decoding source")
     else:
-        w = Checker(tree, filename=filename, verbose=verbose, **kwargs)
+        w = Checker(tree, code=codestring, filename=filename, verbose=verbose, **kwargs)
         w.messages.sort(key=lambda m: m.lineno)
         if verbose:
             for m in w.messages:

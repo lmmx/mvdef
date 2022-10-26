@@ -40,9 +40,13 @@ class MvDef:
     def __post_init__(self):
         self.logger = set_up_logging(__name__, verbose=self.verbose)
         self.log(self)
+        self.check_blocker = self.check()
         diff_kwargs = {k: getattr(self, k) for k in ["mv", "escalate", "verbose"]}
-        self.src_diff = Differ(self.src, dst=None, **diff_kwargs)
-        self.dst_diff = Differ(self.src, dst=self.dst, **diff_kwargs)
+        diff_kwargs["source_ref"] = self.src_check
+        self.src_diff = Differ(self.src, **diff_kwargs)
+        diff_kwargs["dst"] = self.dst
+        diff_kwargs["dest_ref"] = self.dst_check
+        self.dst_diff = Differ(self.src, **diff_kwargs)
 
     def check(self) -> CheckFailure | None:
         kwargs = {
