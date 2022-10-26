@@ -1,3 +1,4 @@
+from ast import AST
 from dataclasses import dataclass, field
 from difflib import unified_diff
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 from .check import Checker
 from .exceptions import AgendaFailure
 from .log_utils import set_up_logging
+from .whitespace import normalise_whitespace
 
 logger = set_up_logging(name=__name__)
 
@@ -33,7 +35,14 @@ class Editor:
 
 class Cutter(Editor):
     def __str__(self) -> str:
-        return self.lines  # Not implemented yet
+        lines = self.lines.splitlines(keepends=True)
+        for name, edit in self.edits.items():
+            lineno, end_lineno = edit.rng
+            # NB AST line numbers are 1-based, list index is 0-based
+            # Replace strings with None to indicate removal without altering index
+            lines[lineno - 1 : end_lineno] = [None for _ in range(end_lineno - lineno)]
+            logger.debug(f"Snipped {edit.rng}")
+        return normalise_whitespace(lines)
 
 
 @dataclass
@@ -45,11 +54,12 @@ class Paster(Editor):
         ref_lines = self.ref.code.splitlines(keepends=True)
         for name, edit in self.edits.items():
             lineno, end_lineno = edit.rng
+            # NB AST line numbers are 1-based, list index is 0-based
             addendum = "".join(ref_lines[lineno - 1 : end_lineno])
             logger.debug(f"Pasted {addendum}")
             hem.append(addendum)
-        def_sep = "\n\n\n"
-        result = def_sep.join([""] + hem)
+        def_sep = "\n\n"  # Leave 2 lines between defs
+        result = def_sep.join(["\n"] + hem)
         return result
 
 
@@ -109,19 +119,24 @@ class Agenda:
     def remove(self, mv, *, src: Path) -> None:
         self.chop([Agendum(name=target, file=src) for target in mv])
 
+    def get_node(self, target_name: str) -> AST:
+        maybe_targets = [f for f in self.ref.target_defs if f.name == target_name]
+        if len(maybe_targets) > 1:
+            raise NotImplementedError("Not handled name ambiguity yet")
+        else:
+            node = maybe_targets.pop()
+            return node
+
+    def patch_node(self, target_name: str) -> Patch:
+        node = self.get_node(target_name=target_name)
+        return Patch(rng=(node.lineno, node.end_lineno))
+
     def apply(self, input_text: str) -> str:
-        copped = {}
-        chopped = {}
-        for target in self.targeted.cop:
-            maybe_targets = [f for f in self.ref.target_defs if f.name == target.name]
-            if len(maybe_targets) > 1:
-                raise NotImplementedError("Not handled name ambiguity yet")
-            else:
-                node = maybe_targets.pop()
-                copped.update({target.name: Patch(rng=(node.lineno, node.end_lineno))})
+        copped = {n.name: self.patch_node(n.name) for n in self.targeted.cop}
+        chopped = {n.name: self.patch_node(n.name) for n in self.targeted.chop}
         cut = Cutter(input_text, chopped)
         paste = Paster(input_text, copped, ref=self.ref)
-        sewn = str(cut) + str(paste)
+        sewn = str(cut).rstrip("\n") + str(paste).rstrip("\n") + "\n"
         return sewn
 
     def simulate(self, input_text: str) -> str:
@@ -134,7 +149,6 @@ class Agenda:
         file does not exist yet, pass in an empty string for `old` to avoid reading it.
         """
         old = self.ref.code if is_src else self.dest_ref.code
-        print(f"Sim. {is_src=}")
         new = self.simulate(input_text=old)
         diff = self.targeted.get_unidiff_text(
             a=old.splitlines(keepends=True),
