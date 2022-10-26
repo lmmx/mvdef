@@ -1,6 +1,5 @@
 import defopt
 
-from .exceptions import MvDefException
 from .transfer import MvDef
 
 

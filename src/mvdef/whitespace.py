@@ -76,7 +76,6 @@ def normalise_whitespace(lines: list[str | None], spacing: int = 2) -> str:
                 f"  {nl_deficit=}"
             )
             logger.debug(debug_msg)
-            available_nones = len(island_nones_idx)
             if nl_deficit > 0:
                 # Expand as many Nones as needed by duplicating into a list of newlines
                 first_available_none_idx = island_nones_idx[0]

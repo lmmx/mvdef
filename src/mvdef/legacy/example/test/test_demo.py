@@ -1,8 +1,7 @@
 # flake8: noqa
+import textwrap as tw
 from os.path import sep
 from sys import stderr
-
-import textwrap as tw
 
 from ..demo_program import pprint_dict, print_some_url
 
