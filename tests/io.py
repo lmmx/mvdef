@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-__all__ = ["write_files"]
+__all__ = ["Write"]
 
 
 @dataclass
