@@ -24,35 +24,13 @@ def test_create_named_tmp_files(tmp_path, a_cat, b_cat):
 @mark.parametrize(
     "src_diff",
     [
-        """\
---- original/foo.py
-+++ fixed/foo.py
-@@ -3,6 +3,5 @@
- def foo():
-     print(1)
-
--class A:
--    pass
-+
- y = 2
-"""
+        "--- original/foo.py\n+++ fixed/foo.py\n@@ -3,6 +3,5 @@\n def foo():\n     print(1)\n \n-class A:\n-    pass\n+\n y = 2\n"
     ],
 )
 @mark.parametrize(
     "dst_diff",
     [
-        """\
---- original/bar.py
-+++ fixed/bar.py
-@@ -1,3 +1,7 @@
- def bar():
-     print(2)
- a = 1
-+
-+
-+class A:
-+    pass
-"""
+        "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,7 @@\n def bar():\n     print(2)\n a = 1\n+\n+\n+class A:\n+    pass\n"
     ],
 )
 def test_mvdef_simple_class_move(tmp_path, foo, bar, src_diff, dst_diff):
