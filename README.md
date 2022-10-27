@@ -12,7 +12,7 @@ Package providing command line tools to move/copy function/classes and their ass
 
 ## Requires
 
-- Python 3.9+
+- Python 3.10+
 
 ## Installation
 
