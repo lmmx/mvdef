@@ -28,4 +28,4 @@ repos:
       - id: requirements-txt-fixer
       - id: check-ast
       - id: name-tests-test
-        exclude: ^tests/(codecs/)?(data|share).py
+        exclude: ^tests/(io|share).py

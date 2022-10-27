@@ -4,7 +4,7 @@ from mvdef.cli import cli
 
 from .io import write_files
 
-__all__ = ["create_named_tmp_files"]
+__all__ = ["test_create_named_tmp_files", "test_mvdef_simple_class_move"]
 
 
 @mark.parametrize("a_cat,b_cat", [("aaa", "bbb")])
@@ -30,7 +30,7 @@ def test_create_named_tmp_files(tmp_path, a_cat, b_cat):
 @@ -3,6 +3,5 @@
  def foo():
      print(1)
- 
+
 -class A:
 -    pass
 +
