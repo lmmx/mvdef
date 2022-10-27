@@ -14,12 +14,12 @@ jobs:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-20.04"
     env:
-      USING_COVERAGE: '3.9'
+      USING_COVERAGE: '3.10'
       TOX_PARALLEL_NO_SPINNER: 1
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.10", "3.11"]
 
     defaults:
       run:
@@ -114,7 +114,7 @@ jobs:
         uses: "conda-incubator/setup-miniconda@v2"
         with:
           auto-update-conda: true
-          python-version: "3.9"
+          python-version: "3.10"
           channels: "conda-forge,anaconda"
       - name: "Install in dev mode"
         run: |
