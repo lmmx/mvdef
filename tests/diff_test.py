@@ -30,7 +30,7 @@ def test_create_named_tmp_files(tmp_path, a_cat, b_cat):
 @@ -3,6 +3,5 @@
  def foo():
      print(1)
- 
+
 -class A:
 -    pass
 +
