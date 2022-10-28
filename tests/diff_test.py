@@ -7,7 +7,11 @@ from mvdef.cli import cli
 
 from .io import Write
 
-__all__ = ["test_create_named_tmp_files", "test_mvdef_simple_class_move"]
+__all__ = [
+    "test_create_named_tmp_files",
+    "test_simple_move",
+    "test_simple_move_deleted_file",
+]
 
 
 @mark.parametrize("a_cat,b_cat", [("aaa", "bbb")])
@@ -111,6 +115,5 @@ def test_simple_move_deleted_file(tmp_path, src, dst, mv, all_defs, cls_defs):
     src, dst = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
     src.unlink()
     mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    call_cli = lambda: get_mvdef_diffs(a=src, b=dst, **mvdef_kwargs)
     with raises(FileNotFoundError):
-        call_cli()
+        get_mvdef_diffs(a=src, b=dst, **mvdef_kwargs)
