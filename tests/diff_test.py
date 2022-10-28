@@ -29,31 +29,88 @@ def get_mvdef_diffs(a: Path, b: Path, **mvdef_cli_args) -> tuple[str, str]:
 class FuncAndClsDefs(Enum):
     fooA = "x = 1\n\ndef foo():\n    print(1)\n\nclass A:\n    pass\ny = 2\n"
     bar = "def bar():\n    print(2)\na = 1\n"
+    baz = "import json\n\n\ndef baz():\n    print(2)\n\n\nx = 1\n"
+    solo_baz = ""
 
 
 class SrcDiffs(Enum):
     fooA2bar_A = (
-        "--- original/fooA.py\n+++ fixed/fooA.py\n@@ -3,6 +3,5 @@\n def foo():\n"
-        "     print(1)\n \n-class A:\n-    pass\n+\n y = 2\n"
+        "--- original/fooA.py\n"
+        "+++ fixed/fooA.py\n"
+        "@@ -3,6 +3,5 @@\n"
+        " def foo():\n"
+        "     print(1)\n"
+        " \n"
+        "-class A:\n"
+        "-    pass\n"
+        "+\n"
+        " y = 2\n"
     )
     fooA2bar_foo = (
-        "--- original/fooA.py\n+++ fixed/fooA.py\n@@ -1,7 +1,5 @@\n x = 1\n \n"
-        "-def foo():\n-    print(1)\n \n class A:\n     pass\n"
+        "--- original/fooA.py\n"
+        "+++ fixed/fooA.py\n"
+        "@@ -1,7 +1,5 @@\n"
+        " x = 1\n"
+        " \n"
+        "-def foo():\n"
+        "-    print(1)\n"
+        " \n"
+        " class A:\n"
+        "     pass\n"
+    )
+    baz2_baz = (
+        "--- original/baz.py\n"
+        "+++ fixed/baz.py\n"
+        "@@ -1,8 +1,4 @@\n"
+        " import json\n"
+        " \n"
+        " \n"
+        "-def baz():\n"
+        "-    print(2)\n"
+        "-\n"
+        "-\n"
+        " x = 1\n"
     )
 
 
 class DstDiffs(Enum):
     fooA2bar_A = (
-        "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,7 @@\n def bar():\n"
-        "     print(2)\n a = 1\n+\n+\n+class A:\n+    pass\n"
+        "--- original/bar.py\n"
+        "+++ fixed/bar.py\n"
+        "@@ -1,3 +1,7 @@\n"
+        " def bar():\n"
+        "     print(2)\n"
+        " a = 1\n"
+        "+\n"
+        "+\n"
+        "+class A:\n"
+        "+    pass\n"
     )
     fooA0bar_A = (
-        "--- original/bar.py\n+++ fixed/bar.py\n@@ -0,0 +1,5 @@\n+\n+\n+\n+class A:\n"
+        "--- original/bar.py\n"
+        "+++ fixed/bar.py\n"
+        "@@ -0,0 +1,2 @@\n"
+        "+class A:\n"
         "+    pass\n"
     )
     fooA2bar_foo = (
-        "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,7 @@\n def bar():\n"
-        "     print(2)\n a = 1\n+\n+\n+def foo():\n+    print(1)\n"
+        "--- original/bar.py\n"
+        "+++ fixed/bar.py\n"
+        "@@ -1,3 +1,7 @@\n"
+        " def bar():\n"
+        "     print(2)\n"
+        " a = 1\n"
+        "+\n"
+        "+\n"
+        "+def foo():\n"
+        "+    print(1)\n"
+    )
+    baz0_baz = (
+        "--- original/solo_baz.py\n"
+        "+++ fixed/solo_baz.py\n"
+        "@@ -0,0 +1,2 @@\n"
+        "+def baz():\n"
+        "+    print(2)\n"
     )
 
 
@@ -64,7 +121,8 @@ def src(request) -> tuple[str, str]:
 
 @fixture(scope="function")
 def dst(request) -> tuple[str, str]:
-    return FuncAndClsDefs[request.param]
+    dst_filename_stem = request.param
+    return FuncAndClsDefs[dst_filename_stem]
 
 
 @fixture(scope="function")
@@ -117,3 +175,26 @@ def test_simple_move_deleted_file(tmp_path, src, dst, mv, all_defs, cls_defs):
     mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=all_defs)
     with raises(FileNotFoundError):
         get_mvdef_diffs(a=src, b=dst, **mvdef_kwargs)
+
+
+@mark.parametrize("all_defs", [True, False])
+@mark.parametrize(
+    "mv,cls_defs,no_dst,stored_diffs",
+    [
+        (["baz"], False, True, "baz0_baz"),
+    ],
+    indirect=["stored_diffs"],
+)
+@mark.parametrize("src,dst", [("baz", "solo_baz")], indirect=True)
+def test_simple_move_no_dst(
+    tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst
+):
+    """
+    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
+    twice makes no difference to the result, and ditto for switching the all_defs flag.
+    """
+    src, dst = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
+    if no_dst:
+        dst.unlink()
+    diffs = get_mvdef_diffs(a=src, b=dst, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    assert diffs == stored_diffs
