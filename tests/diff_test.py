@@ -62,6 +62,7 @@ def stored_diffs(request) -> tuple[str, str]:
     return SrcDiffs[request.param].value, DstDiffs[request.param].value
 
 
+@mark.parametrize("all_defs", [True, False])
 @mark.parametrize(
     "mv,cls_defs,stored_diffs",
     [
@@ -73,11 +74,11 @@ def stored_diffs(request) -> tuple[str, str]:
     indirect=["stored_diffs"],
 )
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_mvdef_simple_class_move(tmp_path, mv, cls_defs, src, dst, stored_diffs):
+def test_simple_move(tmp_path, src, dst, mv, all_defs, cls_defs, stored_diffs):
     """
-    Test that a class 'A' is moved correctly, and that repeating it twice makes no
-    difference to the result.
+    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
+    twice makes no difference to the result, and ditto for switching the all_defs flag.
     """
-    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
-    computed_diffs = get_mvdef_diffs(a=src_p, b=dst_p, mv=mv, cls_defs=cls_defs)
-    assert computed_diffs == stored_diffs
+    src, dst = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
+    diffs = get_mvdef_diffs(a=src, b=dst, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    assert diffs == stored_diffs
