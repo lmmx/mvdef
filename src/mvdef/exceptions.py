@@ -1,4 +1,4 @@
-__all__ = ["MvDefException", "CheckFailure", "AgendaFailure"]
+__all__ = ["MvDefException", "CheckFailure", "AgendaFailure", "SrcNotFound"]
 
 
 class MvDefException(Exception):
@@ -13,3 +13,7 @@ class CheckFailure(MvDefException):
 
 class AgendaFailure(MvDefException):
     """MvDef: agenda failed"""
+
+
+class SrcNotFound(MvDefException, FileNotFoundError):
+    """MvDef: source file doesn't exist."""

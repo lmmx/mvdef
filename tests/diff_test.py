@@ -1,7 +1,7 @@
 from enum import Enum
 from pathlib import Path
 
-from pytest import fixture, mark
+from pytest import fixture, mark, raises
 
 from mvdef.cli import cli
 
@@ -43,6 +43,10 @@ class DstDiffs(Enum):
         "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,7 @@\n def bar():\n"
         "     print(2)\n a = 1\n+\n+\n+class A:\n+    pass\n"
     )
+    fooA0bar_A = (
+        "--- original/bar.py\n+++ fixed/bar.py\n@@ -0,0 +1,5 @@\n+\n+\n+\n+class A:\n"
+        "+    pass\n"
+    )
     fooA2bar_foo = (
         "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,7 @@\n def bar():\n"
         "     print(2)\n a = 1\n+\n+\n+def foo():\n+    print(1)\n"
@@ -54,31 +58,59 @@ def src(request) -> tuple[str, str]:
     return FuncAndClsDefs[request.param]
 
 
-dst = src  # Clone with another name
+@fixture(scope="function")
+def dst(request) -> tuple[str, str]:
+    return FuncAndClsDefs[request.param]
 
 
 @fixture(scope="function")
 def stored_diffs(request) -> tuple[str, str]:
-    return SrcDiffs[request.param].value, DstDiffs[request.param].value
+    """
+    2 in the name means 'to an existing dst', e.g. x2y means 'move src=x to dst=y'.
+    0 in the name means 'to a new dst', i.e. no change to src, so use the same diff,
+    by replacing the 2 with a 0 when looking up the src file contents in the Enum.
+    """
+    src_name_key = request.param.replace("0", "2")
+    dst_name_key = request.param
+    return SrcDiffs[src_name_key].value, DstDiffs[dst_name_key].value
 
 
 @mark.parametrize("all_defs", [True, False])
 @mark.parametrize(
-    "mv,cls_defs,stored_diffs",
+    "mv,cls_defs,no_dst,stored_diffs",
     [
-        (["A"], True, "fooA2bar_A"),
-        (["A", "A"], True, "fooA2bar_A"),
-        (["foo"], False, "fooA2bar_foo"),
-        (["foo", "foo"], False, "fooA2bar_foo"),
+        (["A"], True, False, "fooA2bar_A"),
+        (["A"], True, True, "fooA0bar_A"),
+        (["A", "A"], True, False, "fooA2bar_A"),
+        (["foo"], False, False, "fooA2bar_foo"),
+        (["foo", "foo"], False, False, "fooA2bar_foo"),
     ],
     indirect=["stored_diffs"],
 )
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_simple_move(tmp_path, src, dst, mv, all_defs, cls_defs, stored_diffs):
+def test_simple_move(tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
     twice makes no difference to the result, and ditto for switching the all_defs flag.
     """
     src, dst = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
+    if no_dst:
+        dst.unlink()
     diffs = get_mvdef_diffs(a=src, b=dst, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
     assert diffs == stored_diffs
+
+
+@mark.parametrize("all_defs", [True, False])
+@mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
+@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
+def test_simple_move_deleted_file(tmp_path, src, dst, mv, all_defs, cls_defs):
+    """
+    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
+    twice makes no difference to the result, and ditto for switching the all_defs flag.
+    """
+    src, dst = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
+    src.unlink()
+    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    call_cli = lambda: get_mvdef_diffs(a=src, b=dst, **mvdef_kwargs)
+    with raises(FileNotFoundError):
+        call_cli()

@@ -4,6 +4,7 @@ from pathlib import Path
 from pyflakes import reporter
 
 from .check import Checker
+from .exceptions import SrcNotFound
 
 __all__ = ["parse", "parse_file"]
 
@@ -39,5 +40,6 @@ def parse_file(
     file: Path, *, verbose=False, ensure_exists=True, **kwargs
 ) -> Checker | None:
     if ensure_exists:
-        assert file.exists() and file.is_file(), f"{file} is not an existing file"
+        if not file.exists() and file.is_file():
+            raise SrcNotFound(f"{file} is not an existing file")
     return parse(file.read_text(), file=file, verbose=verbose, **kwargs)

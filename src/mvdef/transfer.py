@@ -4,7 +4,7 @@ from pathlib import Path
 from .diff import Differ
 from .exceptions import CheckFailure
 from .log_utils import set_up_logging
-from .parse import parse_file
+from .parse import parse, parse_file
 
 
 @dataclass
@@ -60,6 +60,8 @@ class MvDef:
             self.dst_check = parse_file(self.dst, **kwargs)
             if False:
                 return self.src_check.fail(msg)
+        else:
+            self.dst_check = parse("", file=self.dst, **kwargs)
         return None
 
     def diffs(self) -> tuple[str, str]:

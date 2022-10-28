@@ -14,3 +14,5 @@ __description__ = "Package providing command line tools to move/copy function/cl
 __url__ = "https://github.com/lmmx/mvdef"
 __uri__ = __url__
 __email__ = "louismmx@gmail.com"
+
+from .exceptions import *
