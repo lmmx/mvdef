@@ -1,5 +1,8 @@
 ---
 comment: false
+ignore:
+  - "**/log_utils.py"
+  - "**/legacy"
 coverage:
     status:
         patch:
