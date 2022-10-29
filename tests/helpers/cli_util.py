@@ -3,7 +3,7 @@ from pathlib import Path
 
 from mvdef.cli import MvDef, cli
 
-__all__ = ["get_mvdef_run", "get_mvdef_dry_run", "get_mvdef_diffs", "mvdef_from_argv"]
+__all__ = ["run_mvdef", "dry_run_mvdef", "get_mvdef_diffs", "mvdef_from_argv"]
 
 
 def run_mvdef(a: Path, b: Path, **mvdef_cli_args) -> MvDef:
