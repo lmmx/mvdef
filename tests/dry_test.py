@@ -2,84 +2,39 @@
 Tests for functionality besides the diffs generated in 'dry run' mode (which is tested
 in the `diff_test.py` module).
 """
-# TODO: this is currently a dumb copy of diff_test
 from pytest import mark, raises
 
-from .helpers.cli_util import get_mvdef_diffs
+from mvdef.exceptions import CheckFailure
+
+from .helpers.cli_util import dry_run_mvdef
 from .helpers.io import Write
 
-__all__ = [
-    "test_create_files",
-    "test_dry_mv",
-    "test_dry_mv_deleted_file",
-    "test_dry_mv_no_dst",
-]
+__all__ = []
 
 
-@mark.parametrize("a_cat,b_cat", [("aaa", "bbb")])
-def test_create_files(tmp_path, a_cat, b_cat):
-    a, b = ("a.txt", "b.txt")
-    Write([a, b], [a_cat, b_cat], path=tmp_path, len_check=True)
-
-
-@mark.parametrize("all_defs", [True, False])
-@mark.parametrize(
-    "mv,cls_defs,no_dst,stored_diffs",
-    [
-        (["A"], True, False, "fooA2bar_A"),
-        (["A"], True, True, "fooA0bar_A"),
-        (["A", "A"], True, False, "fooA2bar_A"),
-        (["foo"], False, False, "fooA2bar_foo"),
-        (["foo", "foo"], False, False, "fooA2bar_foo"),
-    ],
-    indirect=["stored_diffs"],
-)
-@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_dry_mv(tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst):
-    """
-    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
-    twice makes no difference to the result, and ditto for switching the all_defs flag.
-    """
-    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    if no_dst:
-        dst_p.unlink()
-    diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    assert diffs == stored_diffs
-
-
-@mark.parametrize("all_defs", [True, False])
 @mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_dry_mv_deleted_file(tmp_path, src, dst, mv, all_defs, cls_defs):
-    """
-    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
-    twice makes no difference to the result, and ditto for switching the all_defs flag.
-    """
-    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    src_p.unlink()
-    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    with raises(FileNotFoundError):
-        get_mvdef_diffs(a=src_p, b=dst_p, **mvdef_kwargs)
-
-
-@mark.parametrize("all_defs", [True, False])
-@mark.parametrize(
-    "mv,cls_defs,no_dst,stored_diffs",
-    [
-        (["baz"], False, True, "baz0_baz"),
-    ],
-    indirect=["stored_diffs"],
-)
-@mark.parametrize("src,dst", [("baz", "solo_baz")], indirect=True)
-def test_dry_mv_no_dst(
-    tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst
+@mark.parametrize("bad_src_or_dst", [True, False])
+@mark.parametrize("escalate", [True, False])
+@mark.parametrize("expected_msg", ["Failed to parse the {} file"])
+def test_bad_syntax(
+    tmp_path, src, dst, mv, cls_defs, bad_src_or_dst, escalate, expected_msg
 ):
     """
-    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
-    twice makes no difference to the result, and ditto for switching the all_defs flag.
+    Test that a SyntaxError is raised when the input file is just `0 = 1`.
+    This test is a simplified and modified form of the `diff_test.py` module's
+    `test_dry_mv_deleted_file` test. The src and dst are keys present on the
+    corresponding enums (to easily set up the test), but their content is not used.
     """
-    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
-    if no_dst:
-        dst_p.unlink()
-    diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    assert diffs == stored_diffs
+    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
+    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=False, escalate=escalate)
+    overwrite_path = src_p if bad_src_or_dst else dst_p
+    overwrite_path.write_text("0 = 1")
+    if escalate:
+        with raises(CheckFailure):
+            dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
+    else:
+        result = dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
+        assert type(result.mover.check_blocker) is CheckFailure
+        msg = expected_msg.format("src" if bad_src_or_dst else "dst")
+        assert result.mover.check_blocker.args == (msg,)

@@ -1,14 +1,13 @@
 from ast import AST
-from sys import stderr
 
 from pyflakes import checker
 
-from .exceptions import CheckFailure
+from .failure import FailableMixIn
 
-__all__ = ["Checker", "CheckFailure"]
+__all__ = ["Checker"]
 
 
-class Checker(checker.Checker):
+class Checker(FailableMixIn, checker.Checker):
     verbose: bool
     escalate: bool
     target_cls: bool
@@ -35,17 +34,6 @@ class Checker(checker.Checker):
             return self.alldefs
         else:
             return self.classdefs if self.target_cls else self.funcdefs
-
-    def fail(self, msg) -> CheckFailure | None:
-        exc = CheckFailure(msg)
-        if self.escalate:
-            raise exc
-        else:
-            self.err(msg)
-            return exc
-
-    def err(self, msg) -> None:
-        print(msg, file=stderr)
 
     def handleNode(self, node: AST | None, parent: AST) -> None:
         """Subclass override"""

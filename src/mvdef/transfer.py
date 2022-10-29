@@ -3,12 +3,13 @@ from pathlib import Path
 
 from .diff import Differ
 from .exceptions import CheckFailure
+from .failure import FailableMixIn
 from .log_utils import set_up_logging
 from .parse import parse, parse_file
 
 
 @dataclass
-class MvDef:
+class MvDef(FailableMixIn):
     """
       Move function definitions from one file to another, moving/copying
       associated import statements along with them.
@@ -42,6 +43,12 @@ class MvDef:
         self.log(self)
         self.check_blocker = self.check()
         diff_kwargs = {k: getattr(self, k) for k in ["mv", "escalate", "verbose"]}
+        if self.check_blocker:
+            # check() can exit before setting a Checker as attribute (ugly: please fix)
+            if not hasattr(self, "src_check"):
+                setattr(self, "src_check", None)
+            if not hasattr(self, "dst_check"):
+                setattr(self, "dst_check", None)
         diff_kwargs["source_ref"] = self.src_check
         self.src_diff = Differ(self.src, **diff_kwargs)
         diff_kwargs["dst"] = self.dst
@@ -52,14 +59,18 @@ class MvDef:
         kwargs = {
             k: getattr(self, k) for k in "escalate verbose cls_defs all_defs".split()
         }
-        self.src_check = parse_file(self.src, ensure_exists=True, **kwargs)
+        src_check = parse_file(self.src, ensure_exists=True, **kwargs)
+        if src_check is None:
+            return self.fail("Failed to parse the src file")
+        self.src_check = src_check
         if absent := (set(self.mv) - {f.name for f in self.src_check.target_defs}):
             msg = f"Definition{'s'[:len(absent)-1]} not in {self.src}: {absent}"
             return self.src_check.fail(msg)
         elif self.dst.exists():
-            self.dst_check = parse_file(self.dst, **kwargs)
-            if False:
-                return self.src_check.fail(msg)
+            dst_check = parse_file(self.dst, **kwargs)
+            if dst_check is None:
+                return self.fail("Failed to parse the dst file")
+            self.dst_check = dst_check
         else:
             self.dst_check = parse("", file=self.dst, **kwargs)
         return None
