@@ -3,7 +3,6 @@ Tests for the parsing module (file and codestring parsing).
 """
 from pytest import mark, raises
 
-from mvdef.exceptions import SrcNotFound
 from mvdef.parse import parse, parse_file
 
 from .helpers.io import Write
@@ -106,7 +105,7 @@ def test_parse_file_deleted(capsys, tmp_path, escalate, stored_error, src, dst):
         p.unlink()
     for p in input_paths:
         with raises(FileNotFoundError):
-            parsed = parse_file(p, escalate=escalate)
+            parse_file(p, escalate=escalate)
         # TODO: fix #48
         # parsed = parse_file(p, escalate=escalate)
         # assert parsed is None
