@@ -3,10 +3,10 @@ Fixtures to be used in tests without importing.
 """
 from pytest import fixture
 
-from .helpers.expected import DstDiffs, SrcDiffs
+from .helpers.expected import DstDiffs, SrcDiffs, StoredStdErr, StoredStdOut
 from .helpers.inputs import FuncAndClsDefs
 
-__all__ = ["src", "dst", "stored_diffs"]
+__all__ = ["src", "dst", "stored_diffs", "stored_output", "stored_error"]
 
 
 @fixture(scope="function")
@@ -30,3 +30,19 @@ def stored_diffs(request) -> tuple[str, str]:
     src_name_key = request.param.replace("0", "2")
     dst_name_key = request.param
     return SrcDiffs[src_name_key].value, DstDiffs[dst_name_key].value
+
+
+@fixture(scope="function")
+def stored_output(request) -> str:
+    """
+    Get the STDOUT for a command (used for CLI tests).
+    """
+    return StoredStdOut[request.param].value
+
+
+@fixture(scope="function")
+def stored_error(request) -> str:
+    """
+    Get the STDERR for a command (used for CLI tests).
+    """
+    return StoredStdErr[request.param].value
