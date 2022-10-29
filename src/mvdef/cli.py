@@ -3,8 +3,8 @@ import defopt
 from .transfer import MvDef
 
 
-def cli(*arg_override, **kwarg_override):
-    return_diffs = kwarg_override.pop("return_diffs", False)  # simplifies testing
+def cli(*arg_override, **kwarg_override) -> tuple[str,str] | MvDef | None:
+    return_state = kwarg_override.pop("return_state", False)  # simplifies testing
     if arg_override or kwarg_override:
         mover = MvDef(*arg_override, **kwarg_override)
     else:
@@ -18,7 +18,9 @@ def cli(*arg_override, **kwarg_override):
                 print(src_diff)
             if dst_diff:
                 print(dst_diff)
-            if return_diffs:
+            if return_state:
                 return src_diff, dst_diff
         else:
             mover.move()
+    if return_state:
+        return mover

@@ -1,7 +1,7 @@
 from pytest import fixture
 
-from .expected import DstDiffs, SrcDiffs
-from .inputs import FuncAndClsDefs
+from .helpers.expected import DstDiffs, SrcDiffs
+from .helpers.inputs import FuncAndClsDefs
 
 __all__ = ["src", "dst", "stored_diffs"]
 

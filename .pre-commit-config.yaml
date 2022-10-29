@@ -29,4 +29,4 @@ repos:
       - id: requirements-txt-fixer
       - id: check-ast
       - id: name-tests-test
-        exclude: ^tests/(io|cli_util|expected|inputs).py
+        exclude: ^tests/helpers/.*\.py
