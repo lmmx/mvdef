@@ -64,10 +64,13 @@ class MvDef:
             self.dst_check = parse("", file=self.dst, **kwargs)
         return None
 
-    def diffs(self) -> tuple[str, str]:
+    def diffs(self, print_out: bool = False) -> tuple[str, str]:
         # populate_agenda() is done implicitly by unidiff()
         src_unidiff = self.src_diff.unidiff()
         dst_unidiff = self.dst_diff.unidiff()
+        if print_out:
+            for diff in filter(None, [src_unidiff, dst_unidiff]):
+                print(diff)
         return src_unidiff, dst_unidiff
 
     def move(self) -> None:

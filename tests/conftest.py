@@ -1,3 +1,6 @@
+"""
+Fixtures to be used in tests without importing.
+"""
 from pytest import fixture
 
 from .helpers.expected import DstDiffs, SrcDiffs

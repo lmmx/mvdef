@@ -1,6 +1,8 @@
 """
-Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
+Tests for functionality besides the diffs generated in 'dry run' mode (which is tested
+in the `diff_test.py` module).
 """
+# TODO: this is currently a dumb copy of diff_test
 from pytest import mark, raises
 
 from .helpers.cli_util import get_mvdef_diffs

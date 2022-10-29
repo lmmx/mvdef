@@ -1,8 +1,8 @@
-# from pytest import mark, fixture
-
+"""
+Tests for core package integrity.
+"""
 import mvdef
 
 
 def test_example():
     print(mvdef)
-    assert True

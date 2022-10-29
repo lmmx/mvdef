@@ -1,8 +1,11 @@
+"""
+Tests for the files created by running mvdef with `dry_run=False`.
+"""
 from pytest import mark
 
 from mvdef.text_diff import get_unidiff_text
 
-from .helpers.cli_util import get_mvdef_mover
+from .helpers.cli_util import get_mvdef_run
 from .helpers.io import Write
 
 __all__ = ["test_move"]
@@ -23,7 +26,7 @@ def test_move(tmp_path, src, dst, mv, cls_defs, stored_diffs):
     (i.e. that actually moving matches the dry run result that just previews a move).
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    mover = get_mvdef_mover(src_p, dst_p, mv=mv, cls_defs=cls_defs)
+    mover = get_mvdef_run(src_p, dst_p, mv=mv, cls_defs=cls_defs).mover
     assert mover.src_diff.old_code == src.value
     assert mover.dst_diff.old_code == dst.value
     src_diff, dst_diff = (

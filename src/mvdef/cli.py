@@ -1,26 +1,43 @@
+from dataclasses import dataclass
+from typing import NamedTuple
+
 import defopt
 
 from .transfer import MvDef
 
 
-def cli(*arg_override, **kwarg_override) -> tuple[str, str] | MvDef | None:
-    return_state = kwarg_override.pop("return_state", False)  # simplifies testing
-    if arg_override or kwarg_override:
-        mover = MvDef(*arg_override, **kwarg_override)
+@dataclass
+class CLIResult:
+    mover: MvDef | None
+    diffs: tuple[str, str] | None = None
+
+
+class DefoptFlags(NamedTuple):
+    no_negated_flags: bool = True
+    cli_options: str = "has_default"
+    show_defaults: bool = False
+
+
+def cli(*args, **kwargs) -> CLIResult | None:
+    return_state = kwargs.pop("return_state", False)
+    defopt_argv: list[str] | None = kwargs.pop("defopt_argv", None)
+    force_defopt = defopt_argv is not None
+    invoke_defopt = not (args or kwargs) or force_defopt
+    if invoke_defopt:
+        defopt_kwargs = DefoptFlags()._asdict()
+        if force_defopt:
+            defopt_kwargs["argv"] = defopt_argv
+        mover = defopt.run(MvDef, **defopt_kwargs)
     else:
-        mover = defopt.run(
-            MvDef, no_negated_flags=True, cli_options="has_default", show_defaults=False
-        )
-    if mover.check_blocker is None:
+        mover = MvDef(*args, **kwargs)
+    if unblocked := (mover.check_blocker is None):
         if mover.dry_run:
-            src_diff, dst_diff = mover.diffs()
-            if src_diff:
-                print(src_diff)
-            if dst_diff:
-                print(dst_diff)
-            if return_state:
-                return src_diff, dst_diff
+            diffs = mover.diffs(print_out=True)
         else:
             mover.move()
     if return_state:
-        return mover
+        if unblocked and mover.dry_run:
+            result = CLIResult(mover, diffs)
+        else:
+            result = CLIResult(mover)
+    return result if return_state else None
