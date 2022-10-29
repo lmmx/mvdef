@@ -21,8 +21,12 @@ def parse(
         tree = ast.parse(codestring, filename=filename)
     except SyntaxError as e:
         report.syntaxError(filename, e.args[0], e.lineno, e.offset, e.text)
+        if kwargs.get("escalate", False):
+            raise
     except Exception:
         report.unexpectedError(filename, "problem decoding source")
+        if kwargs.get("escalate", False):
+            raise
     else:
         w = Checker(tree, code=codestring, filename=filename, verbose=verbose, **kwargs)
         w.messages.sort(key=lambda m: m.lineno)

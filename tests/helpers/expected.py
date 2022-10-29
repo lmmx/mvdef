@@ -122,3 +122,4 @@ class StoredStdErr(Enum):
         "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst\n"
         "mvdef: error: the following arguments are required: src, dst, -m/--mv\n"
     )
+    REJECT_0_EQ_1 = "1:1: cannot assign to literal here. Maybe you meant '==' instead of '='?\n0 = 1\n^\n"

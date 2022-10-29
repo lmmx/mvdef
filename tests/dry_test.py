@@ -45,9 +45,9 @@ def test_bad_syntax(
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=False, escalate=escalate)
     overwrite_path = src_p if bad_src_or_dst else dst_p
-    overwrite_path.write_text("0 = 1")
+    overwrite_path.write_text("0 = 1\n")
     if escalate:
-        with raises(CheckFailure):
+        with raises(SyntaxError):
             dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
     else:
         result = dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
