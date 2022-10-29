@@ -24,6 +24,8 @@ def test_move(tmp_path, src, dst, mv, cls_defs, stored_diffs):
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     mover = get_mvdef_mover(src_p, dst_p, mv=mv, cls_defs=cls_defs)
+    assert mover.src_diff.old_code == src.value
+    assert mover.dst_diff.old_code == dst.value
     src_diff, dst_diff = (
         get_unidiff_text(content.value, path.read_text(), filename=path.name)
         for content, path in [(src, src_p), (dst, dst_p)]

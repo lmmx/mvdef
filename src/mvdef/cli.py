@@ -3,7 +3,7 @@ import defopt
 from .transfer import MvDef
 
 
-def cli(*arg_override, **kwarg_override) -> tuple[str,str] | MvDef | None:
+def cli(*arg_override, **kwarg_override) -> tuple[str, str] | MvDef | None:
     return_state = kwarg_override.pop("return_state", False)  # simplifies testing
     if arg_override or kwarg_override:
         mover = MvDef(*arg_override, **kwarg_override)
