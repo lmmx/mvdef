@@ -3,11 +3,17 @@ Tests for the parsing module (file and codestring parsing).
 """
 from pytest import mark, raises
 
+from mvdef.exceptions import SrcNotFound
 from mvdef.parse import parse, parse_file
 
 from .helpers.io import Write
 
-__all__ = ["test_parse_successfully", "test_parse_error", "test_parse_file_error"]
+__all__ = [
+    "test_parse_successfully",
+    "test_parse_error",
+    "test_parse_file_error",
+    "test_parse_file_deleted",
+]
 
 
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
@@ -84,3 +90,26 @@ def test_parse_file_error(
         captured = capsys.readouterr()
         stderr_cut = captured.err.split(":", 1)[1]
         assert stderr_cut == stored_error
+
+
+@mark.parametrize("escalate", [True, False])
+@mark.parametrize("stored_error", ["REJECT_0_EQ_1"], indirect=["stored_error"])
+@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
+def test_parse_file_deleted(capsys, tmp_path, escalate, stored_error, src, dst):
+    """
+    Test that an error is thrown as expected if the file was deleted, and that it
+    produces an error message indicating this.
+    """
+    written = Write.from_enums(src, dst, path=tmp_path)
+    input_paths = written.file_paths
+    for p in input_paths:
+        p.unlink()
+    for p in input_paths:
+        with raises(FileNotFoundError):
+            parsed = parse_file(p, escalate=escalate)
+        # TODO: fix #48
+        # parsed = parse_file(p, escalate=escalate)
+        # assert parsed is None
+        # captured = capsys.readouterr()
+        # stderr_cut = captured.err.split(":", 1)[1]
+        # assert stderr_cut == ""  # stored_error
