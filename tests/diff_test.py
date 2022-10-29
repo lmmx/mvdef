@@ -1,7 +1,7 @@
 """
 Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
-from pytest import mark, raises
+from pytest import mark
 
 from .helpers.cli_util import get_mvdef_diffs
 from .helpers.io import Write
@@ -9,7 +9,6 @@ from .helpers.io import Write
 __all__ = [
     "test_create_files",
     "test_dry_mv",
-    "test_dry_mv_deleted_file",
     "test_dry_mv_no_dst",
 ]
 
@@ -43,21 +42,6 @@ def test_dry_mv(tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst
         dst_p.unlink()
     diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
     assert diffs == stored_diffs
-
-
-@mark.parametrize("all_defs", [True, False])
-@mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
-@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_dry_mv_deleted_file(tmp_path, src, dst, mv, all_defs, cls_defs):
-    """
-    Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
-    twice makes no difference to the result, and ditto for switching the all_defs flag.
-    """
-    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    src_p.unlink()
-    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    with raises(FileNotFoundError):
-        get_mvdef_diffs(a=src_p, b=dst_p, **mvdef_kwargs)
 
 
 @mark.parametrize("all_defs", [True, False])

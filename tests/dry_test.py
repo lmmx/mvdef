@@ -9,7 +9,23 @@ from mvdef.exceptions import CheckFailure
 from .helpers.cli_util import dry_run_mvdef
 from .helpers.io import Write
 
-__all__ = []
+__all__ = ["test_no_src", "test_bad_syntax"]
+
+
+@mark.parametrize("del_dst_too", [True, False])
+@mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
+@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
+def test_no_src(tmp_path, src, dst, mv, cls_defs, del_dst_too):
+    """
+    Test that if a source file isn't there, it raises an error
+    """
+    src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
+    src_p.unlink()
+    if del_dst_too:
+        dst_p.unlink()
+    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs)
+    with raises(FileNotFoundError):
+        dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
 
 
 @mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
