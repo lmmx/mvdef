@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from ast import AST
+from functools import cache
 
 from pyflakes import checker
+from pyflakes.messages import UnusedImport
 
 from .failure import FailableMixIn
+
+# from .parse import parse  # CIRCULAR IMPORT TODO: fix
 
 __all__ = ["Checker"]
 
@@ -68,3 +74,32 @@ class Checker(FailableMixIn, checker.Checker):
             if parent is self.root:
                 return len(ancestors) if count else ancestors
             node = parent
+
+    @cache
+    def unused_imports(self) -> list[UnusedImport]:
+        """
+        Import strings (in `m.message_args[0]` for each `UnusedImport` message `m`):
+
+        - "import a( as o)"           -> "a( as o)"
+        - "from a import b( as o)"    -> "a.b( as o)"
+        - "from a.b import c( as o)"  -> "a.b.c( as o)"
+        - "from . import a( as o)"    -> ".a( as o)"
+        - "from .a import b( as o)"   -> ".a.b( as o)"
+        - "from .a.b import c( as o)" -> ".a.b.c( as o)"
+        """
+        imps = [m for m in self.messages if isinstance(m, UnusedImport)]
+        return imps
+
+    # def recheck(self, input_text: str) -> Checker:
+    #     """
+    #     Create a new Checker with the same settings as the current instaance, but change
+    #     the input file contents (equivalent to overwriting the file and recreating
+    #     Checker on it).
+    #     """
+    #     current_settings = {
+    #         "verbose": self.verbose,
+    #         "escalate": self.escalate,
+    #         "target_cls": self.target_cls,
+    #         "target_all": self.target_all,
+    #     }
+    #     return parse(input_text, file=self.filename, **current_settings)

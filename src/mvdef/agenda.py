@@ -2,6 +2,8 @@ from ast import AST
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from pyflakes.messages import UnusedImport
+
 from .check import Checker
 from .exceptions import AgendaFailure
 from .log_utils import set_up_logging
@@ -128,7 +130,9 @@ class Agenda:
         start_lineno = (decos[0] if decos else node).lineno
         return Patch(rng=(start_lineno, node.end_lineno))
 
-    def apply(self, input_text: str) -> str:
+    def apply(self, input_text: str, imports: list[UnusedImport]) -> str:
+        for imp in imports:
+            raise NotImplementedError("Prune unused imports if passed")
         copped = {n.name: self.patch_node(n.name) for n in self.targeted.cop}
         chopped = {n.name: self.patch_node(n.name) for n in self.targeted.chop}
         cut = Cutter(input_text, chopped, spacing=self.spacing)
@@ -139,9 +143,28 @@ class Agenda:
         sewn = inter_def_sep.join(filter(None, ends)) + "\n"
         return sewn
 
-    def simulate(self, input_text: str) -> str:
-        filtered = self.apply(input_text)
+    def pre_simulate(self, input_text: str) -> str:
+        """
+        First pass, with no change to import statements.
+        """
+        filtered = self.apply(input_text, imports=[])
         return filtered
+
+    def recheck(self, input_text: str) -> Checker:
+        """
+        First pass, with no change to import statements.
+        """
+        original_ref = self.ref if self.is_src else self.dest_ref
+        return original_ref.recheck_from_previous(input_text)
+
+    def simulate(self, input_text: str) -> str:
+        pre_sim = self.pre_simulate(input_text=input_text)
+        # TODO: finish this for recheck handling
+        # breakpoint()
+        # rechecked = self.recheck(pre_sim)
+        # if rechecked.unused_imports != original_ref.unused_imports:
+        #     pass
+        return pre_sim
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:
         """
