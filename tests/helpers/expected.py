@@ -41,6 +41,15 @@ class SrcDiffs(Enum):
         "-\n"
         " x = 1\n"
     )
+    deco2bar_rando = (
+        "--- original/deco.py\n"
+        "+++ fixed/deco.py\n@@ -5,13 +5,10 @@\n \n \n"
+        " @cache\n"
+        '-def rando():\n-    "Function that picks a random number only once."\n'
+        "-    return random.randint(0, 1000)\n \n \n "
+        "class A:\n     pass\n \n \n"
+        "-y = 2\n\\ No newline at end of file\n+y = 2\n"
+    )
 
 
 class DstDiffs(Enum):
@@ -81,6 +90,12 @@ class DstDiffs(Enum):
         "@@ -0,0 +1,2 @@\n"
         "+def baz():\n"
         "+    print(2)\n"
+    )
+    deco2bar_rando = (
+        "--- original/bar.py\n+++ fixed/bar.py\n@@ -1,3 +1,8 @@\n"
+        " def bar():\n     print(2)\n a = 1\n+\n+\n"
+        '+def rando():\n+    "Function that picks a random number only once."\n'
+        "+    return random.randint(0, 1000)\n"
     )
 
 
