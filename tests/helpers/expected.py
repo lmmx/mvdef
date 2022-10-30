@@ -146,3 +146,5 @@ class StoredStdErr(Enum):
         "mvdef: error: the following arguments are required: src, dst, -m/--mv\n"
     )
     REJECT_0_EQ_1 = "1:1: cannot assign to literal here. Maybe you meant '==' instead of '='?\n0 = 1\n^\n"
+    PROBLEM_DECODING = " problem decoding source\n"
+    TYPE_DECODING = "TypeError: compile() arg 1 must be a string, bytes or AST object\n"

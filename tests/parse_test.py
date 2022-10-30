@@ -9,7 +9,8 @@ from .helpers.io import Write
 
 __all__ = [
     "test_parse_successfully",
-    "test_parse_error",
+    "test_parse_syntax_error",
+    "test_parse_type_error",
     "test_parse_file_error",
     "test_parse_file_deleted",
 ]
@@ -43,7 +44,9 @@ def test_parse_successfully(tmp_path, src, dst):
 @mark.parametrize("bad_content", ["0 = 1\n"])
 @mark.parametrize("stored_error", ["REJECT_0_EQ_1"], indirect=["stored_error"])
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_parse_error(capsys, tmp_path, escalate, bad_content, stored_error, src, dst):
+def test_parse_syntax_error(
+    capsys, tmp_path, escalate, bad_content, stored_error, src, dst
+):
     """
     Test that a simple program with invalid syntax cannot be parsed, and that it
     produces an error message indicating the cause of the error in the code.
@@ -55,6 +58,30 @@ def test_parse_error(capsys, tmp_path, escalate, bad_content, stored_error, src,
     for filename in written.names:
         if escalate:
             with raises(SyntaxError):
+                parsed = parse(codestring=bad_content, file=filename, escalate=escalate)
+        else:
+            parsed = parse(codestring=bad_content, file=filename, escalate=escalate)
+            assert parsed is None
+        captured = capsys.readouterr()
+        stderr_cut = captured.err.split(":", 1)[1]
+        assert stderr_cut == stored_error
+
+
+@mark.parametrize("escalate", [True, False])
+@mark.parametrize("bad_content", [0, ["0 = 1"]])
+@mark.parametrize("stored_error", ["PROBLEM_DECODING"], indirect=["stored_error"])
+@mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
+def test_parse_type_error(
+    capsys, tmp_path, escalate, bad_content, stored_error, src, dst
+):
+    """
+    Test that passing an invalid type to `ast.parse` fails appropriately, and
+    produces an error message indicating the cause of the error in the code.
+    """
+    written = Write.from_enums(src, dst, path=tmp_path)
+    for filename in written.names:
+        if escalate:
+            with raises(TypeError):
                 parsed = parse(codestring=bad_content, file=filename, escalate=escalate)
         else:
             parsed = parse(codestring=bad_content, file=filename, escalate=escalate)
