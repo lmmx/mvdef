@@ -153,7 +153,7 @@ class Agenda:
 
     @property
     def is_src(self) -> bool:
-        return self.dest_ref is not None
+        return self.dest_ref is None
 
     @property
     def original_ref(self) -> Checker:
@@ -184,7 +184,8 @@ class Agenda:
             if False:
                 print(f"{lost_uu_names=}")
                 print(f"{lost_uu_imports=}")
-            # breakpoint()
+            if lost_uu_imports:
+                pass  # breakpoint()  # raise ValueError()
         return pre_sim
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:
