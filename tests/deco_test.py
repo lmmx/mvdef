@@ -6,7 +6,7 @@ from pytest import mark
 from .helpers.cli_util import get_mvdef_diffs
 from .helpers.io import Write
 
-__all__ = ["test_cache_decorated_func"]
+__all__ = ["test_functools_cache_deco_func"]
 
 
 @mark.parametrize(
