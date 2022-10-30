@@ -64,6 +64,11 @@ class Checker(FailableMixIn, checker.Checker):
         super().IMPORT(node=node)
         self.imports.append(node)
 
+    def IMPORTFROM(self, node: AST) -> None:
+        """Subclass override"""
+        super().IMPORTFROM(node=node)
+        self.imports.append(node)
+
     def describe_node(self, node: AST) -> None:
         line_range = f"{node.lineno}-{node.end_lineno}"
         info = f"{type(node).__name__} {node.name!r} ({line_range=})"
