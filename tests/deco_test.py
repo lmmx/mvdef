@@ -6,7 +6,7 @@ from pytest import mark
 from .helpers.cli_util import get_mvdef_diffs
 from .helpers.io import Write
 
-__all__ = ["test_functools_dataclass_deco_func"]
+__all__ = ["test_dataclass_deco"]
 
 
 @mark.parametrize(
@@ -15,7 +15,7 @@ __all__ = ["test_functools_dataclass_deco_func"]
     indirect=["stored_diffs"],
 )
 @mark.parametrize("src,dst", [("decoC", "decoD")], indirect=True)
-def test_functools_dataclass_deco_func(tmp_path, src, dst, mv, stored_diffs):
+def test_dataclass_deco(tmp_path, src, dst, mv, stored_diffs):
     """
     Test that a classdef 'C' is moved correctly, i.e. along with its decorator,
     which is a `dataclasses.dataclass` function call decorator.

@@ -3,21 +3,22 @@ Fixtures to be used in tests without importing.
 """
 from pytest import fixture
 
+from .helpers.def_descriptor import DefDesc
 from .helpers.expected import DstDiffs, SrcDiffs, StoredStdErr, StoredStdOut
-from .helpers.inputs import FuncAndClsDefs
 
 __all__ = ["src", "dst", "stored_diffs", "stored_output", "stored_error"]
 
 
 @fixture(scope="function")
-def src(request) -> tuple[str, str]:
-    return FuncAndClsDefs[request.param]
+def src(request) -> DefDesc:
+    return DefDesc.lookup(name=request.param)
 
 
 @fixture(scope="function")
-def dst(request) -> tuple[str, str]:
-    dst_filename_stem = request.param
-    return FuncAndClsDefs[dst_filename_stem]
+def dst(request) -> DefDesc:
+    name = request.param
+    is_empty = name.startswith("solo_")
+    return DefDesc(name=name, value="") if is_empty else DefDesc.lookup(name=name)
 
 
 @fixture(scope="function")

@@ -1,6 +1,5 @@
 from ast import AST
 from dataclasses import dataclass, field
-from itertools import chain
 from pathlib import Path
 
 from .check import Checker
@@ -124,8 +123,9 @@ class Agenda:
 
     def patch_node(self, target_name: str) -> Patch:
         node = self.get_node(target_name=target_name)
+        decos = node.decorator_list
         # Use the lineno of the first decorator, or of the node if it's undecorated
-        start_lineno = next(chain.from_iterable((node.decorator_list, [node]))).lineno
+        start_lineno = (decos[0] if decos else node).lineno
         return Patch(rng=(start_lineno, node.end_lineno))
 
     def apply(self, input_text: str) -> str:

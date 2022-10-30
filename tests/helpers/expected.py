@@ -103,7 +103,7 @@ class DstDiffs(Enum):
         "+    c: int\n"
     )
     errwarn0_err = (
-        "--- original/solo_baz.py\n+++ fixed/solo_baz.py\n@@ -0,0 +1,2 @@\n"
+        "--- original/solo_err.py\n+++ fixed/solo_err.py\n@@ -0,0 +1,2 @@\n"
         '+def err():\n+    logging.error("Hello")\n'
     )
 
