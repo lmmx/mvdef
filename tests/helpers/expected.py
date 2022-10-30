@@ -44,14 +44,10 @@ class SrcDiffs(Enum):
     decoC2decoD_C = (
         "--- original/decoC.py\n"
         "+++ fixed/decoC.py\n"
-        "@@ -4,8 +4,6 @@\n"
-        " \n"
-        " \n"
-        " @dataclass\n"
-        "-class C:\n"
-        "-    c: int\n"
-        " \n"
-        " \n"
+        "@@ -3,9 +3,4 @@\n"
+        " x = 1\n \n \n"
+        "-@dataclass\n-class C:\n"
+        "-    c: int\n-\n-\n"
         " y = 2\n"
     )
     errwarn2_err = (
@@ -100,15 +96,10 @@ class DstDiffs(Enum):
         "+    print(2)\n"
     )
     decoC2decoD_C = (
-        "--- original/decoD.py\n"
-        "+++ fixed/decoD.py\n"
-        "@@ -7,3 +7,7 @@\n"
-        " \n"
-        " \n"
-        " z = 3\n"
-        "+\n"
-        "+\n"
-        "+class C:\n"
+        "--- original/decoD.py\n+++ fixed/decoD.py\n"
+        "@@ -7,3 +7,8 @@\n \n \n"
+        " z = 3\n+\n+\n"
+        "+@dataclass\n+class C:\n"
         "+    c: int\n"
     )
     errwarn0_err = (

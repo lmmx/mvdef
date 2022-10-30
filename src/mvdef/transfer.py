@@ -45,6 +45,7 @@ class MvDef(FailableMixIn):
         diff_kwargs = {k: getattr(self, k) for k in ["mv", "escalate", "verbose"]}
         if self.check_blocker:
             # check() can exit before setting a Checker as attribute (ugly: please fix)
+            # (Possibly) this amounts to a try/else block around the `check()` call?
             if not hasattr(self, "src_check"):
                 setattr(self, "src_check", None)
             if not hasattr(self, "dst_check"):
