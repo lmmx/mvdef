@@ -175,17 +175,24 @@ class Agenda:
         import_delta = new_uu_imports != old_uu_imports
         if import_delta:
             old_uu_names = [i.message_args[0] for i in old_uu_imports]
-            recheck_uu_names = [i.message_args[0] for i in new_uu_imports]
-            lost_nameset = set(old_uu_names).difference(recheck_uu_names)
-            lost_uu_names = [n for n in old_uu_names if n in lost_nameset]
-            lost_uu_imports = [
-                i for i in old_uu_imports if i.message_args[0] in lost_nameset
+            new_uu_names = [i.message_args[0] for i in new_uu_imports]
+            # When names get 'lost' it represents unused names becoming used
+            # lost_nameset = set(old_uu_names).difference(new_uu_names)
+            # lost_uu_names = [n for n in old_uu_names if n in lost_nameset]
+            # lost_uu_imports = [
+            #     i for i in old_uu_imports if i.message_args[0] in lost_nameset
+            # ]
+            # Unused import name 'gain' represents used names becoming unused
+            # i.e. in the context of moving defs, the defs that used them moved out
+            gain_nameset = set(new_uu_names).difference(old_uu_names)
+            gain_uu_names = [n for n in new_uu_names if n in gain_nameset]
+            gain_uu_imports = [
+                i for i in new_uu_imports if i.message_args[0] in gain_nameset
             ]
-            if False:
-                print(f"{lost_uu_names=}")
-                print(f"{lost_uu_imports=}")
-            if lost_uu_imports:
-                pass  # breakpoint()  # raise ValueError()
+            if gain_uu_names:
+                print(f"{gain_uu_names=}")
+                print(f"{gain_uu_imports=}")
+                pass  # breakpoint()
         return pre_sim
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:
