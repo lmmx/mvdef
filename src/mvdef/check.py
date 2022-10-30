@@ -19,6 +19,7 @@ class Checker(FailableMixIn, checker.Checker):
     funcdefs: list[AST]
     classdefs: list[AST]
     alldefs: list[AST]
+    imports: list[AST]
 
     def __init__(self, *args, **kwargs):
         self.code = kwargs.pop("code")
@@ -29,6 +30,7 @@ class Checker(FailableMixIn, checker.Checker):
         self.funcdefs = []
         self.classdefs = []
         self.alldefs = []
+        self.imports = []
         super().__init__(*args, **kwargs)
 
     @property
@@ -56,6 +58,11 @@ class Checker(FailableMixIn, checker.Checker):
         super().FUNCTIONDEF(node=node)
         self.funcdefs.append(node)
         self.alldefs.append(node)
+
+    def IMPORT(self, node: AST) -> None:
+        """Subclass override"""
+        super().IMPORT(node=node)
+        self.imports.append(node)
 
     def describe_node(self, node: AST) -> None:
         line_range = f"{node.lineno}-{node.end_lineno}"
