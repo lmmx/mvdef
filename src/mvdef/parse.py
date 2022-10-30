@@ -6,7 +6,7 @@ from pyflakes import reporter
 from .check import Checker
 from .exceptions import SrcNotFound
 
-__all__ = ["parse", "parse_file"]
+__all__ = ["parse", "parse_file", "reparse"]
 
 
 def parse(
@@ -47,3 +47,19 @@ def parse_file(
         if not file.exists() and file.is_file():
             raise SrcNotFound(f"{file} is not an existing file")
     return parse(file.read_text(), file=file, verbose=verbose, **kwargs)
+
+
+def reparse(check: Checker, input_text: str) -> Checker:
+    """
+    Parse new text with the settings from an existing parsed result (a `Checker` object).
+
+    Create a new Checker with the same settings as the current instaance, but change
+    the input file contents (equivalent to overwriting the file and parsing it again).
+    """
+    check_settings = {
+        "verbose": check.verbose,
+        "escalate": check.escalate,
+        "cls_defs": check.target_cls,
+        "all_defs": check.target_all,
+    }
+    return parse(input_text, file=check.filename, **check_settings)

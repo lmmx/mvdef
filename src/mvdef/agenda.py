@@ -7,6 +7,7 @@ from pyflakes.messages import UnusedImport
 from .check import Checker
 from .exceptions import AgendaFailure
 from .log_utils import set_up_logging
+from .parse import reparse
 from .text_diff import get_unidiff_text
 from .whitespace import normalise_whitespace
 
@@ -150,20 +151,40 @@ class Agenda:
         filtered = self.apply(input_text, imports=[])
         return filtered
 
+    @property
+    def is_src(self) -> bool:
+        return self.dest_ref is not None
+
+    @property
+    def original_ref(self) -> Checker:
+        return self.ref if self.is_src else self.dest_ref
+
     def recheck(self, input_text: str) -> Checker:
         """
         First pass, with no change to import statements.
         """
-        original_ref = self.ref if self.is_src else self.dest_ref
-        return original_ref.recheck_from_previous(input_text)
+        return reparse(check=self.original_ref, input_text=input_text)
 
     def simulate(self, input_text: str) -> str:
         pre_sim = self.pre_simulate(input_text=input_text)
-        # TODO: finish this for recheck handling
-        # breakpoint()
-        # rechecked = self.recheck(pre_sim)
-        # if rechecked.unused_imports != original_ref.unused_imports:
-        #     pass
+        if self.original_ref is None:
+            return pre_sim
+        recheck = self.recheck(pre_sim)
+        old_uu_imports = self.original_ref.unused_imports()
+        new_uu_imports = recheck.unused_imports()
+        import_delta = new_uu_imports != old_uu_imports
+        if import_delta:
+            old_uu_names = [i.message_args[0] for i in old_uu_imports]
+            recheck_uu_names = [i.message_args[0] for i in new_uu_imports]
+            lost_nameset = set(old_uu_names).difference(recheck_uu_names)
+            lost_uu_names = [n for n in old_uu_names if n in lost_nameset]
+            lost_uu_imports = [
+                i for i in old_uu_imports if i.message_args[0] in lost_nameset
+            ]
+            if False:
+                print(f"{lost_uu_names=}")
+                print(f"{lost_uu_imports=}")
+            # breakpoint()
         return pre_sim
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:

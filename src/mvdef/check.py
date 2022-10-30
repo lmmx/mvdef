@@ -8,8 +8,6 @@ from pyflakes.messages import UnusedImport
 
 from .failure import FailableMixIn
 
-# from .parse import parse  # CIRCULAR IMPORT TODO: fix
-
 __all__ = ["Checker"]
 
 
@@ -89,17 +87,3 @@ class Checker(FailableMixIn, checker.Checker):
         """
         imps = [m for m in self.messages if isinstance(m, UnusedImport)]
         return imps
-
-    # def recheck(self, input_text: str) -> Checker:
-    #     """
-    #     Create a new Checker with the same settings as the current instaance, but change
-    #     the input file contents (equivalent to overwriting the file and recreating
-    #     Checker on it).
-    #     """
-    #     current_settings = {
-    #         "verbose": self.verbose,
-    #         "escalate": self.escalate,
-    #         "target_cls": self.target_cls,
-    #         "target_all": self.target_all,
-    #     }
-    #     return parse(input_text, file=self.filename, **current_settings)
