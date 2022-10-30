@@ -20,22 +20,16 @@ class FuncAndClsDefs(Enum):
         "\n"
         "y = 2\n"
     )
-    deco = (
-        "import random\n"
-        "from functools import cache\n"
-        "\n"
-        "x = 1\n"
-        "\n"
-        "\n"
-        "@cache\n"
-        "def rando():\n"
-        '    "Function that picks a random number only once."\n'
-        "    return random.randint(0, 1000)\n"
-        "\n"
-        "\n"
-        "class A:\n"
-        "    pass\n"
-        "\n"
-        "\n"
-        "y = 2"
+    decoC = (
+        "from dataclasses import dataclass\n\n"
+        "x = 1\n\n\n"
+        "@dataclass\nclass C:\n"
+        "    c: int\n\n\n"
+        "y = 2\n"
+    )
+    decoD = (
+        "from dataclasses import dataclass\n\n\n"
+        "@dataclass\nclass D:\n"
+        "    d: int\n\n\n"
+        "z = 3\n"
     )
