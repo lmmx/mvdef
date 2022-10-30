@@ -50,6 +50,10 @@ class SrcDiffs(Enum):
         "class A:\n     pass\n \n \n"
         "-y = 2\n\\ No newline at end of file\n+y = 2\n"
     )
+    errwarn2_err = (
+        "--- original/log.py\n+++ fixed/log.py\n@@ -1,9 +1,6 @@\n import logging\n \n"
+        ' x = 1\n-\n-def err():\n-    logging.error("Hello")\n \n \n def warn():\n'
+    )
 
 
 class DstDiffs(Enum):
@@ -96,6 +100,10 @@ class DstDiffs(Enum):
         " def bar():\n     print(2)\n a = 1\n+\n+\n"
         '+def rando():\n+    "Function that picks a random number only once."\n'
         "+    return random.randint(0, 1000)\n"
+    )
+    errwarn0_err = (
+        "--- original/solo_baz.py\n+++ fixed/solo_baz.py\n@@ -0,0 +1,2 @@\n"
+        '+def err():\n+    logging.error("Hello")\n'
     )
 
 

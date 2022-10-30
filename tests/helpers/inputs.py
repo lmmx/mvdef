@@ -8,6 +8,18 @@ class FuncAndClsDefs(Enum):
     bar = "def bar():\n    print(2)\na = 1\n"
     baz = "import json\n\n\ndef baz():\n    print(2)\n\n\nx = 1\n"
     solo_baz = ""
+    solo_err = ""
+    log = (
+        "import logging\n\n"
+        "x = 1\n\n"
+        "def err():\n"
+        '    logging.error("Hello")\n'
+        "\n\n"
+        "def warn():\n"
+        '    logging.warning("world")\n'
+        "\n"
+        "y = 2\n"
+    )
     deco = (
         "import random\n"
         "from functools import cache\n"
