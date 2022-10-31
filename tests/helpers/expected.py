@@ -44,7 +44,8 @@ class SrcDiffs(Enum):
     decoC2decoD_C = (
         "--- original/decoC.py\n"
         "+++ fixed/decoC.py\n"
-        "@@ -3,9 +3,4 @@\n"
+        "@@ -1,11 +1,4 @@\n"
+        "-from dataclasses import dataclass\n-\n"
         " x = 1\n \n \n"
         "-@dataclass\n-class C:\n"
         "-    c: int\n-\n-\n"

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ast import AST
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,6 +22,14 @@ class DepartingImport:
     lineno: int
     end_lineno: int
 
+    @property
+    def rng(self) -> tuple[int, int]:
+        return (self.lineno, self.end_lineno)
+
+    @property
+    def name(self) -> str:
+        return self.bound.fullName
+
 
 @dataclass
 class Agendum:
@@ -37,10 +47,23 @@ class Patch:
     rng: tuple[int, int]
 
 
+@dataclass(kw_only=True)
+class NamedPatch(Patch):
+    name: str
+
+
+class Departure(NamedPatch):
+    """A definition or importation leaving."""
+
+
+class Arrival(NamedPatch):
+    """A definition or importation arriving."""
+
+
 @dataclass
 class Editor:
     lines: str
-    edits: dict[str, Patch]
+    edits: list[Departure | Arrival]
 
 
 @dataclass
@@ -49,12 +72,12 @@ class Cutter(Editor):
 
     def __str__(self) -> str:
         lines = self.lines.splitlines(keepends=True)
-        for name, edit in self.edits.items():
-            lineno, end_lineno = edit.rng
+        for departure in self.edits:
+            lineno, end_lineno = departure.rng
             # NB AST line numbers are 1-based, list index is 0-based
             # Replace strings with None to indicate removal without altering index
             lines[lineno - 1 : end_lineno] = [None for _ in range(end_lineno - lineno)]
-            logger.debug(f"Snipped {edit.rng}")
+            logger.debug(f"Snipped {departure.rng}")
         normalised = normalise_whitespace(lines, spacing=self.spacing)
         return normalised
 
@@ -67,8 +90,8 @@ class Paster(Editor):
     def __str__(self) -> str:
         hem = []
         ref_lines = self.ref.code.splitlines(keepends=True)
-        for name, edit in self.edits.items():
-            lineno, end_lineno = edit.rng
+        for arrival in self.edits:
+            lineno, end_lineno = arrival.rng
             # NB AST line numbers are 1-based, list index is 0-based
             addendum = "".join(ref_lines[lineno - 1 : end_lineno])
             logger.debug(f"Pasted {addendum}")
@@ -123,7 +146,7 @@ class Agenda:
     def remove(self, mv, *, src: Path) -> None:
         self.chop([Agendum(name=target, file=src) for target in mv])
 
-    def get_node(self, target_name: str) -> AST:
+    def get_def_node(self, target_name: str) -> AST:
         maybe_targets = [f for f in self.ref.target_defs if f.name == target_name]
         if len(maybe_targets) > 1:
             raise NotImplementedError("Not handled name ambiguity yet")
@@ -131,12 +154,16 @@ class Agenda:
             node = maybe_targets.pop()
             return node
 
-    def patch_node(self, target_name: str) -> Patch:
-        node = self.get_node(target_name=target_name)
+    def def_rng(self, target_name: str) -> tuple[int, int]:
+        """
+        Get the line range of a definition with the target name.
+        """
+        node = self.get_def_node(target_name=target_name)
         decos = node.decorator_list
         # Use the lineno of the first decorator, or of the node if it's undecorated
         start_lineno = (decos[0] if decos else node).lineno
-        return Patch(rng=(start_lineno, node.end_lineno))
+        line_range = (start_lineno, node.end_lineno)
+        return line_range
 
     def apply(self, input_text: str, imports: list[DepartingImport]) -> str:
         if imports:
@@ -149,10 +176,20 @@ class Agenda:
             ]
             if resting_imports:
                 raise NotImplementedError("Imports staying and going on same line")
-        for imp in imports:
-            pass  # raise NotImplementedError("Prune unused imports if passed")
-        copped = {n.name: self.patch_node(n.name) for n in self.targeted.cop}
-        chopped = {n.name: self.patch_node(n.name) for n in self.targeted.chop}
+        # Avoiding using a dict to permit import and defname overlap, but do need to
+        # preserve unique names for each node type, so use these generator/listcomps:
+        uniq_cops = [
+            next(c for c in self.targeted.cop if c.name == n)
+            for n in {c.name for c in self.targeted.cop}
+        ]
+        uniq_chops = [
+            next(c for c in self.targeted.chop if c.name == n)
+            for n in {c.name for c in self.targeted.chop}
+        ]
+        copped = [Arrival(name=n.name, rng=self.def_rng(n.name)) for n in uniq_cops]
+        chopped = [Departure(name=n.name, rng=self.def_rng(n.name)) for n in uniq_chops]
+        # Prune unused imports if passed"
+        chopped.extend([Departure(name=imp.name, rng=imp.rng) for imp in imports])
         cut = Cutter(input_text, chopped, spacing=self.spacing)
         paste = Paster(input_text, copped, ref=self.ref, spacing=self.spacing)
         ends = [str(cut).rstrip("\n"), str(paste).rstrip("\n")]
