@@ -63,7 +63,7 @@ class Checker(FailableMixIn, checker.Checker):
     def addBinding(self, node: AST, value) -> None:
         super().addBinding(node=node, value=value)
         if isinstance(value, checker.Importation):
-            self.imports.append((node, value))
+            self.imports.append(value)
 
     def describe_node(self, node: AST) -> None:
         line_range = f"{node.lineno}-{node.end_lineno}"

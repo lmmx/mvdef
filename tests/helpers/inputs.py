@@ -31,3 +31,4 @@ class FuncAndClsDefs(Enum):
         "    d: int\n\n\n"
         "z = 3\n"
     )
+    errorer = "from logging import error, info\n\n\ndef errorer():\n    error(1)"

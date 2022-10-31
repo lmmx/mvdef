@@ -1,4 +1,4 @@
-from ast import AST, Import, ImportFrom
+from ast import AST
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,8 +16,9 @@ logger = set_up_logging(name=__name__)
 
 @dataclass
 class DepartingImport:
-    node: Import | ImportFrom
-    importation: checker.Importation
+    bound: checker.Importation
+    lineno: int
+    end_lineno: int
 
 
 @dataclass
@@ -138,6 +139,16 @@ class Agenda:
         return Patch(rng=(start_lineno, node.end_lineno))
 
     def apply(self, input_text: str, imports: list[DepartingImport]) -> str:
+        if imports:
+            resting_imports = [
+                imp
+                for departure in imports
+                for imp in self.original_ref.imports
+                if imp.source.lineno == departure.lineno
+                if imp is not departure.bound
+            ]
+            if resting_imports:
+                raise NotImplementedError("Imports staying and going on same line")
         for imp in imports:
             pass  # raise NotImplementedError("Prune unused imports if passed")
         copped = {n.name: self.patch_node(n.name) for n in self.targeted.cop}
@@ -191,47 +202,35 @@ class Agenda:
             return pre_sim
 
     def compare_imports(self, recheck: Checker) -> list[DepartingImport]:
-        old_uu_imports = self.original_ref.unused_imports()
-        new_uu_imports = recheck.unused_imports()
-        import_delta = new_uu_imports != old_uu_imports
-        if import_delta:
-            old_uu_names = [i.message_args[0] for i in old_uu_imports]
-            new_uu_names = [i.message_args[0] for i in new_uu_imports]
-            # When names get 'lost' it represents unused names becoming used
-            # lost_nameset = set(old_uu_names).difference(new_uu_names)
-            # lost_uu_names = [n for n in old_uu_names if n in lost_nameset]
-            # lost_uu_imports = [
-            #     i for i in old_uu_imports if i.message_args[0] in lost_nameset
-            # ]
-            # Unused import name 'gain' represents used names becoming unused
-            # i.e. in the context of moving defs, the defs that used them moved out
-            gain_nameset = set(new_uu_names).difference(old_uu_names)
-            gain_uu_names = [n for n in new_uu_names if n in gain_nameset]
-            # gain_uu_imports = [
-            #     i for i in new_uu_imports if i.message_args[0] in gain_nameset
-            # ]
-            original_imports = [
-                (node, importation) for (node, importation) in self.original_ref.imports
-            ]
-            # original_import_names = [
-            #     importation.fullName for node, importation in original_imports
-            # ]
-            if gain_uu_names:
-                # Full name is either the asname, the dotted qualpath, or just a name
-                # and matches the message arg (expected/tested assumption)
-                no_longer_used_imports = [
-                    DepartingImport(node=node, importation=importation)
-                    for (node, importation) in original_imports
-                    if importation.fullName in gain_uu_names
-                ]
-                assert len(gain_uu_names) == len(no_longer_used_imports)
-                logger.debug("Found unused imports: {no_longer_used_imports}")
-                result = no_longer_used_imports
-            else:
-                result = []
-        else:
-            result = []
-        return result
+        pre_uu_imports = self.original_ref.unused_imports()
+        rec_uu_imports = recheck.unused_imports()
+        if rec_uu_imports == pre_uu_imports:
+            return []
+        old_uu_names = [i.message_args[0] for i in pre_uu_imports]
+        rec_uu_names = [i.message_args[0] for i in rec_uu_imports]
+        lose_nameset = set(rec_uu_names).difference(old_uu_names)
+        lose_uu_names = [n for n in rec_uu_names if n in lose_nameset]
+        # lose_uu_imports = [
+        #     i for i in rec_uu_imports if i.message_args[0] in lose_nameset
+        # ]
+        original_imports = self.original_ref.imports
+        # original_import_names = [
+        #     importation.fullName for importation in original_imports
+        # ]
+        if not lose_uu_names:
+            return []
+        # Full name is either the asname, the dotted qualpath, or just a name
+        # and matches the message arg (expected/tested assumption)
+        newly_unused_imports = [
+            DepartingImport(
+                imp, lineno=imp.source.lineno, end_lineno=imp.source.end_lineno
+            )
+            for imp in original_imports
+            if imp.fullName in lose_uu_names
+        ]
+        assert len(lose_uu_names) == len(newly_unused_imports)
+        logger.debug("Found unused imports: {newly_unused_imports}")
+        return newly_unused_imports
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:
         """
