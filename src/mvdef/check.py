@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ast import AST
 from functools import cache
+from typing import Type
 
 from pyflakes import checker
 from pyflakes.messages import UnusedImport
@@ -19,7 +20,7 @@ class Checker(FailableMixIn, checker.Checker):
     funcdefs: list[AST]
     classdefs: list[AST]
     alldefs: list[AST]
-    imports: list[AST]
+    imports: list[tuple[AST, checker.Importation | Type[checker.Importation]]]
 
     def __init__(self, *args, **kwargs):
         self.code = kwargs.pop("code")
@@ -59,15 +60,10 @@ class Checker(FailableMixIn, checker.Checker):
         self.funcdefs.append(node)
         self.alldefs.append(node)
 
-    def IMPORT(self, node: AST) -> None:
-        """Subclass override"""
-        super().IMPORT(node=node)
-        self.imports.append(node)
-
-    def IMPORTFROM(self, node: AST) -> None:
-        """Subclass override"""
-        super().IMPORTFROM(node=node)
-        self.imports.append(node)
+    def addBinding(self, node: AST, value) -> None:
+        super().addBinding(node=node, value=value)
+        if isinstance(value, checker.Importation):
+            self.imports.append((node, value))
 
     def describe_node(self, node: AST) -> None:
         line_range = f"{node.lineno}-{node.end_lineno}"

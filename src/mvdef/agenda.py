@@ -1,8 +1,8 @@
-from ast import AST
+from ast import AST, Import, ImportFrom
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pyflakes.messages import UnusedImport
+from pyflakes import checker
 
 from .check import Checker
 from .exceptions import AgendaFailure
@@ -12,6 +12,12 @@ from .text_diff import get_unidiff_text
 from .whitespace import normalise_whitespace
 
 logger = set_up_logging(name=__name__)
+
+
+@dataclass
+class DepartingImport:
+    node: Import | ImportFrom
+    importation: checker.Importation
 
 
 @dataclass
@@ -131,9 +137,9 @@ class Agenda:
         start_lineno = (decos[0] if decos else node).lineno
         return Patch(rng=(start_lineno, node.end_lineno))
 
-    def apply(self, input_text: str, imports: list[UnusedImport]) -> str:
+    def apply(self, input_text: str, imports: list[DepartingImport]) -> str:
         for imp in imports:
-            raise NotImplementedError("Prune unused imports if passed")
+            pass  # raise NotImplementedError("Prune unused imports if passed")
         copped = {n.name: self.patch_node(n.name) for n in self.targeted.cop}
         chopped = {n.name: self.patch_node(n.name) for n in self.targeted.chop}
         cut = Cutter(input_text, chopped, spacing=self.spacing)
@@ -144,13 +150,6 @@ class Agenda:
         sewn = inter_def_sep.join(filter(None, ends)) + "\n"
         return sewn
 
-    def pre_simulate(self, input_text: str) -> str:
-        """
-        First pass, with no change to import statements.
-        """
-        filtered = self.apply(input_text, imports=[])
-        return filtered
-
     @property
     def is_src(self) -> bool:
         return self.dest_ref is None
@@ -158,6 +157,21 @@ class Agenda:
     @property
     def original_ref(self) -> Checker:
         return self.ref if self.is_src else self.dest_ref
+
+    def pre_simulate(self, input_text: str) -> str:
+        """
+        First pass, with no change to import statements.
+        """
+        filtered = self.apply(input_text, imports=[])
+        return filtered
+
+    def resimulate(self, input_text: str, imports: list[DepartingImport]) -> str:
+        """
+        Second pass if necessary to remove import statements that would not be used
+        after moving the `mv` definition(s) out of the file.
+        """
+        filtered = self.apply(input_text, imports=imports)
+        return filtered
 
     def recheck(self, input_text: str) -> Checker:
         """
@@ -170,6 +184,13 @@ class Agenda:
         if self.original_ref is None:
             return pre_sim
         recheck = self.recheck(pre_sim)
+        unused_imports = self.compare_imports(recheck)
+        if unused_imports:
+            return self.resimulate(input_text, imports=unused_imports)
+        else:
+            return pre_sim
+
+    def compare_imports(self, recheck: Checker) -> list[DepartingImport]:
         old_uu_imports = self.original_ref.unused_imports()
         new_uu_imports = recheck.unused_imports()
         import_delta = new_uu_imports != old_uu_imports
@@ -186,14 +207,31 @@ class Agenda:
             # i.e. in the context of moving defs, the defs that used them moved out
             gain_nameset = set(new_uu_names).difference(old_uu_names)
             gain_uu_names = [n for n in new_uu_names if n in gain_nameset]
-            gain_uu_imports = [
-                i for i in new_uu_imports if i.message_args[0] in gain_nameset
+            # gain_uu_imports = [
+            #     i for i in new_uu_imports if i.message_args[0] in gain_nameset
+            # ]
+            original_imports = [
+                (node, importation) for (node, importation) in self.original_ref.imports
             ]
+            # original_import_names = [
+            #     importation.fullName for node, importation in original_imports
+            # ]
             if gain_uu_names:
-                print(f"{gain_uu_names=}")
-                print(f"{gain_uu_imports=}")
-                pass  # breakpoint()
-        return pre_sim
+                # Full name is either the asname, the dotted qualpath, or just a name
+                # and matches the message arg (expected/tested assumption)
+                no_longer_used_imports = [
+                    DepartingImport(node=node, importation=importation)
+                    for (node, importation) in original_imports
+                    if importation.fullName in gain_uu_names
+                ]
+                assert len(gain_uu_names) == len(no_longer_used_imports)
+                logger.debug("Found unused imports: {no_longer_used_imports}")
+                result = no_longer_used_imports
+            else:
+                result = []
+        else:
+            result = []
+        return result
 
     def unidiff(self, target_file: Path, is_src: bool) -> str:
         """
