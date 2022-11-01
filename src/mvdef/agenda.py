@@ -214,15 +214,12 @@ class Agenda:
         line_range = (start_lineno, node.end_lineno)
         return line_range
 
-    def unique_name_list(self, duplicates: list) -> list:
+    def unique_name_list(self, duplicates: list) -> list[str]:
         """
-        Avoiding using a dict to permit import and defname overlap, but do need to
-        preserve unique names for each node type, so use these generator/listcomps:
+        Preserve unique names for each node type, in order of first appearance.
         """
-        return [
-            next(c for c in duplicates if c.name == n)
-            for n in {c.name for c in duplicates}
-        ]
+        unique_names = list({d.name: None for d in duplicates})
+        return [next(d for d in duplicates if d.name == n) for n in unique_names]
 
     @property
     def unique_cops(self) -> list[SourcedAgendum]:
@@ -256,17 +253,28 @@ class Agenda:
         chopped = [
             Departure(name=n.name, rng=self.def_rng(n.name)) for n in self.unique_chops
         ]
+        chopped.sort(key=lambda d: d.rng, reverse=True)
+        sorted_chop_deps = chopped == sorted(chopped, key=lambda d: d.rng, reverse=True)
+        assert sorted_chop_deps, f"Unsorted chop deps {chopped}"
         # Prune unused imports_out if passed"
-        chopped.extend([Departure(name=imp.name, rng=imp.rng) for imp in imports_out])
-        cut = Cutter(input_text, chopped, spacing=self.spacing)
+        chopped_with_imports = chopped + [
+            Departure(name=imp.name, rng=imp.rng) for imp in imports_out
+        ]
+        sorted_chop_imps = chopped_with_imports == sorted(
+            chopped_with_imports, key=lambda d: d.rng, reverse=True
+        )
+        assert sorted_chop_imps, "Unsorted chop deps after appending imports"
+        cut = Cutter(input_text, chopped_with_imports, spacing=self.spacing)
         paste = Paster(input_text, copped, ref=self.ref, spacing=self.spacing)
         ends = [str(cut).rstrip("\n"), str(paste).rstrip("\n")]
         # Increment spacing by 1 to account for the stripped line ending
         inter_def_sep = "\n" * (self.spacing + 1)
         sewn = inter_def_sep.join(filter(None, ends)) + "\n"
         if imports_in:
-            sewn = self.sew_in_imports(imports=imports_in, text=sewn, recheck=recheck)
-        return sewn
+            done = self.sew_in_imports(imports=imports_in, text=sewn, recheck=recheck)
+        else:
+            done = sewn
+        return done
 
     def sew_in_imports(
         self, imports: list[ArrivingImport], text: str, recheck: Checker = None
@@ -281,10 +289,7 @@ class Agenda:
         pre, suf = spacing.split_text(text, at=start)
         unparsed_imports = [imp.unparse() for imp in imports]
         pre_filtered = list(filter(None, pre))
-        # if unparsed_imports:
-        #     breakpoint()
         sewn = "\n".join(pre_filtered + unparsed_imports + [""] * spacing.gap) + suf
-        pass  # breakpoint()
         return sewn
 
     def calculate_import_spacing(self, recheck: Checker) -> ImportSpacing:
@@ -363,6 +368,8 @@ class Agenda:
         """
         First pass, with no change to import statements.
         """
+        if input_text == "x = 1\n\n\nclass A:\n\n\ny = 2\n":
+            raise ValueError("WTF")
         return reparse(check=self.original_ref, input_text=input_text)
 
     def simulate(self, input_text: str) -> str:
@@ -372,7 +379,6 @@ class Agenda:
             return pre_sim
         # Note: recheck src for newly unused imports, and dst to gauge import spacing
         recheck = self.recheck(pre_sim)
-        pass  # breakpoint()
         if self.is_src:
             unused_imports = self.compare_imports(recheck)
             if unused_imports:
