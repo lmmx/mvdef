@@ -22,11 +22,13 @@ pip install mvdef
 
 ## Usage
 
+`mvdef`:
+
 ```
 usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 
   Move function definitions from one file to another, moving/copying
-  associated import statements along with them.
+  any necessary associated import statements along with them.
 
   Option     Description                                Type (default)
   —————————— —————————————————————————————————————————— ——————————————
@@ -51,6 +53,15 @@ options:
   -c, --cls-defs
   -a, --all-defs
   -v, --verbose
+```
+
+`cpdef` has the same flags as `mvdef`, but only copies (i.e. makes no changes to `src`).
+
+```
+usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
+
+  Copy function definitions from one file to another, and any necessary
+  associated import statements along with them.
 ```
 
 ## How it works

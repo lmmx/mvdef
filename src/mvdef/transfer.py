@@ -7,12 +7,14 @@ from .failure import FailableMixIn
 from .log_utils import set_up_logging
 from .parse import parse, parse_file
 
+__all__ = ["MvDef", "CpDef"]
+
 
 @dataclass
 class MvDef(FailableMixIn):
     """
       Move function definitions from one file to another, moving/copying
-      associated import statements along with them.
+      any necessary associated import statements along with them.
 
       Option     Description                                Type (default)
       —————————— —————————————————————————————————————————— ——————————————
@@ -34,6 +36,7 @@ class MvDef(FailableMixIn):
     cls_defs: bool = False
     all_defs: bool = False
     verbose: bool = False
+    _copy_mode: bool = False
 
     def log(self, msg):
         self.logger.info(msg)
@@ -76,18 +79,49 @@ class MvDef(FailableMixIn):
             self.dst_check = parse("", file=self.dst, **kwargs)
         return None
 
-    def diffs(self, print_out: bool = False) -> tuple[str, str]:
-        # populate_agenda() is done implicitly by unidiff()
-        src_unidiff = self.src_diff.unidiff()
+    def diffs(self, print_out: bool = False) -> tuple[str, str] | str:
+        """
+        Calls `Agenda.populate_agenda()` implicitly by `Agenda.unidiff()` and returns 2
+        diff strings for src and dst respectively. If only copying (not editing src),
+        just populates the agenda and returns a single diff string.
+        """
+        if self._copy_mode and self.src_diff.agenda.empty:
+            # Must populate the Agenda to set up associated Checker ("ref")... I think?
+            self.src_diff.populate_agenda()
+            src_unidiff = ""
+        else:
+            src_unidiff = self.src_diff.unidiff()
         dst_unidiff = self.dst_diff.unidiff()
         if print_out:
             for diff in filter(None, [src_unidiff, dst_unidiff]):
                 print(diff)
-        return src_unidiff, dst_unidiff
+        return dst_unidiff if self._copy_mode else src_unidiff, dst_unidiff
 
     def move(self) -> None:
         """Execute diffs"""
         if not self.dry_run:
-            self.src_diff.execute()
+            if not self._copy_mode:
+                self.src_diff.execute()
             self.dst_diff.execute()
         return
+
+
+@dataclass
+class CpDef(MvDef):
+    """
+      Copy function definitions from one file to another, and any necessary
+      associated import statements along with them.
+
+      Option     Description                                Type (default)
+      —————————— —————————————————————————————————————————— ——————————————
+    • src        source file to copy definitions from       Path
+    • dst        destination file (may not exist)           Path
+    • mv         names to copy from the source file         list of str
+    • dry_run    whether to only preview the change diffs   bool (False)
+    • escalate   whether to raise an error upon failure     bool (False)
+    • cls_defs   whether to target only class definitions   bool (False)
+    • all_defs   whether to target both class and funcdefs  bool (False)
+    • verbose    whether to log anything                    bool (False)
+    """
+
+    _copy_mode: bool = True

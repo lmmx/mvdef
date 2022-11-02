@@ -373,6 +373,9 @@ class Agenda:
         return reparse(check=self.original_ref, input_text=input_text)
 
     def simulate(self, input_text: str) -> str:
+        """
+        This method has no side effects on the state of `self`.
+        """
         pre_sim = self.pre_simulate(input_text=input_text)
         if self.original_ref is None:
             # (BUG?) No imports will be copped if dst is None (why?)

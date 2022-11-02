@@ -13,8 +13,7 @@ from .helpers.cli_util import mvdef_from_argv
 )
 def test_usage_error(capsys, argv, stored_error):
     """
-    Test that the help text is produced on calling with `-h`, and the usage when calling
-    with no arguments.
+    Test that the usage text is produced on calling with no arguments.
     """
     with raises(SystemExit):
         mvdef_from_argv(argv)
@@ -24,17 +23,29 @@ def test_usage_error(capsys, argv, stored_error):
 
 @mark.parametrize(
     "argv,stored_output",
-    [(["-h"], "HELP")],
+    [(["-h"], "MVDEF_HELP")],
     indirect=["stored_output"],
 )
-def test_help_message(capsys, argv, stored_output):
+def test_mvdef_help_message(capsys, argv, stored_output):
     """
-    Test that the help text is produced on calling with `-h`, and the usage when calling
-    with no arguments.
+    Test that the help text is produced on calling `mvdef` with `-h`.
     """
-    # diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
-    # assert diffs == stored_diffs
     with raises(SystemExit):
         mvdef_from_argv(argv)
+    captured = capsys.readouterr()
+    assert captured.out == stored_output
+
+
+@mark.parametrize(
+    "argv,stored_output",
+    [(["-h"], "CPDEF_HELP")],
+    indirect=["stored_output"],
+)
+def test_cpdef_help_message(capsys, argv, stored_output):
+    """
+    Test that the help text is produced on calling `cpdef` with `-h`.
+    """
+    with raises(SystemExit):
+        mvdef_from_argv(argv, use_cpdef=True)
     captured = capsys.readouterr()
     assert captured.out == stored_output
