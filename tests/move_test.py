@@ -3,9 +3,9 @@ Tests for the files created by running mvdef with `dry_run=False`.
 """
 from pytest import mark
 
-from mvdef.text_diff import get_unidiff_text
+from mvdef.core.text_diff import get_unidiff_text
 
-from .helpers.cli_util import run_mvdef
+from .helpers.cli_util import run_cmd
 from .helpers.io import Write
 
 __all__ = ["test_move"]
@@ -26,11 +26,19 @@ def test_move(tmp_path, src, dst, mv, cls_defs, stored_diffs):
     (i.e. that actually moving matches the dry run result that just previews a move).
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    mover = run_mvdef(src_p, dst_p, mv=mv, cls_defs=cls_defs).mover
+    mover = run_cmd(src_p, dst_p, mv=mv, cls_defs=cls_defs).mover
     assert mover.src_diff.old_code == src.value
     assert mover.dst_diff.old_code == dst.value
     src_diff, dst_diff = (
-        get_unidiff_text(content.value, path.read_text(), filename=path.name)
+        get_unidiff_text(a, b, filename=path.name)
         for content, path in [(src, src_p), (dst, dst_p)]
+        for a_str, b_str in [(content.value, path.read_text())]
+        for a, b in [
+            tuple(
+                lines.splitlines(keepends=True)
+                for tup in [(a_str, b_str)]
+                for lines in tup
+            )
+        ]
     )
-    assert src_diff, dst_diff == stored_diffs
+    assert (src_diff, dst_diff) == stored_diffs

@@ -7,12 +7,13 @@ from typing import TypeVar
 
 from pyflakes import checker
 
+from ..error_handling.exceptions import AgendaFailure
+from ..log_utils import set_up_logging
+from ..whitespace import normalise_whitespace
 from .check import Checker
-from .exceptions import AgendaFailure
-from .log_utils import set_up_logging
+from .manifest.all_fmt import format_all
 from .parse import reparse
 from .text_diff import get_unidiff_text
-from .whitespace import normalise_whitespace
 
 logger = set_up_logging(name=__name__)
 
@@ -97,6 +98,13 @@ class Arrival(NamedPatch):
     """A definition or importation arriving."""
 
 
+@dataclass(kw_only=True)
+class Documented(NamedPatch):
+    """A documented definition or importation."""
+
+    depth: int
+
+
 @dataclass
 class Editor:
     lines: str
@@ -151,10 +159,14 @@ class ImportSpacing:
 
 @dataclass
 class OrderOfBusiness:
-    """What to cop vs. what to chop (move/copy vs. delete)"""
+    """
+    What to cop vs. what to lop (move/copy vs. delete), or, as a
+    mutually exclusive option, what to doc (document i.e. enumerate).
+    """
 
     cop: list[SourcedAgendum] = field(default_factory=list)
-    chop: list[Agendum] = field(default_factory=list)
+    lop: list[Agendum] = field(default_factory=list)
+    doc: list[Agendum] = field(default_factory=list)
 
 
 class Agenda:
@@ -173,32 +185,99 @@ class Agenda:
         return len(self.targets) == 0
 
     def no_clash(self, mv: list[str]) -> None:
+        """No repetition, and * must be used on its own."""
         if clash := set(mv).intersection(self.targets):
             raise AgendaFailure(f"{clash=} - target{'s'[:len(clash)-1]} double booked")
+        elif "*" in [*mv, *self.targets] and len([*mv, *self.targets]) > 1:
+            raise AgendaFailure("Agenda clash: wildcard '*' must be used solo")
 
     def intake(self, mv: list[str]) -> None:
-        """Prepare to cop or chop (ensure no double bookings!)"""
+        """
+        Prepare to cop/lop, or doc (ensure no double bookings!)
+        Note: prevents mixed usage of `doc()` with either `cop()` or `lop()`.
+        """
         self.no_clash(mv)
         self.targets.extend(mv)
+
+    def outtake(self, mv: list[str]) -> None:
+        for n in mv:
+            self.targets.remove(n)
 
     def cop(self, agenda: list[SourcedAgendum]) -> None:
         self.intake([a.name for a in agenda])
         self.targeted.cop.extend(agenda)
 
-    def chop(self, agenda: list[Agendum]) -> None:
+    def lop(self, agenda: list[Agendum]) -> None:
         self.intake([a.name for a in agenda])
-        self.targeted.chop.extend(agenda)
+        self.targeted.lop.extend(agenda)
+
+    def doc(self, agenda: list[Agendum]) -> None:
+        """Note: cannot be used before or after cop or lop."""
+        self.intake([a.name for a in agenda])
+        self.targeted.doc.extend(agenda)
 
     def bring(self, mv: list[str], *, src: Path, dst: Path) -> None:
         self.cop([SourcedAgendum(name=target, file=dst, via=src) for target in mv])
 
     def remove(self, mv, *, src: Path) -> None:
-        self.chop([Agendum(name=target, file=src) for target in mv])
+        self.lop([Agendum(name=target, file=src) for target in mv])
+
+    def document(self, matchers, *, src: Path) -> None:
+        self.doc([Agendum(name=matcher, file=src) for matcher in matchers])
+
+    def manifest(self, dry_run: bool, as_list: bool) -> str:
+        """
+        Manifest of definitions from applying the `targeted` agenda to the target file.
+        """
+        def_depth = 1
+        all_target_defs = self.ref.target_defs
+        all_target_def_names = [d.name for d in all_target_defs if d.depth == def_depth]
+        wildcard_present = "*" in [d.name for d in self.targeted.doc]  # TODO tidy this
+        if wildcard_present:
+            assert len(self.targeted.doc) == 1, "Wildcard must be used alone"
+            manifest_names = all_target_def_names
+            wc_agendum = self.targeted.doc.pop()
+            self.outtake(["*"])
+            self.document(matchers=manifest_names, src=wc_agendum.file)
+        else:
+            raise NotImplementedError("Only wildcard implemented for now")
+        docket = [
+            Documented(name=node.name, rng=self.def_rng(node.name), depth=node.depth)
+            for agendum in self.unique_docs
+            for node in [self.get_def_node(target_name=agendum.name)]
+        ]
+        docket.sort(key=lambda d: d.rng)
+        # manifest_target_defs = [d for d in all_target_defs if d.name in manifest_names]
+        sorted_docket_deps = docket == sorted(docket, key=lambda d: d.rng)
+        assert sorted_docket_deps, f"Unsorted deps {docket}"
+        if as_list:
+            manif = "\n".join(manifest_names)
+        elif dry_run:
+            manif = format_all(manifest_names)
+        else:
+            raise NotImplementedError("File editing goes here")
+        return manif
+
+    def unidiff(self, target_file: Path, is_src: bool) -> str:
+        """
+        Unified diff from applying the `targeted` agenda to the target file. If the
+        file does not exist yet, pass in an empty string for `old` to avoid reading it.
+        """
+        old = self.ref.code if is_src else self.dest_ref.code
+        new = self.simulate(input_text=old)
+        diff = get_unidiff_text(
+            a=old.splitlines(keepends=True),
+            b=new.splitlines(keepends=True),
+            filename=target_file.name,
+        )
+        return diff
 
     def get_def_node(self, target_name: str) -> AST:
         maybe_targets = [f for f in self.ref.target_defs if f.name == target_name]
         if len(maybe_targets) > 1:
             raise NotImplementedError("Not handled name ambiguity yet")
+        elif not maybe_targets:
+            raise ValueError(f"Could not find a target def node named {target_name}")
         else:
             node = maybe_targets.pop()
             return node
@@ -214,6 +293,14 @@ class Agenda:
         line_range = (start_lineno, node.end_lineno)
         return line_range
 
+    def def_depth(self, target_name: str) -> int:
+        """
+        Get the tree depth of a definition with the target name.
+        """
+        node = self.get_def_node(target_name=target_name)
+        d = node.depth
+        return d
+
     def unique_name_list(self, duplicates: list) -> list[str]:
         """
         Preserve unique names for each node type, in order of first appearance.
@@ -226,8 +313,12 @@ class Agenda:
         return self.unique_name_list(self.targeted.cop)
 
     @property
-    def unique_chops(self) -> list[Agendum]:
-        return self.unique_name_list(self.targeted.chop)
+    def unique_lops(self) -> list[Agendum]:
+        return self.unique_name_list(self.targeted.lop)
+
+    @property
+    def unique_docs(self) -> list[Agendum]:
+        return self.unique_name_list(self.targeted.doc)
 
     def apply(
         self,
@@ -250,21 +341,21 @@ class Agenda:
         copped = [
             Arrival(name=n.name, rng=self.def_rng(n.name)) for n in self.unique_cops
         ]
-        chopped = [
-            Departure(name=n.name, rng=self.def_rng(n.name)) for n in self.unique_chops
+        lopped = [
+            Departure(name=n.name, rng=self.def_rng(n.name)) for n in self.unique_lops
         ]
-        chopped.sort(key=lambda d: d.rng, reverse=True)
-        sorted_chop_deps = chopped == sorted(chopped, key=lambda d: d.rng, reverse=True)
-        assert sorted_chop_deps, f"Unsorted chop deps {chopped}"
+        lopped.sort(key=lambda d: d.rng, reverse=True)
+        sorted_lop_deps = lopped == sorted(lopped, key=lambda d: d.rng, reverse=True)
+        assert sorted_lop_deps, f"Unsorted lop deps {lopped}"
         # Prune unused imports_out if passed"
-        chopped_with_imports = chopped + [
+        lopped_with_imports = lopped + [
             Departure(name=imp.name, rng=imp.rng) for imp in imports_out
         ]
-        sorted_chop_imps = chopped_with_imports == sorted(
-            chopped_with_imports, key=lambda d: d.rng, reverse=True
+        sorted_lop_imps = lopped_with_imports == sorted(
+            lopped_with_imports, key=lambda d: d.rng, reverse=True
         )
-        assert sorted_chop_imps, "Unsorted chop deps after appending imports"
-        cut = Cutter(input_text, chopped_with_imports, spacing=self.spacing)
+        assert sorted_lop_imps, "Unsorted lop deps after appending imports"
+        cut = Cutter(input_text, lopped_with_imports, spacing=self.spacing)
         paste = Paster(input_text, copped, ref=self.ref, spacing=self.spacing)
         ends = [str(cut).rstrip("\n"), str(paste).rstrip("\n")]
         # Increment spacing by 1 to account for the stripped line ending
@@ -436,7 +527,7 @@ class Agenda:
         This takes us from `all_src_imp_name_trees` to `sourced_uses`.
 
         There are 2 possible ways we can cross-reference the uses to the imports:
-          - chopped::Patch.rng <-> used_on_line_ranges::Patch.rng
+          - lopped::Patch.rng <-> used_on_line_ranges::Patch.rng
           - imports::Importation.source <-> ref.import_uses::(scope, node)
 
         (1) Use line ranges [rejected: match AST nodes and unparse instead]
@@ -539,17 +630,3 @@ class Agenda:
         assert len(lose_uu_names) == len(newly_unused_imports)
         logger.debug("Found unused imports: {newly_unused_imports}")
         return newly_unused_imports
-
-    def unidiff(self, target_file: Path, is_src: bool) -> str:
-        """
-        Unified diff from applying the `targeted` agenda to the target file. If the
-        file does not exist yet, pass in an empty string for `old` to avoid reading it.
-        """
-        old = self.ref.code if is_src else self.dest_ref.code
-        new = self.simulate(input_text=old)
-        diff = get_unidiff_text(
-            a=old.splitlines(keepends=True),
-            b=new.splitlines(keepends=True),
-            filename=target_file.name,
-        )
-        return diff

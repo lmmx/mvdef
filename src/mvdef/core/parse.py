@@ -3,8 +3,8 @@ from pathlib import Path
 
 from pyflakes import reporter
 
+from ..error_handling.exceptions import SrcNotFound
 from .check import Checker
-from .exceptions import SrcNotFound
 
 __all__ = ["parse", "parse_file", "reparse"]
 

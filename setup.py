@@ -94,6 +94,7 @@ if __name__ == "__main__":
             "console_scripts": [
                 "mvdef = mvdef.cli:cli_move",
                 "cpdef = mvdef.cli:cli_copy",
+                "lsdef = mvdef.cli:cli_list",
                 "oldmvdef = mvdef.legacy.__main__:main",
                 "oldmvcls = mvdef.legacy.__main__:mvcls",
                 "oldcpdef = mvdef.legacy.__main__:cpdef",

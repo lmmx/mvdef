@@ -3,9 +3,9 @@ Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
 from pytest import mark, raises
 
-from mvdef.exceptions import CheckFailure
+from mvdef.error_handling.exceptions import CheckFailure
 
-from .helpers.cli_util import dry_run_mvdef, get_mvdef_diffs
+from .helpers.cli_util import dry_run_cmd, get_cmd_diffs
 from .helpers.io import Write
 
 __all__ = [
@@ -44,7 +44,7 @@ def test_dry_mv_basic(tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, 
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     if no_dst:
         dst_p.unlink()
-    diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
     assert diffs == stored_diffs
 
 
@@ -69,7 +69,7 @@ def test_dry_mv_multidef_not_all_defs(
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     with raises(CheckFailure):
-        dry_run_mvdef(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+        dry_run_cmd(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
 
 
 @mark.parametrize("cls_defs", [True, False])
@@ -98,7 +98,7 @@ def test_dry_mv_multidef_all_defs(
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=True)
-    diffs = get_mvdef_diffs(src_p, dst_p, **mvdef_kwargs)
+    diffs = get_cmd_diffs(src_p, dst_p, **mvdef_kwargs)
     assert diffs == stored_diffs
 
 
@@ -121,5 +121,5 @@ def test_dry_mv_no_dst(
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
     if no_dst:
         dst_p.unlink()
-    diffs = get_mvdef_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
     assert diffs == stored_diffs

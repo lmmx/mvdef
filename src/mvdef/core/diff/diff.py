@@ -2,8 +2,10 @@ from dataclasses import KW_ONLY, dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from .agenda import Agenda
-from .check import Checker
+from ..agenda import Agenda
+from ..check import Checker
+
+__all__ = ["Differ"]
 
 
 @dataclass

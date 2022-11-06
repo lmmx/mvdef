@@ -2,40 +2,56 @@ import sys
 from pathlib import Path
 from typing import Union
 
-from mvdef.cli import CpDef, MvDef, cli
+from mvdef.cli import CLIResult, cli
+from mvdef.transfer import CpDef, LsDef, MvDef
 
-__all__ = ["run_mvdef", "dry_run_mvdef", "get_mvdef_diffs", "mvdef_from_argv"]
+__all__ = [
+    "mvcls",
+    "run_cmd",
+    "dry_run_cmd",
+    "get_cmd_diffs",
+    "get_manif",
+    "cmd_from_argv",
+]
 
-MvClsT = Union[MvDef, CpDef]
+MvClsT = Union[MvDef, CpDef, LsDef]
 
 
-def run_mvdef(a: Path, b: Path, use_cpdef: bool = False, **mvdef_cli_args) -> MvClsT:
-    MvCls = CpDef if use_cpdef else MvDef
-    kwargs_with_defaults = {"dry_run": False, "escalate": True, **mvdef_cli_args}
-    run_result = cli(a, b, MvCls=MvCls, return_state=True, **kwargs_with_defaults)
-    return run_result
+def mvcls(cp: bool, ls: bool) -> MvClsT:
+    return LsDef if ls else (CpDef if cp else MvDef)
 
 
-def dry_run_mvdef(
-    a: Path, b: Path, use_cpdef: bool = False, **mvdef_cli_args
+def run_cmd(
+    a: Path, b: Path | None, *, cp_: bool = False, ls_: bool = False, **cli_args
 ) -> MvClsT:
-    MvCls = CpDef if use_cpdef else MvDef
-    kwargs_with_defaults = {"dry_run": True, "escalate": True, **mvdef_cli_args}
-    run_result = cli(a, b, MvCls=MvCls, return_state=True, **kwargs_with_defaults)
+    kwargs = {"return_state": True, "escalate": True, "dry_run": False, **cli_args}
+    if b is None:
+        assert ls_, "2nd path is needed unless using lsdef"
+    run_result = cli(a, *([] if ls_ else [b]), MvCls=mvcls(cp=cp_, ls=ls_), **kwargs)
     return run_result
 
 
-def get_mvdef_diffs(a: Path, b: Path, **mvdef_cli_args) -> tuple[str, str]:
-    run_result = dry_run_mvdef(a=a, b=b, **mvdef_cli_args)
-    a_diff, b_diff = run_result.diffs
-    return a_diff, b_diff
+def dry_run_cmd(
+    a: Path, b: Path | None, *, cp_: bool = False, ls_: bool = False, **cli_args
+) -> CLIResult:
+    return run_cmd(a, b, cp_=cp_, ls_=ls_, **{"dry_run": True, **cli_args})
 
 
-def mvdef_from_argv(argv, use_cpdef: bool = False) -> None:
-    MvCls = CpDef if use_cpdef else MvDef
-    sys_argv = sys.argv
-    argv_0_pre = sys_argv[0]
-    # Mock the entrypoint (otherwise first argv is pytest)
-    sys_argv[0] = "cpdef" if use_cpdef else "mvdef"
+def get_cmd_diffs(
+    a: Path, b: Path, cp_: bool = False, **cmd_cli_args
+) -> tuple[str, str] | str:
+    run_result = dry_run_cmd(a=a, b=b, **cmd_cli_args)
+    return run_result.diffs
+
+
+def get_manif(a: Path, **cmd_cli_args) -> str:
+    run_result = dry_run_cmd(a=a, b=None, ls_=True, **cmd_cli_args)
+    return run_result.manif
+
+
+def cmd_from_argv(argv, cp_: bool = False, ls_: bool = False) -> None:
+    """Mock the entrypoint (otherwise first (i.e. 0'th) argv is pytest)."""
+    argv_0 = sys.argv[0]
+    sys.argv[0] = (MvCls := mvcls(cp=cp_, ls=ls_)).__name__.lower()
     cli(MvCls=MvCls, defopt_argv=argv)
-    sys_argv[0] = argv_0_pre  # Put it back how you found it
+    sys.argv[0] = argv_0  # Put it back how you found it

@@ -4,9 +4,9 @@ in the `diff_test.py` module).
 """
 from pytest import mark, raises
 
-from mvdef.exceptions import CheckFailure
+from mvdef.error_handling.exceptions import CheckFailure
 
-from .helpers.cli_util import dry_run_mvdef
+from .helpers.cli_util import dry_run_cmd
 from .helpers.io import Write
 
 __all__ = ["test_no_src", "test_bad_syntax"]
@@ -25,7 +25,7 @@ def test_no_src(tmp_path, src, dst, mv, cls_defs, del_dst_too):
         dst_p.unlink()
     mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs)
     with raises(FileNotFoundError):
-        dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
+        dry_run_cmd(a=src_p, b=dst_p, **mvdef_kwargs)
 
 
 @mark.parametrize("mv,cls_defs", [(["A"], True), (["foo"], False)])
@@ -48,9 +48,9 @@ def test_bad_syntax(
     overwrite_path.write_text("0 = 1\n")
     if escalate:
         with raises(SyntaxError):
-            dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
+            dry_run_cmd(a=src_p, b=dst_p, **mvdef_kwargs)
     else:
-        result = dry_run_mvdef(a=src_p, b=dst_p, **mvdef_kwargs)
+        result = dry_run_cmd(a=src_p, b=dst_p, **mvdef_kwargs)
         assert type(result.mover.check_blocker) is CheckFailure
         msg = expected_msg.format("src" if bad_src_or_dst else "dst")
         assert result.mover.check_blocker.args == (msg,)

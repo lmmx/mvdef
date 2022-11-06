@@ -18,6 +18,7 @@ class FuncAndClsDefs(Enum):
         "\n"
         "y = 2\n"
     )
+    errorer = "from logging import error, info\n\n\ndef errorer():\n    error(1)"
     decoC = (
         "from dataclasses import dataclass\n\n"
         "x = 1\n\n\n"
@@ -31,4 +32,18 @@ class FuncAndClsDefs(Enum):
         "    d: int\n\n\n"
         "z = 3\n"
     )
-    errorer = "from logging import error, info\n\n\ndef errorer():\n    error(1)"
+    one_func_all = '__all__ = ["hello"]\n\ndef hello(self):\n    pass'
+    many_func_all = (
+        "__all__ = [\n"
+        '    "hello0",\n    "hello1",\n    "hello2",\n    "hello3",\n'
+        '    "hello4",\n    "hello5",\n    "hello6",\n    "hello7",\n'
+        "]\n\n\n"
+        "def hello0(self):\n    pass\n\n\n"
+        "def hello1(self):\n    pass\n\n\n"
+        "def hello2(self):\n    pass\n\n\n"
+        "def hello3(self):\n    pass\n\n\n"
+        "def hello4(self):\n    pass\n\n\n"
+        "def hello5(self):\n    pass\n\n\n"
+        "def hello6(self):\n    pass\n\n\n"
+        "def hello7(self):\n    pass"
+    )

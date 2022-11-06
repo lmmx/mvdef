@@ -22,7 +22,10 @@ pip install mvdef
 
 ## Usage
 
-`mvdef`:
+### `mvdef`
+
+Moves functions named by `-m`/`--mv` and their associated imports from `src` to `dst`,
+or just previews the changes as a diff if passed `-d`/`--dry-run`.V
 
 ```
 usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
@@ -30,16 +33,16 @@ usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
   Move function definitions from one file to another, moving/copying
   any necessary associated import statements along with them.
 
-  Option     Description                                Type (default)
-  —————————— —————————————————————————————————————————— ——————————————
-• src        source file to take definitions from       Path
-• dst        destination file (may not exist)           Path
-• mv         names to move from the source file         list of str
-• dry_run    whether to only preview the change diffs   bool (False)
-• escalate   whether to raise an error upon failure     bool (False)
-• cls_defs   whether to target only class definitions   bool (False)
-• all_defs   whether to target both class and funcdefs  bool (False)
-• verbose    whether to log anything                    bool (False)
+  Option     Description                                Type        Default
+  —————————— —————————————————————————————————————————— ——————————— ———————
+• src        source file to take definitions from       Path        -
+• dst        destination file (may not exist)           Path        -
+• mv         names to move from the source file         list[str]   -
+• dry_run    whether to only preview the change diffs   bool        False
+• escalate   whether to raise an error upon failure     bool        False
+• cls_defs   whether to target only class definitions   bool        False
+• all_defs   whether to target both class & funcdefs    bool        False
+• verbose    whether to log anything                    bool        False
 
 positional arguments:
   src
@@ -55,18 +58,80 @@ options:
   -v, --verbose
 ```
 
-`cpdef` has the same flags as `mvdef`, but only copies (i.e. makes no changes to `src`).
+### `cpdef`
+
+Copies functions named by `-m`/`--mv` and their associated imports from `src` to `dst`,
+or just previews the changes as a diff if passed `-d`/`--dry-run`.
+
+Has the same flags and signature as `mvdef`, but never changes `src`.
 
 ```
-usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
+usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 
-  Copy function definitions from one file to another, and any necessary
-  associated import statements along with them.
+  Move function definitions from one file to another, moving/copying
+  any necessary associated import statements along with them.
+
+  Option     Description                                Type        Default
+  —————————— —————————————————————————————————————————— ——————————— ———————
+• src        source file to take definitions from       Path        -
+• dst        destination file (may not exist)           Path        -
+• mv         names to move from the source file         list[str]   -
+• dry_run    whether to only preview the change diffs   bool        False
+• escalate   whether to raise an error upon failure     bool        False
+• cls_defs   whether to target only class definitions   bool        False
+• all_defs   whether to target both class & funcdefs    bool        False
+• verbose    whether to log anything                    bool        False
+
+positional arguments:
+  src
+  dst
+
+options:
+  -h, --help            show this help message and exit
+  -m [MV ...], --mv [MV ...]
+  -d, --dry-run
+  -e, --escalate
+  -c, --cls-defs
+  -a, --all-defs
+  -v, --verbose
+```
+
+### `lsdef`
+
+Has a similar signature, but no `dst` (it operates on just one file) and the `mv` argument
+is replaced by `ls`, which can specify regular expressions (default `*` matches any name).
+
+```
+usage: lsdef [-h] [-l [LS ...]] [-p] [-e] [-c] [-a] [-v] src
+
+  List function definitions in a given file.
+
+  Option     Description                                Type        Default
+  —————————— —————————————————————————————————————————— ——————————— ———————
+• src        source file to list definitions from       Path        -
+• ls         name regex to list from the source file    list[str]   ['*']
+• pprint     whether to print an __all__ list           bool        False
+• escalate   whether to raise an error upon failure     bool        False
+• cls_defs   whether to target only class definitions   bool        False
+• all_defs   whether to target both class & funcdefs    bool        False
+• verbose    whether to log anything                    bool        False
+
+positional arguments:
+  src
+
+options:
+  -h, --help            show this help message and exit
+  -l [LS ...], --ls [LS ...]
+  -p, --pprint
+  -e, --escalate
+  -c, --cls-defs
+  -a, --all-defs
+  -v, --verbose
 ```
 
 ## How it works
 
-### The structure of a command
+### The structure of a `mvdef` invocation
 
 When you call `mvdef foo.py bar.py -d -c -m A`, equivalent to:
 
@@ -99,6 +164,15 @@ then produces the diffs they imply.
 
 If the dry run setting is not used, the source and destination files are overwritten
 with the changes, instead of just displaying the diffs.
+
+### `lsdef` approach
+
+`lsdef` is similar, but instead of making a `src_diff` it makes a `src_manifest`
+(`mvdef.manifest.Manifest` object), and there is no `dst` file to handle.
+
+Error handling is the same as above.
+
+---
 
 > _mvdef_ is available from [PyPI](https://pypi.org/project/mvdef), and
 > the code is on [GitHub](https://github.com/lmmx/mvdef)

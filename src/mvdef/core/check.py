@@ -20,7 +20,7 @@ from pyflakes.checker import (
 )
 from pyflakes.messages import UnusedImport
 
-from .failure import FailableMixIn
+from ..failure import FailableMixIn
 
 __all__ = ["Checker"]
 

@@ -3,7 +3,7 @@ Tests for the parsing module (file and codestring parsing).
 """
 from pytest import mark, raises
 
-from mvdef.parse import parse, parse_file
+from mvdef.core.parse import parse, parse_file
 
 from .helpers.io import Write
 

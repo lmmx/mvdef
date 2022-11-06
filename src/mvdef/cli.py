@@ -1,15 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass
 from typing import NamedTuple
 
 import defopt
 
-from .transfer import CpDef, MvDef
+from .transfer import CpDef, LsDef, MvDef
 
 
 @dataclass
 class CLIResult:
     mover: MvDef | CpDef | None
-    diffs: tuple[str, str] | None = None
+    _: KW_ONLY
+    diffs: tuple[str, str] | None = None  # MvDef | CpDef
+    manif: str | None = None  # LsDef
 
 
 class DefoptFlags(NamedTuple):
@@ -19,8 +21,9 @@ class DefoptFlags(NamedTuple):
 
 
 def cli(*args, **kwargs) -> CLIResult | None:
+    MvCls = kwargs.pop("MvCls")
+    ls = MvCls is LsDef
     return_state = kwargs.pop("return_state", False)
-    MvCls = kwargs.pop("MvCls", MvDef)
     defopt_argv: list[str] | None = kwargs.pop("defopt_argv", None)
     force_defopt = defopt_argv is not None
     # Use defopt if no kw/args (i.e. using argv) or if testing the CLI (mimicking argv)
@@ -31,17 +34,22 @@ def cli(*args, **kwargs) -> CLIResult | None:
             defopt_kwargs["argv"] = defopt_argv
         mover = defopt.run(MvCls, **defopt_kwargs)
     else:
-        mover = MvDef(*args, **kwargs)
+        mover = MvCls(*args, **kwargs)
     if unblocked := (mover.check_blocker is None):
-        if mover.dry_run:
-            diffs = mover.diffs(print_out=True)
+        if ls:
+            manif = mover.manif(print_out=True)
         else:
-            mover.move()
+            if mover.dry_run:
+                diffs = mover.diffs(print_out=True)
+            else:
+                mover.move()
     if return_state:
-        if unblocked and mover.dry_run:
-            result = CLIResult(mover, diffs)
-        else:
-            result = CLIResult(mover)
+        result = CLIResult(mover)
+        if unblocked:
+            if ls:
+                result.manif = manif
+            elif mover.dry_run:
+                result.diffs = diffs
     return result if return_state else None
 
 
@@ -51,3 +59,7 @@ def cli_move(*args, **kwargs) -> CLIResult | None:
 
 def cli_copy(*args, **kwargs) -> CLIResult | None:
     return cli(MvCls=CpDef, *args, **kwargs)
+
+
+def cli_list(*args, **kwargs) -> CLIResult | None:
+    return cli(MvCls=LsDef, *args, **kwargs)
