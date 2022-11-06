@@ -66,16 +66,16 @@ or just previews the changes as a diff if passed `-d`/`--dry-run`.
 Has the same flags and signature as `mvdef`, but never changes `src`.
 
 ```
-usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
+usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 
-  Move function definitions from one file to another, moving/copying
-  any necessary associated import statements along with them.
+  Copy function definitions from one file to another, and any necessary
+  associated import statements along with them.
 
   Option     Description                                Type        Default
   —————————— —————————————————————————————————————————— ——————————— ———————
-• src        source file to take definitions from       Path        -
+• src        source file to copy definitions from       Path        -
 • dst        destination file (may not exist)           Path        -
-• mv         names to move from the source file         list[str]   -
+• mv         names to copy from the source file         list[str]   -
 • dry_run    whether to only preview the change diffs   bool        False
 • escalate   whether to raise an error upon failure     bool        False
 • cls_defs   whether to target only class definitions   bool        False
@@ -99,18 +99,19 @@ options:
 ### `lsdef`
 
 Has a similar signature, but no `dst` (it operates on just one file) and the `mv` argument
-is replaced by `ls`, which can specify regular expressions (default `*` matches any name).
+is replaced by `match`, which can specify regular expressions (default `*` matches any name).
 
 ```
-usage: lsdef [-h] [-l [LS ...]] [-p] [-e] [-c] [-a] [-v] src
+usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-a] [-v] src
 
   List function definitions in a given file.
 
   Option     Description                                Type        Default
   —————————— —————————————————————————————————————————— ——————————— ———————
 • src        source file to list definitions from       Path        -
-• ls         name regex to list from the source file    list[str]   ['*']
-• pprint     whether to print an __all__ list           bool        False
+• match      name regex to list from the source file    list[str]   ['*']
+• dry_run    whether to print the __all__ diff          bool        False
+• list       whether to print the list of names         bool        False
 • escalate   whether to raise an error upon failure     bool        False
 • cls_defs   whether to target only class definitions   bool        False
 • all_defs   whether to target both class & funcdefs    bool        False
@@ -121,8 +122,9 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -l [LS ...], --ls [LS ...]
-  -p, --pprint
+  -m [MATCH ...], --match [MATCH ...]
+  -d, --dry-run
+  -l, --list
   -e, --escalate
   -c, --cls-defs
   -a, --all-defs
