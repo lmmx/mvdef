@@ -20,8 +20,21 @@ class MvDefBase(FailableMixIn):
     """
 
     # Do not type annotate (see docstring)
-    check_kw = ["cls_defs", "all_defs"]
+    check_kw = ["cls_defs", "func_defs"]
     diff_kw = ["escalate", "verbose"]
+
+    def __post_init__(self):
+        self.logger = set_up_logging(__name__, verbose=self.verbose)
+        self.log(self)
+        if self.cls_defs and self.func_defs:
+            # Internally these must mean "only", so flip both (before parsing in check)
+            self.cls_defs, self.func_defs = False, False
+        self.check_blocker = self.check()
+
+    @property
+    def all_defs(self) -> bool:
+        """If neither exclusively classdefs or exclusively funcdefs, use both."""
+        return not (self.cls_defs or self.func_defs)
 
     @classmethod
     def clsvar_fetch(cls, name: str) -> list[bool]:
@@ -50,11 +63,6 @@ class MvDefBase(FailableMixIn):
     @property
     def src_diff_kwargs(self) -> dict[str, bool | Checker]:
         return self.src_kwargs("diff_kw")
-
-    def __post_init__(self):
-        self.logger = set_up_logging(__name__, verbose=self.verbose)
-        self.log(self)
-        self.check_blocker = self.check()
 
     def log(self, msg):
         self.logger.info(msg)

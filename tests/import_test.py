@@ -24,7 +24,7 @@ def test_module_import_copy(tmp_path, src, dst, mv, stored_diffs):
     `errwarn0_err` means "src with `err` and `warn`, no dst, move `err`".
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=False, all_defs=False)
+    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=False, func_defs=True)
     assert diffs == stored_diffs
 
 
@@ -40,6 +40,6 @@ def test_module_import_stay_and_go(tmp_path, src, dst, escalate, mv):
     Cutting an import while leaving another on the same line is not yet implemented.
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    mvdef_kwargs = dict(mv=mv, cls_defs=False, all_defs=False, escalate=escalate)
+    mvdef_kwargs = dict(mv=mv, cls_defs=False, func_defs=True, escalate=escalate)
     with raises(NotImplementedError):
         dry_run_cmd(a=src_p, b=dst_p, **mvdef_kwargs)

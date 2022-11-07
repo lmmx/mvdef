@@ -60,7 +60,7 @@ def reparse(check: Checker, input_text: str) -> Checker:
         "verbose": check.verbose,
         "escalate": check.escalate,
         "cls_defs": check.target_cls,
-        "all_defs": check.target_all,
+        "func_defs": check.target_func,
     }
     # if input_text == "x = 1\n\n\nclass A:\n\n\ny = 2\n":
     #     raise ValueError("WTF")

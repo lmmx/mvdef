@@ -19,8 +19,8 @@ class LsDef(MvDefBase):
     • dry_run    whether to print the __all__ diff          bool        False
     • list       whether to print the list of names         bool        False
     • escalate   whether to raise an error upon failure     bool        False
-    • cls_defs   whether to target only class definitions   bool        False
-    • all_defs   whether to target both class & funcdefs    bool        False
+    • cls_defs   whether to use only class definitions      bool        False
+    • func_defs  whether to use only function definitions   bool        False
     • verbose    whether to log anything                    bool        False
     """
 
@@ -30,7 +30,7 @@ class LsDef(MvDefBase):
     list: bool = False
     escalate: bool = False
     cls_defs: bool = False
-    all_defs: bool = False
+    func_defs: bool = False
     verbose: bool = False
     # Future idea: flag to show import usage map alongside each definition
 
@@ -42,7 +42,7 @@ class LsDef(MvDefBase):
 
     def check(self) -> CheckFailure | None:
         kwargs = {
-            k: getattr(self, k) for k in "escalate verbose cls_defs all_defs".split()
+            k: getattr(self, k) for k in "escalate verbose cls_defs func_defs".split()
         }
         try:
             self.src_check = parse_file(self.src, ensure_exists=True, **kwargs)

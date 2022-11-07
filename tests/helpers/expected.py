@@ -200,7 +200,7 @@ class DstDiffs(Enum):
 
 class StoredStdOut(Enum):
     MVDEF_HELP = (
-        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst\n"
+        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
         "\n"
         "\xa0\xa0Move function definitions from one file to another, moving/copying\n"
         "\xa0\xa0any necessary associated import statements along with them.\n"
@@ -216,9 +216,9 @@ class StoredStdOut(Enum):
         "False\n"
         "•\xa0escalate   whether to raise an error upon failure     bool        "
         "False\n"
-        "•\xa0cls_defs   whether to target only class definitions   bool        "
+        "•\xa0cls_defs   whether to use only class definitions      bool        "
         "False\n"
-        "•\xa0all_defs   whether to target both class & funcdefs    bool        "
+        "•\xa0func_defs  whether to use only function definitions   bool        "
         "False\n"
         "•\xa0verbose    whether to log anything                    bool        "
         "False\n"
@@ -233,11 +233,11 @@ class StoredStdOut(Enum):
         "  -d, --dry-run\n"
         "  -e, --escalate\n"
         "  -c, --cls-defs\n"
-        "  -a, --all-defs\n"
+        "  -f, --func-defs\n"
         "  -v, --verbose\n"
     )
     CPDEF_HELP = (
-        "usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst\n"
+        "usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
         "\n"
         "\xa0\xa0Copy function definitions from one file to another, and any "
         "necessary\n"
@@ -254,9 +254,9 @@ class StoredStdOut(Enum):
         "False\n"
         "•\xa0escalate   whether to raise an error upon failure     bool        "
         "False\n"
-        "•\xa0cls_defs   whether to target only class definitions   bool        "
+        "•\xa0cls_defs   whether to use only class definitions      bool        "
         "False\n"
-        "•\xa0all_defs   whether to target both class & funcdefs    bool        "
+        "•\xa0func_defs  whether to use only function definitions   bool        "
         "False\n"
         "•\xa0verbose    whether to log anything                    bool        "
         "False\n"
@@ -271,11 +271,11 @@ class StoredStdOut(Enum):
         "  -d, --dry-run\n"
         "  -e, --escalate\n"
         "  -c, --cls-defs\n"
-        "  -a, --all-defs\n"
+        "  -f, --func-defs\n"
         "  -v, --verbose\n"
     )
     LSDEF_HELP = (
-        "usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-a] [-v] src\n"
+        "usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-f] [-v] src\n"
         "\n"
         "\xa0\xa0List function definitions in a given file.\n"
         "\n"
@@ -292,9 +292,9 @@ class StoredStdOut(Enum):
         "False\n"
         "•\xa0escalate   whether to raise an error upon failure     bool        "
         "False\n"
-        "•\xa0cls_defs   whether to target only class definitions   bool        "
+        "•\xa0cls_defs   whether to use only class definitions      bool        "
         "False\n"
-        "•\xa0all_defs   whether to target both class & funcdefs    bool        "
+        "•\xa0func_defs  whether to use only function definitions   bool        "
         "False\n"
         "•\xa0verbose    whether to log anything                    bool        "
         "False\n"
@@ -309,14 +309,14 @@ class StoredStdOut(Enum):
         "  -l, --list\n"
         "  -e, --escalate\n"
         "  -c, --cls-defs\n"
-        "  -a, --all-defs\n"
+        "  -f, --func-defs\n"
         "  -v, --verbose\n"
     )
 
 
 class StoredStdErr(Enum):
     USAGE = (
-        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst\n"
+        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
         "mvdef: error: the following arguments are required: src, dst, -m/--mv\n"
     )
     REJECT_0_EQ_1 = "1:1: cannot assign to literal here. Maybe you meant '==' instead of '='?\n0 = 1\n^\n"

@@ -18,8 +18,8 @@ class CpDef(MvDef):
     • mv         names to copy from the source file         list[str]   -
     • dry_run    whether to only preview the change diffs   bool        False
     • escalate   whether to raise an error upon failure     bool        False
-    • cls_defs   whether to target only class definitions   bool        False
-    • all_defs   whether to target both class & funcdefs    bool        False
+    • cls_defs   whether to use only class definitions      bool        False
+    • func_defs  whether to use only function definitions   bool        False
     • verbose    whether to log anything                    bool        False
     """
 

@@ -29,7 +29,7 @@ class Checker(FailableMixIn, checker.Checker):
     verbose: bool
     escalate: bool
     target_cls: bool
-    target_all: bool
+    target_func: bool
     funcdefs: list[AST]
     classdefs: list[AST]
     alldefs: list[AST]
@@ -41,13 +41,17 @@ class Checker(FailableMixIn, checker.Checker):
         self.verbose = kwargs.pop("verbose", False)
         self.escalate = kwargs.pop("escalate", False)
         self.target_cls = kwargs.pop("cls_defs", False)
-        self.target_all = kwargs.pop("all_defs", False)
+        self.target_func = kwargs.pop("func_defs", False)
         self.funcdefs = []
         self.classdefs = []
         self.alldefs = []
         self.imports = []
         self.import_uses = {}
         super().__init__(*args, **kwargs)
+
+    @property
+    def target_all(self) -> bool:
+        return not (self.target_cls or self.target_func)
 
     @property
     def target_defs(self) -> list[AST]:

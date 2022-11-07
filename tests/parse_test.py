@@ -28,9 +28,9 @@ def test_parse_successfully(tmp_path, src, dst):
     )
     for parsed, filename in zip([src_parsed, dst_parsed], written.names):
         assert parsed.filename == filename
-        assert parsed.target_all is False
+        assert parsed.target_all is True
         assert parsed.target_cls is False
-        assert parsed.target_defs == parsed.funcdefs
+        assert parsed.target_defs == parsed.alldefs
     assert (src_parsed.code, dst_parsed.code) == written.contents
     assert [d.name for d in src_parsed.alldefs] == ["foo", "A"]
     assert [d.name for d in dst_parsed.alldefs] == ["bar"]

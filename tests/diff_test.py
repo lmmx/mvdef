@@ -23,7 +23,7 @@ def test_create_files(tmp_path, a_cat, b_cat):
     Write([a, b], [a_cat, b_cat], path=tmp_path, len_check=True)
 
 
-@mark.parametrize("all_defs", [True, False])
+@mark.parametrize("func_defs", [True, False])
 @mark.parametrize(
     "mv,cls_defs,no_dst,stored_diffs",
     [
@@ -36,20 +36,21 @@ def test_create_files(tmp_path, a_cat, b_cat):
     indirect=["stored_diffs"],
 )
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
-def test_dry_mv_basic(tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst):
+def test_dry_mv_basic(
+    tmp_path, src, dst, mv, cls_defs, stored_diffs, func_defs, no_dst
+):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
-    twice makes no difference to the result, and ditto for switching the all_defs flag.
+    twice makes no difference to the result, and ditto for switching the func_defs flag.
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     if no_dst:
         dst_p.unlink()
-    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, func_defs=func_defs)
     assert diffs == stored_diffs
 
 
-@mark.parametrize("all_defs", [False])
-@mark.parametrize("cls_defs", [True, False])
+@mark.parametrize("cls_defs,func_defs", [(True, False), (False, True)])
 @mark.parametrize("mv", [["foo", "A"], ["A", "foo"]])
 @mark.parametrize(
     "src,dst,stored_diffs", [("fooA", "bar", "fooA2bar_fooA")], indirect=True
@@ -59,20 +60,20 @@ def test_dry_mv_multidef_not_all_defs(
     src,
     dst,
     mv,
-    all_defs,
     cls_defs,
+    func_defs,
     stored_diffs,
 ):
     """
-    Test that if a class 'A' and a funcdef 'foo' are moved without the `all_defs`
-    flag, a `CheckFailure` error is raised.
+    Test that if a class 'A' and a funcdef 'foo' are moved without the appropriate
+    `*_defs` flag, a `CheckFailure` error is raised.
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     with raises(CheckFailure):
-        dry_run_cmd(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+        dry_run_cmd(src_p, dst_p, mv=mv, cls_defs=cls_defs, func_defs=func_defs)
 
 
-@mark.parametrize("cls_defs", [True, False])
+@mark.parametrize("defs_flag", [True, False])
 @mark.parametrize(
     "mv,no_dst,stored_diffs",
     [
@@ -89,20 +90,20 @@ def test_dry_mv_multidef_not_all_defs(
     indirect=True,
 )
 def test_dry_mv_multidef_all_defs(
-    tmp_path, src, dst, mv, no_dst, stored_diffs, cls_defs
+    tmp_path, src, dst, mv, no_dst, stored_diffs, defs_flag
 ):
     """
     Test that a class 'A' and a funcdef 'foo' are moved correctly (in the
-    same order as in `mv`), and that switching the `cls_defs` flag makes
-    no difference to the result.
+    same order as in `mv`), and that switching the `cls_defs` and `func_defs` flags in
+    unison makes no difference to the result.
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
-    mvdef_kwargs = dict(mv=mv, cls_defs=cls_defs, all_defs=True)
+    mvdef_kwargs = dict(mv=mv, cls_defs=defs_flag, func_defs=defs_flag)
     diffs = get_cmd_diffs(src_p, dst_p, **mvdef_kwargs)
     assert diffs == stored_diffs
 
 
-@mark.parametrize("all_defs", [True, False])
+@mark.parametrize("func_defs", [True, False])
 @mark.parametrize(
     "mv,cls_defs,no_dst,stored_diffs",
     [
@@ -112,7 +113,7 @@ def test_dry_mv_multidef_all_defs(
 )
 @mark.parametrize("src,dst", [("baz", "solo_baz")], indirect=True)
 def test_dry_mv_no_dst(
-    tmp_path, src, dst, mv, cls_defs, stored_diffs, all_defs, no_dst
+    tmp_path, src, dst, mv, func_defs, cls_defs, stored_diffs, no_dst
 ):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
@@ -121,5 +122,5 @@ def test_dry_mv_no_dst(
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path, len_check=True).file_paths
     if no_dst:
         dst_p.unlink()
-    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, all_defs=all_defs)
+    diffs = get_cmd_diffs(src_p, dst_p, mv=mv, cls_defs=cls_defs, func_defs=func_defs)
     assert diffs == stored_diffs
