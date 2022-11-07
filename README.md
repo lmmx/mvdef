@@ -25,7 +25,7 @@ pip install mvdef
 ### `mvdef`
 
 Moves functions named by `-m`/`--mv` and their associated imports from `src` to `dst`,
-or just previews the changes as a diff if passed `-d`/`--dry-run`.V
+or just previews the changes as a diff if passed `-d`/`--dry-run`.
 
 ```
 usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst
