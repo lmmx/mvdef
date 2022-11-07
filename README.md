@@ -28,7 +28,7 @@ Moves functions named by `-m`/`--mv` and their associated imports from `src` to 
 or just previews the changes as a diff if passed `-d`/`--dry-run`.V
 
 ```
-usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
+usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst
 
   Move function definitions from one file to another, moving/copying
   any necessary associated import statements along with them.
@@ -40,8 +40,8 @@ usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 • mv         names to move from the source file         list[str]   -
 • dry_run    whether to only preview the change diffs   bool        False
 • escalate   whether to raise an error upon failure     bool        False
-• cls_defs   whether to target only class definitions   bool        False
-• all_defs   whether to target both class & funcdefs    bool        False
+• cls_defs   whether to use only class definitions      bool        False
+• func_defs  whether to use only function definitions   bool        False
 • verbose    whether to log anything                    bool        False
 
 positional arguments:
@@ -54,7 +54,7 @@ options:
   -d, --dry-run
   -e, --escalate
   -c, --cls-defs
-  -a, --all-defs
+  -f, --func-defs
   -v, --verbose
 ```
 
@@ -66,7 +66,7 @@ or just previews the changes as a diff if passed `-d`/`--dry-run`.
 Has the same flags and signature as `mvdef`, but never changes `src`.
 
 ```
-usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
+usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst
 
   Copy function definitions from one file to another, and any necessary
   associated import statements along with them.
@@ -78,8 +78,8 @@ usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-a] [-v] src dst
 • mv         names to copy from the source file         list[str]   -
 • dry_run    whether to only preview the change diffs   bool        False
 • escalate   whether to raise an error upon failure     bool        False
-• cls_defs   whether to target only class definitions   bool        False
-• all_defs   whether to target both class & funcdefs    bool        False
+• cls_defs   whether to use only class definitions      bool        False
+• func_defs  whether to use only function definitions   bool        False
 • verbose    whether to log anything                    bool        False
 
 positional arguments:
@@ -92,7 +92,7 @@ options:
   -d, --dry-run
   -e, --escalate
   -c, --cls-defs
-  -a, --all-defs
+  -f, --func-defs
   -v, --verbose
 ```
 
@@ -102,7 +102,7 @@ Has a similar signature, but no `dst` (it operates on just one file) and the `mv
 is replaced by `match`, which can specify regular expressions (default `*` matches any name).
 
 ```
-usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-a] [-v] src
+usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-f] [-v] src
 
   List function definitions in a given file.
 
@@ -113,8 +113,8 @@ usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-a] [-v] src
 • dry_run    whether to print the __all__ diff          bool        False
 • list       whether to print the list of names         bool        False
 • escalate   whether to raise an error upon failure     bool        False
-• cls_defs   whether to target only class definitions   bool        False
-• all_defs   whether to target both class & funcdefs    bool        False
+• cls_defs   whether to use only class definitions      bool        False
+• func_defs  whether to use only function definitions   bool        False
 • verbose    whether to log anything                    bool        False
 
 positional arguments:
@@ -127,7 +127,7 @@ options:
   -l, --list
   -e, --escalate
   -c, --cls-defs
-  -a, --all-defs
+  -f, --func-defs
   -v, --verbose
 ```
 

@@ -53,8 +53,6 @@ def test_ls_all(
             manif = get_manif(src_p, match=["*"], **ls_kwargs)
         return
     if lst:
-        if not manif.splitlines() == expected:
-            breakpoint()
         assert manif.splitlines() == expected
     elif dry_run:
         # Simple version of the `format_all()` function, for short one-liners only
