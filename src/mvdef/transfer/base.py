@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from ..core.check import Checker
 from ..error_handling.exceptions import CheckFailure
-from ..failure import FailableMixIn
+from ..error_handling.failure import FailableMixIn
 from ..log_utils import set_up_logging
 
 __all__ = ["MvDefBase"]

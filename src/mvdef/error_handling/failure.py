@@ -1,6 +1,6 @@
 from sys import stderr
 
-from .error_handling.exceptions import CheckFailure
+from .exceptions import CheckFailure
 
 __all__ = ["FailableMixIn"]
 
