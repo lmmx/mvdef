@@ -115,7 +115,7 @@ class Checker(FailableMixIn, checker.Checker):
         imps = [m for m in self.messages if isinstance(m, UnusedImport)]
         return imps
 
-    def handleNodeLoad(self, node):
+    def handleNodeLoad(self, node, parent=None):
         used_set = []  # Note: not used, but would help if re-assignment is an issue
         # https://github.com/PyCQA/pyflakes/blob/
         # 853cce91634cbddff01cc16313b5467be1e95c54/pyflakes/checker.py#L1073-L1094
@@ -134,7 +134,7 @@ class Checker(FailableMixIn, checker.Checker):
                     continue
             binding = scope.get(name, None)
             if isinstance(binding, Annotation) and not self._in_postponed_annotation:
-                scope[name].used = True
+                scope[name].used = (self.scope, node)
                 continue
             if name == "print" and isinstance(binding, Builtin):
                 parent = self.getParent(node)
