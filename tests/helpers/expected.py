@@ -200,7 +200,7 @@ class DstDiffs(Enum):
 
 class StoredStdOut(Enum):
     MVDEF_HELP = (
-        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
+        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] [--version] src dst\n"
         "\n"
         "\xa0\xa0Move function definitions from one file to another, moving/copying\n"
         "\xa0\xa0any necessary associated import statements along with them.\n"
@@ -235,9 +235,10 @@ class StoredStdOut(Enum):
         "  -c, --cls-defs\n"
         "  -f, --func-defs\n"
         "  -v, --verbose\n"
+        "  --version             show program's version number and exit\n"
     )
     CPDEF_HELP = (
-        "usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
+        "usage: cpdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] [--version] src dst\n"
         "\n"
         "\xa0\xa0Copy function definitions from one file to another, and any "
         "necessary\n"
@@ -273,9 +274,11 @@ class StoredStdOut(Enum):
         "  -c, --cls-defs\n"
         "  -f, --func-defs\n"
         "  -v, --verbose\n"
+        "  --version             show program's version number and exit\n"
     )
     LSDEF_HELP = (
-        "usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-f] [-v] src\n"
+        "usage: lsdef [-h] [-m [MATCH ...]] [-d] [-l] [-e] [-c] [-f] [-v] [--version]\n"
+        "             src\n"
         "\n"
         "\xa0\xa0List function definitions in a given file.\n"
         "\n"
@@ -311,12 +314,13 @@ class StoredStdOut(Enum):
         "  -c, --cls-defs\n"
         "  -f, --func-defs\n"
         "  -v, --verbose\n"
+        "  --version             show program's version number and exit\n"
     )
 
 
 class StoredStdErr(Enum):
     USAGE = (
-        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] src dst\n"
+        "usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] [--version] src dst\n"
         "mvdef: error: the following arguments are required: src, dst, -m/--mv\n"
     )
     REJECT_0_EQ_1 = "1:1: cannot assign to literal here. Maybe you meant '==' instead of '='?\n0 = 1\n^\n"
