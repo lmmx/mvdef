@@ -1,3 +1,4 @@
+"""Override the pyflakes `Checker` to extract info for our purposes."""
 from __future__ import annotations
 
 import ast
@@ -26,6 +27,8 @@ __all__ = ["Checker"]
 
 
 class Checker(FailableMixIn, checker.Checker):
+    """A subclass of the pyflakes `Checker` (overriding specific parts)."""
+
     verbose: bool
     escalate: bool
     target_cls: bool

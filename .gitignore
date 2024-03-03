@@ -17,3 +17,4 @@ version.py
 **/assets/package_catalogue.db
 .pdm-python
 .pdm-build/
+site/
