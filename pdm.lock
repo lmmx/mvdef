@@ -5,7 +5,7 @@
 groups = ["default", "ci", "docs", "tests"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:222f076147c504e53511b6358b63b4f7a22a1c68c7916089c0f672fb5f98da5e"
+content_hash = "sha256:1aa240dc98ceb35794c388a71ddb1196029c1c68300044bd43ab00d07ce50620"
 
 [[package]]
 name = "argcomplete"
@@ -422,6 +422,20 @@ files = [
 ]
 
 [[package]]
+name = "griffe"
+version = "0.41.2"
+requires_python = ">=3.8"
+summary = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
+groups = ["docs"]
+dependencies = [
+    "colorama>=0.4",
+]
+files = [
+    {file = "griffe-0.41.2-py3-none-any.whl", hash = "sha256:a3e1824bc8d5c3190b7e05fbfde36e1e794d9c409c646783a57366c947d7816b"},
+    {file = "griffe-0.41.2.tar.gz", hash = "sha256:662094e8066c1340d6993880ac46bdb3c42e639fe2b93995459503079332ec8f"},
+]
+
+[[package]]
 name = "htmlmin2"
 version = "0.1.13"
 summary = "An HTML Minifier"
@@ -685,6 +699,37 @@ dependencies = [
     "mkdocs>=1.4",
     "platformdirs>=2.2.0",
     "pymdown-extensions>=6.3",
+]
+files = [
+    {file = "mkdocstrings-0.24.1-py3-none-any.whl", hash = "sha256:b4206f9a2ca8a648e222d5a0ca1d36ba7dee53c88732818de183b536f9042b5d"},
+    {file = "mkdocstrings-0.24.1.tar.gz", hash = "sha256:cc83f9a1c8724fc1be3c2fa071dd73d91ce902ef6a79710249ec8d0ee1064401"},
+]
+
+[[package]]
+name = "mkdocstrings-python"
+version = "1.8.0"
+requires_python = ">=3.8"
+summary = "A Python handler for mkdocstrings."
+groups = ["docs"]
+dependencies = [
+    "griffe>=0.37",
+    "mkdocstrings>=0.20",
+]
+files = [
+    {file = "mkdocstrings_python-1.8.0-py3-none-any.whl", hash = "sha256:4209970cc90bec194568682a535848a8d8489516c6ed4adbe58bbc67b699ca9d"},
+    {file = "mkdocstrings_python-1.8.0.tar.gz", hash = "sha256:1488bddf50ee42c07d9a488dddc197f8e8999c2899687043ec5dd1643d057192"},
+]
+
+[[package]]
+name = "mkdocstrings"
+version = "0.24.1"
+extras = ["python"]
+requires_python = ">=3.8"
+summary = "Automatic documentation from sources, for MkDocs."
+groups = ["docs"]
+dependencies = [
+    "mkdocstrings-python>=0.5.2",
+    "mkdocstrings==0.24.1",
 ]
 files = [
     {file = "mkdocstrings-0.24.1-py3-none-any.whl", hash = "sha256:b4206f9a2ca8a648e222d5a0ca1d36ba7dee53c88732818de183b536f9042b5d"},
