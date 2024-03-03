@@ -42,12 +42,12 @@ jobs:
           python -VV
           python -m site
           python -m pip install --upgrade pip setuptools pdm
-          pdm install -dG dev -dG tests -dG ci
+          pdm install -dG tests -dG ci
 
       - name: "Run tox targets for ${{ matrix.python-version }}"
         run: |
-          pdm run python -m pytest --version
-          pdm run python -m tox -v -p 2 # Only use 2 CPUs so coverage-report runs after pytest
+          pdm run pytest --version
+          pdm run tox -v -p 2 # Only use 2 CPUs so coverage-report runs after pytest
 
       - name: "Get coverage"
         run: |
@@ -121,6 +121,6 @@ jobs:
           echo "CONDA=$CONDA"
           echo "python=$(which python)"
           echo "conda=$(which conda)"
-          python -m pip install -e .[dev]
+          python -m pip install -e .
       - name: "Import package"
         run: "python -c 'import mvdef; print(mvdef)'"

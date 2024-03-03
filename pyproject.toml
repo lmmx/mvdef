@@ -19,17 +19,14 @@ skip_covered = true
 
 
 [tool.pdm.dev-dependencies]
-ci = ["tox", "tox-conda", "tox-gh-actions"]
+ci = ["tox", "tox-pdm", "tox-gh-actions"]
 # dev = tests + docs + pre-commit
-dev = [
-    "tox-pdm>=0.7.2",
-]
 docs = [
     "sphinx>=4",  # required for property :attr: role
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",  # don't pin to 1.11.1
 ]
-tests = ["coverage[toml]>=5.5", "pytest"]
+tests = ["coverage[toml]>=5.5", "pytest", "tox"]
 
 [project]
 authors = [
