@@ -17,6 +17,8 @@ source = ["src", ".tox/*/site-packages"]
 show_missing = true
 skip_covered = true
 
+[tool.pdm]
+version = {path = "src/mvdef/__init__.py", source = "file"}
 
 [tool.pdm.dev-dependencies]
 ci = ["tox", "tox-pdm", "tox-gh-actions"]
