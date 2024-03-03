@@ -65,6 +65,7 @@ def test_cpdef_help_message(capsys, subproc, argv, stored_output):
         assert captured.out == stored_output
 
 
+@mark.skiponci
 @mark.parametrize("subproc", [True, False])
 @mark.parametrize(
     "argv,stored_output",

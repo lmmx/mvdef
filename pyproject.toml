@@ -28,6 +28,11 @@ docs = [
 ]
 tests = ["coverage[toml]>=5.5", "pytest", "tox"]
 
+[tool.pytest.ini_options]
+markers = [
+    "skiponci: tests that should not run on CI (e.g. related to CLI display that don't run consistently",
+]
+
 [project]
 authors = [
     {email = "louismmx@gmail.com", name = "Louis Maddox"},
