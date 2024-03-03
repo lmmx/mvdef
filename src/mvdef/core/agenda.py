@@ -1,3 +1,4 @@
+"""Agendas indicate the work to be done to symbols."""
 from __future__ import annotations
 
 from ast import AST, unparse
@@ -34,6 +35,10 @@ class SourcedUse:
 
 @dataclass
 class MovingImport:
+    """
+    An import statement that is to be moved.
+    """
+
     bound: Importation
 
 

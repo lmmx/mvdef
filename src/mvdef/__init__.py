@@ -1,10 +1,7 @@
-r"""
-:mod:`mvdef` is...
-
-    >>> import mvdef
 """
-
-# Sphinx automodule relies on modules being exposed through `__all__` here
+`mvdef` provides command line tools to move/copy function/classes and their associated
+import statements between files.
+"""
 
 __all__ = []  # type: ignore
 

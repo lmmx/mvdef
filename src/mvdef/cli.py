@@ -1,3 +1,4 @@
+"""Command line interface components."""
 from dataclasses import KW_ONLY, dataclass
 from typing import NamedTuple
 
@@ -8,6 +9,8 @@ from .transfer import CpDef, LsDef, MvDef
 
 @dataclass
 class CLIResult:
+    """The result of a CLI call."""
+
     mover: MvDef | CpDef | None
     _: KW_ONLY
     diffs: tuple[str, str] | None = None  # MvDef | CpDef
@@ -15,12 +18,15 @@ class CLIResult:
 
 
 class DefoptFlags(NamedTuple):
+    """The flags to pass to defopt (as kwargs)."""
+
     no_negated_flags: bool = True
     cli_options: str = "has_default"
     show_defaults: bool = False
 
 
 def cli(*args, **kwargs) -> CLIResult | None:
+    """A wrapper used for all CLIs."""
     MvCls = kwargs.pop("MvCls")
     ls = MvCls is LsDef
     return_state = kwargs.pop("return_state", False)
@@ -54,12 +60,15 @@ def cli(*args, **kwargs) -> CLIResult | None:
 
 
 def cli_move(*args, **kwargs) -> CLIResult | None:
+    """Move symbols."""
     return cli(MvCls=MvDef, *args, **kwargs)
 
 
 def cli_copy(*args, **kwargs) -> CLIResult | None:
+    """Copy symbols."""
     return cli(MvCls=CpDef, *args, **kwargs)
 
 
 def cli_list(*args, **kwargs) -> CLIResult | None:
+    """List symbols."""
     return cli(MvCls=LsDef, *args, **kwargs)
