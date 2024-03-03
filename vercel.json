@@ -1,5 +1,5 @@
 {
   "buildCommand": "bash ./docs/vercel/build.sh",
-  "outputDirectory": "docs/_build",
+  "outputDirectory": "docs/_build/html",
   "installCommand": "bash ./docs/vercel/deploy.sh"
 }
