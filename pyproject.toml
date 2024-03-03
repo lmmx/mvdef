@@ -17,6 +17,19 @@ source = ["src", ".tox/*/site-packages"]
 show_missing = true
 skip_covered = true
 
+
+[tool.pdm.dev-dependencies]
+docs = [
+    "sphinx>=4",  # required for property :attr: role
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints",  # don't pin to 1.11.1
+]
+tests = ["coverage[toml]>=5.5", "pytest"]
+# dev = tests + docs + pre-commit
+dev = [
+    "tox-pdm>=0.7.2",
+]
+
 [project]
 authors = [
     {email = "louismmx@gmail.com", name = "Louis Maddox"},
@@ -50,15 +63,6 @@ name = "mvdef"
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
 
-
-[tool.pdm.dev-dependencies]
-docs = [
-    "sphinx>=4",  # required for property :attr: role
-    "sphinx_rtd_theme",
-    "sphinx-autodoc-typehints",  # don't pin to 1.11.1
-]
-tests = ["coverage[toml]>=5.5", "pytest"]
-# dev = tests + docs + pre-commit
 
 [project.scripts]
 mvdef = "mvdef.cli:cli_move"
