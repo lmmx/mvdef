@@ -26,7 +26,9 @@ ci = ["tox", "tox-pdm", "tox-gh-actions"]
 docs = [
     "mkdocs>=1.5.3",
     "mkdocs-material[recommended,imaging]>=9.5.2",
+    "mkdocs-section-index>=0.3.8",
     "mkdocstrings[python]>=0.24.0",
+    "urllib3<2",  # Vercel: https://github.com/squidfunk/mkdocs-material/discussions/6470
 ]
 tests = ["coverage[toml]>=5.5", "pytest", "tox"]
 
