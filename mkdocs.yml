@@ -100,7 +100,6 @@ plugins:
       cards_layout_options:
         color: #173a58
 
-
 nav:
   - Home: index.md
   - Getting Started:
@@ -109,3 +108,10 @@ nav:
       - reference/index.md
   - API:
       - api/index.md
+      - api/cli.md
+      - api/core.md
+      - api/error_handling.md
+      - api/legacy.md
+      - api/log_utils.md
+      - api/transfer.md
+      - api/whitespace.md
