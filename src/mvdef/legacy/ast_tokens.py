@@ -7,12 +7,25 @@ from functools import reduce
 
 from asttokens import ASTTokens
 
-from .ast_util import (ClassPath, DefPathTypeEnum, DefTypeEnum, FuncPath,
-                       InnerClassPath, IntraDefPathTypeEnum, MethodPath,
-                       get_base_type_name, has_clsdef_base)
+from .ast_util import (
+    ClassPath,
+    DefPathTypeEnum,
+    DefTypeEnum,
+    FuncPath,
+    InnerClassPath,
+    IntraDefPathTypeEnum,
+    MethodPath,
+    get_base_type_name,
+    has_clsdef_base,
+)
 from .def_helpers import _find_cls, _find_def, _find_node, _name_check
-from .def_path_util import (FuncDefPathStr, InnerFuncDefPathStr,
-                            MethodDefPathStr, NullPathStr, UntypedPathStr)
+from .def_path_util import (
+    FuncDefPathStr,
+    InnerFuncDefPathStr,
+    MethodDefPathStr,
+    NullPathStr,
+    UntypedPathStr,
+)
 
 __all__ = [
     "get_tokenised",

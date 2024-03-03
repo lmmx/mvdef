@@ -3,14 +3,24 @@ from itertools import chain
 from sys import stderr
 
 from .ast_tokens import get_imports, get_tree, set_defs_to_move
-from .ast_util import (get_def_names, parse_mv_funcs, process_ast,
-                       retrieve_ast_agenda, set_extradef_names,
-                       set_nondef_names)
+from .ast_util import (
+    get_def_names,
+    parse_mv_funcs,
+    process_ast,
+    retrieve_ast_agenda,
+    set_extradef_names,
+    set_nondef_names,
+)
 from .backup import backup
 from .colours import colour_str as colour
-from .editor import (copy_src_defs_to_dst, nix_surplus_imports,
-                     receive_imports, remove_copied_defs, shorten_imports,
-                     transfer_mvdefs)
+from .editor import (
+    copy_src_defs_to_dst,
+    nix_surplus_imports,
+    receive_imports,
+    remove_copied_defs,
+    shorten_imports,
+    transfer_mvdefs,
+)
 from .import_util import count_imported_names, get_module_srcs, imp_def_subsets
 
 __all__ = ["LinkedFile", "SrcFile", "DstFile", "FileLink", "parse_transfer"]

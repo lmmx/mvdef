@@ -8,9 +8,16 @@ from typing import Type
 
 import pyflakes
 from pyflakes import checker
-from pyflakes.checker import (Annotation, Builtin, ClassScope,
-                              DetectClassScopedMagic, GeneratorScope,
-                              Importation, StarImportation, getNodeName)
+from pyflakes.checker import (
+    Annotation,
+    Builtin,
+    ClassScope,
+    DetectClassScopedMagic,
+    GeneratorScope,
+    Importation,
+    StarImportation,
+    getNodeName,
+)
 from pyflakes.messages import UnusedImport
 
 from ..error_handling.failure import FailableMixIn
