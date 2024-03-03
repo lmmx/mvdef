@@ -52,8 +52,8 @@ jobs:
       - name: "Get coverage"
         run: |
           set -xe
-          pdm run python -m coverage combine
-          pdm run python -m coverage xml
+          python -m coverage combine
+          python -m coverage xml
         if: "contains(env.USING_COVERAGE, matrix.python-version)"
       - name: Upload coverage to Codecov
         if: "contains(env.USING_COVERAGE, matrix.python-version)"
@@ -83,10 +83,10 @@ jobs:
           channels: "conda-forge,anaconda"
 
       - name: "Install build, and check-wheel-content"
-        run: "pdm run python -m pip install build check-wheel-contents"
+        run: "python -m pip install build check-wheel-contents"
 
       - name: "Build package"
-        run: "pdm run python -m build --sdist --wheel ."
+        run: "pdm build"
 
       - name: "List result"
         run: "ls -l dist"
