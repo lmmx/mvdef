@@ -16,3 +16,11 @@ source = ["src", ".tox/*/site-packages"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+dependencies = [
+  "argcomplete",
+  "astor",
+  "asttokens",
+  "defopt",
+  "pyflakes",
+]
