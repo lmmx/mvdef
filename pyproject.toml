@@ -7,6 +7,9 @@ parallel = true
 branch = true
 source = ["mvdef"]
 
+[tool.isort]
+profile = "black"
+
 [tool.coverage.paths]
 source = ["src", ".tox/*/site-packages"]
 
