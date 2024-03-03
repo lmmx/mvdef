@@ -17,4 +17,4 @@ python --version
 python -m pip install pdm 'urllib3<2'
 # pdm install --no-default -dG docs -v
 pdm install -dG docs -v
-pdm run sphinx-build -M html "." "_build" -W --keep-going
+pdm run sphinx-build --version
