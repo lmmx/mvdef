@@ -1,0 +1,98 @@
+site_name: Mvdef
+site_author: Louis Maddox
+site_description: >-
+  Package providing command line tools to move/copy function/classes and their associated import statements between files.
+site_url: https://mvdef.vercel.app
+repo_name: lmmx/mvdef
+repo_url: https://github.com/lmmx/mvdef
+strict: true
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2023- Louis Maddox
+
+theme:
+  name: material
+  custom_dir: docs/theme
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+  # logo: assets/images/logo-white.svg
+  # favicon: assets/images/logo-black.svg
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - announce.dismiss
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - header.autohide
+    - navigation.indexes
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - search
+    - search.suggest
+    - section-index
+    - toc.follow
+    - toc.integrate
+  font:
+    text: Inter
+    code: Source Code Pro
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lmmx
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/permutans
+  generator: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.definition
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      noclasses: True
+      pygments_style: nord-darker
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_submodules: true
+  - social:
+      cards_layout_options:
+        color: #173a58
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Getting Started: get_started.md
+  - Reference:
+      - reference/index.md
+  - API:
+      - api/index.md

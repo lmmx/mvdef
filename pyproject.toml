@@ -24,9 +24,9 @@ version = {path = "src/mvdef/__init__.py", source = "file"}
 ci = ["tox", "tox-pdm", "tox-gh-actions"]
 # dev = tests + docs + pre-commit
 docs = [
-    "sphinx>=4",  # required for property :attr: role
-    "sphinx_rtd_theme",
-    "sphinx-autodoc-typehints",  # don't pin to 1.11.1
+    "mkdocs>=1.5.3",
+    "mkdocs-material[recommended,imaging]>=9.5.2",
+    "mkdocstrings>=0.24.0",
 ]
 tests = ["coverage[toml]>=5.5", "pytest", "tox"]
 
@@ -80,6 +80,6 @@ oldcpdef = "mvdef.legacy.__main__:cpdef"
 oldcpcls = "mvdef.legacy.__main__:cpcls"
 
 [project.urls]
-Documentation = "https://mvdef.readthedocs.io/"
-Homepage = "https://github.com/lmmx/fugit"
-Repository = "https://github.com/lmmx/fugit.git"
+Documentation = "https://mvdef.vercel.app/"
+Homepage = "https://github.com/lmmx/mvdef"
+Repository = "https://github.com/lmmx/mvdef.git"
