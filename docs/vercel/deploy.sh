@@ -17,4 +17,5 @@ python --version
 python -m pip install pdm 'urllib3<2'
 # pdm install -dG docs -v
 pdm install --no-default -dG docs -v
+echo "Docs dependency group installed OK"
 pdm run sphinx-build --version
