@@ -15,6 +15,6 @@ micromamba install python=3.11 -c conda-forge -y
 # install the dependencies
 python --version
 python -m pip install pdm 'urllib3<2'
-# pdm install -dG docs -v
-pdm install --no-default -dG docs -v
+# pdm install --no-default -dG docs -v
+pdm install -dG docs -v
 pdm run sphinx-build --version
