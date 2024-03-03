@@ -52,11 +52,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-  "argcomplete",
-  "astor",
-  "asttokens",
-  "defopt",
-  "pyflakes",
+    "argcomplete",
+    "astor",
+    "asttokens",
+    "defopt",
+    "pyflakes",
+    "urllib3<2",
 ]
 description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
 dynamic = ["version"]
