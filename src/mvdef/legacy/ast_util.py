@@ -10,15 +10,10 @@ from sys import stderr
 
 from .agenda_util import pprint_agenda
 from .def_helpers import _find_cls, _find_def, _find_node
-from .def_path_util import (
-    ClassDefPathStr,
-    FuncDefPathStr,
-    HigherOrderClassDefPathStr,
-    InnerClassDefPathStr,
-    InnerFuncDefPathStr,
-    MethodDefPathStr,
-    UntypedPathStr,
-)
+from .def_path_util import (ClassDefPathStr, FuncDefPathStr,
+                            HigherOrderClassDefPathStr, InnerClassDefPathStr,
+                            InnerFuncDefPathStr, MethodDefPathStr,
+                            UntypedPathStr)
 from .deprecations import pprint_def_names
 from .import_util import annotate_imports, get_imported_name_sources
 
