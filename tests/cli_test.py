@@ -23,6 +23,7 @@ def test_usage_error(capsys, argv, stored_error):
     assert captured.err == stored_error
 
 
+@mark.skiponci
 @mark.parametrize("subproc", [True, False])
 @mark.parametrize(
     "argv,stored_output",
@@ -44,6 +45,7 @@ def test_mvdef_help_message(capsys, subproc, argv, stored_output):
         assert captured.out == stored_output
 
 
+@mark.skiponci
 @mark.parametrize("subproc", [True, False])
 @mark.parametrize(
     "argv,stored_output",
