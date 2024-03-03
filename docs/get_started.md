@@ -27,10 +27,10 @@ You can use mvdef on the command line:
 
     ```bash
     usage: mvdef [-h] -m [MV ...] [-d] [-e] [-c] [-f] [-v] [--version] src dst
-    
+
       Move function definitions from one file to another, moving/copying
       any necessary associated import statements along with them.
-    
+
       Option     Description                                Type        Default
       —————————— —————————————————————————————————————————— ——————————— ———————
     • src        source file to take definitions from       Path        -
@@ -41,11 +41,11 @@ You can use mvdef on the command line:
     • cls_defs   whether to use only class definitions      bool        False
     • func_defs  whether to use only function definitions   bool        False
     • verbose    whether to log anything                    bool        False
-    
+
     positional arguments:
       src
       dst
-    
+
     options:
       -h, --help            show this help message and exit
       -m [MV ...], --mv [MV ...]
