@@ -41,8 +41,9 @@ jobs:
           which python
           python -VV
           python -m site
-          python -m pip install --upgrade pip setuptools
+          python -m pip install --upgrade pip setuptools pdm
           python -m pip install --upgrade pytest coverage[toml] tox tox-conda tox-gh-actions
+          pdm install
 
       - name: "Run tox targets for ${{ matrix.python-version }}"
         run: |
