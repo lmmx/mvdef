@@ -25,6 +25,7 @@ docs = [
     "sphinx-autodoc-typehints",  # don't pin to 1.11.1
 ]
 tests = ["coverage[toml]>=5.5", "pytest"]
+ci = ["tox", "tox-conda", "tox-gh-actions"]
 # dev = tests + docs + pre-commit
 dev = [
     "tox-pdm>=0.7.2",
