@@ -80,7 +80,7 @@ def shorten_imports(self, record_removed_import_n=False):
         pre_imp = self.imports[n]
         shortened_alias_list = [(a.name, a.asname) for a in pre_imp.names]
         # Proceed backwards from the end to the start, permitting deletions by index
-        for (name, asname) in shortened_alias_list[::-1]:
+        for name, asname in shortened_alias_list[::-1]:
             if asname is None and name not in names_to_short:
                 continue
             elif asname is not None and asname not in names_to_short:

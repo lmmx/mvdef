@@ -1,4 +1,5 @@
 """Agendas indicate the work to be done to symbols."""
+
 from __future__ import annotations
 
 from ast import AST, unparse

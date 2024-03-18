@@ -1,4 +1,5 @@
 """Override the pyflakes `Checker` to extract info for our purposes."""
+
 from __future__ import annotations
 
 import ast
