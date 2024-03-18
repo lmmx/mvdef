@@ -2,6 +2,7 @@
 Tests for functionality besides the diffs generated in 'dry run' mode (which is tested
 in the `diff_test.py` module).
 """
+
 from pytest import mark, raises
 
 from mvdef.error_handling.exceptions import CheckFailure
