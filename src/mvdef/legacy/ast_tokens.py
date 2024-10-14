@@ -59,7 +59,7 @@ def get_imports(tr, index_list=None, trunk_only=True):
     else:
         imports = [t for t in walk(tr) if type(t) in (IType, IFType)]
     if index_list is not None:
-        for (n, n_i) in index_list:
+        for n, n_i in index_list:
             return [imports[i] for i in index_list]
     return imports
 
