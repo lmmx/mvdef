@@ -1,6 +1,7 @@
 """
 Tests for the parsing module (file and codestring parsing).
 """
+
 from pytest import mark, raises
 
 from mvdef.core.parse import parse, parse_file

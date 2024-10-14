@@ -1,6 +1,7 @@
 """
 Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
+
 from pytest import mark, raises
 
 from mvdef.error_handling.exceptions import CheckFailure

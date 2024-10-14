@@ -1,6 +1,7 @@
 """
 Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
+
 from pytest import mark, raises
 
 from .helpers.cli_util import get_manif

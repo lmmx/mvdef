@@ -1,6 +1,7 @@
 """
 Tests for the files created by running mvdef with `dry_run=False`.
 """
+
 from pytest import mark
 
 from mvdef.core.text_diff import get_unidiff_text
