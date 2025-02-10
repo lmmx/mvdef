@@ -59,7 +59,7 @@ def retrieve_ast_agenda(linkfile, transfers=None):
     changes made cannot be restored afterwards from this backup file).
     """
     if linkfile.is_extant:
-        with open(linkfile.path, "r") as f:
+        with open(linkfile.path) as f:
             fc = f.read()
             trunk = ast.parse(fc).body
 
@@ -94,7 +94,7 @@ class EditAgenda(dict):
 
     def remove_entry(self, category, entry_value):
         index_key = [next(iter(x.values())) for x in self.get(category)].index(
-            entry_value
+            entry_value,
         )
         del self.get(category)[index_key]
 
@@ -177,15 +177,15 @@ def process_ast(linkfile, trunk, transfers=None):
     #        print("• Resolving edit agenda conflicts:")
     # i is 'ready made' from a previous call to ast_parse, and just needs reporting
     for i in transfers.get("take"):
-        k, i_dict = next(iter((i.items())))
+        k, i_dict = next(iter(i.items()))
         linkfile.edits.add_entry(category="take", key_val_pair=(k, i_dict))
     for i in transfers.get("echo"):
-        k, i_dict = next(iter((i.items())))
+        k, i_dict = next(iter(i.items()))
         linkfile.edits.add_entry(category="echo", key_val_pair=(k, i_dict))
     # Resolve agenda conflicts: if any imports marked 'lose' are cancelled out
     # by any identically named imports marked 'take' or 'echo', change to 'stay'
     for i in linkfile.edits.get("lose"):
-        k, i_dict = next(iter((i.items())))
+        k, i_dict = next(iter(i.items()))
         imp_src = i_dict.get("import")
         if k in [list(x)[0] for x in linkfile.edits.get("take")]:
             t_i_dict = next(x.get(k) for x in linkfile.edits.get("take") if k in x)
@@ -208,7 +208,7 @@ def process_ast(linkfile, trunk, transfers=None):
     # Resolve agenda conflicts: if any imports marked 'take' or 'echo' are cancelled
     # out by any identically named imports already present, change to 'stay'
     for i in linkfile.edits.get("take"):
-        k, i_dict = next(iter((i.items())))
+        k, i_dict = next(iter(i.items()))
         take_imp_src = i_dict.get("import")
         if k in imported_names:
             # Check the import source and asnames match
@@ -217,7 +217,7 @@ def process_ast(linkfile, trunk, transfers=None):
                 # This means that the same name is being used by a different function
                 raise ValueError(
                     f"Cannot move imported name '{k}', it is already "
-                    + f"in use in {linkfile.path.name} ({take_imp_src} clashes with {imp_src})"
+                    + f"in use in {linkfile.path.name} ({take_imp_src} clashes with {imp_src})",
                 )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
@@ -226,7 +226,7 @@ def process_ast(linkfile, trunk, transfers=None):
             linkfile.edits.add_entry(category="stay", key_val_pair=(k, i_dict))
             linkfile.edits.remove_entry(category="take", entry_value=i_dict)
     for i in linkfile.edits.get("echo"):
-        k, i_dict = next(iter((i.items())))
+        k, i_dict = next(iter(i.items()))
         echo_imp_src = i_dict.get("import")
         if k in imported_names:
             # Check the import source and asnames match
@@ -235,7 +235,7 @@ def process_ast(linkfile, trunk, transfers=None):
                 # This means that the same name is being used by a different function
                 raise ValueError(
                     f"Cannot move imported name '{k}', it is already "
-                    + f"in use in {linkfile.path.name} ({echo_imp_src} clashes with {imp_src})"
+                    + f"in use in {linkfile.path.name} ({echo_imp_src} clashes with {imp_src})",
                 )
                 # (N.B. could rename automatically as future feature)
             # Otherwise there is simply a duplicate import statement, so the demand
@@ -476,7 +476,9 @@ class LinkFileCheckerMixin:
             if remaining_parts:
                 try:
                     retrieved_def = reduce(
-                        PathGetterMixin.retrieve_def, remaining_parts, initial_def
+                        PathGetterMixin.retrieve_def,
+                        remaining_parts,
+                        initial_def,
                     )
                 except Exception as e:
                     msg = f"{filename} does not contain {self.string} (447raised {e})"
@@ -501,7 +503,9 @@ class LinkFileCheckerMixin:
         if remaining_parts:
             try:
                 retrieved_def = reduce(
-                    PathGetterMixin.retrieve_def_from_body, remaining_parts, initial_def
+                    PathGetterMixin.retrieve_def_from_body,
+                    remaining_parts,
+                    initial_def,
                 )
             except Exception as e:
                 msg = f"Failed to retrieve {self.string} (472raised {e})"
@@ -620,16 +624,15 @@ def get_def_names(linkfile, def_list, import_annos):
             msg = f"'{leaf_node.part_type}' is not a valid {m_type} part type"
             assert leaf_node.part_type in valid_leaf_types, msg
             leaf_par_type_name = getattr(
-                DefTypeToParentTypeEnum, leaf_node.part_type
+                DefTypeToParentTypeEnum,
+                leaf_node.part_type,
             ).value
             m_path_type = getattr(IntraDefPathTypeEnum, leaf_node.part_type).value
             m_path = m_path_type(m, parent_type_name=leaf_par_type_name)
             # retrieve {func|cls}def from AST
             sel_def = m_path.check_against_linkedfile(linkfile)
             sel_ids = (
-                sel_def.all_ns_cd_ids
-                if get_cls
-                else sel_def.all_ns_fd_ids
+                sel_def.all_ns_cd_ids if get_cls else sel_def.all_ns_fd_ids
                 # TODO make this a property on the type (which class though?)
             )  # inner {func|cls}def IDs, includes global def namespace
         elif m in sel_ids:
@@ -654,7 +657,7 @@ def get_def_names(linkfile, def_list, import_annos):
             raise ValueError(f"These names could not be sourced: {unknowns}")
         # mv_imp_refs is the subset of imp_name_lines for movable funcdef names
         # These refs will lead to import statements being copied and/or moved
-        mv_imp_refs = dict([(n, imp_name_lines.get(n)) for n in sd_names])
+        mv_imp_refs = {n: imp_name_lines.get(n) for n in sd_names}
         update_def_names_from_imports(m, mv_imp_refs, imp_name_dicts, def_namedict)
     return def_namedict
 
@@ -676,7 +679,7 @@ def update_def_names_from_imports(def_name, mv_imp_refs, imp_name_dicts, def_nam
                 "n_i": n_i,
                 "line": mv_imp_refs.get(k).get("line"),
                 "import": list(imp_name_dicts[n].keys())[n_i],
-            }
+            },
         )
         def_names.add_subentry(def_name, k, new_entry)  # mutate in place
 
@@ -809,7 +812,12 @@ class ClsDef(ast.ClassDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
 
     def __init__(
-        self, clsdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False
+        self,
+        clsdef,
+        classes_only,
+        ast_cls_ids=None,
+        ast_fun_ids=None,
+        is_inner=False,
     ):
         super().__init__(**vars(clsdef))
         self.classes_only = classes_only
@@ -903,7 +911,9 @@ class HOClsDef(ClsDef, NamespaceIdSetterMixin):
         self.parent_path = parent_fd.path
         self.parent_line_range = parent_fd.line_range
         super().__init__(
-            cd, self.classes_only, is_inner=True
+            cd,
+            self.classes_only,
+            is_inner=True,
         )  # I moved this to the end to get it to run
         # but unsure if it's actually correct to do so or just a hotfix that'll bite me
 
@@ -925,7 +935,9 @@ class InnerClsDef(ClsDef, NamespaceIdSetterMixin):
         self.parent_path = parent_cd.path
         self.parent_line_range = parent_cd.line_range
         super().__init__(
-            cd, self.classes_only, is_inner=True
+            cd,
+            self.classes_only,
+            is_inner=True,
         )  # I moved this to the end to get it to run
         # but unsure if it's actually correct to do so or just a hotfix that'll bite me
 
@@ -942,7 +954,12 @@ class FuncDef(ast.FunctionDef, RecursiveIdSetterMixin, PathGetterMixin):
     """
 
     def __init__(
-        self, funcdef, classes_only, ast_cls_ids=None, ast_fun_ids=None, is_inner=False
+        self,
+        funcdef,
+        classes_only,
+        ast_cls_ids=None,
+        ast_fun_ids=None,
+        is_inner=False,
     ):
         super().__init__(**vars(funcdef))
         self.classes_only = classes_only
@@ -1074,7 +1091,9 @@ class InnerFuncDef(FuncDef):
         self.parent_path = parent_fd.path
         self.parent_line_range = parent_fd.line_range
         super().__init__(
-            fd, self.classes_only, is_inner=True
+            fd,
+            self.classes_only,
+            is_inner=True,
         )  # moved to end to match ClsDef subclasses
 
     @property
@@ -1209,10 +1228,10 @@ def parse_mv_funcs(linkfile, trunk):
     # ------------------------------------------------------------------------ #
     # Next obtain unused_names
     mv_set = set().union(
-        *[linkfile.mvdef_names.get(x).keys() for x in linkfile.mvdef_names]
+        *[linkfile.mvdef_names.get(x).keys() for x in linkfile.mvdef_names],
     )
     nomv_set = set().union(
-        *[linkfile.nonmvdef_names.get(x).keys() for x in linkfile.nonmvdef_names]
+        *[linkfile.nonmvdef_names.get(x).keys() for x in linkfile.nonmvdef_names],
     )
     unused_names = list(set(list(import_annos[0].keys())) - mv_set - nomv_set)
     linkfile.set_nondef_names(unused_names, import_annos)  # sets nondef_names

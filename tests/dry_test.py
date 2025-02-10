@@ -2,6 +2,7 @@
 Tests for functionality besides the diffs generated in 'dry run' mode (which is tested
 in the `diff_test.py` module).
 """
+
 from pytest import mark, raises
 
 from mvdef.error_handling.exceptions import CheckFailure
@@ -42,7 +43,15 @@ def test_no_src(tmp_path, src, dst, mv, cls_defs, del_dst_too):
 @mark.parametrize("escalate", [True, False])
 @mark.parametrize("expected_msg", ["Failed to parse the {} file"])
 def test_bad_syntax(
-    tmp_path, src, dst, mv, cls_defs, func_defs, bad_src_or_dst, escalate, expected_msg
+    tmp_path,
+    src,
+    dst,
+    mv,
+    cls_defs,
+    func_defs,
+    bad_src_or_dst,
+    escalate,
+    expected_msg,
 ):
     """
     Test that a SyntaxError is raised when the input file is just `0 = 1`.
@@ -52,7 +61,10 @@ def test_bad_syntax(
     """
     src_p, dst_p = Write.from_enums(src, dst, path=tmp_path).file_paths
     mvdef_kwargs = dict(
-        mv=mv, cls_defs=cls_defs, func_defs=func_defs, escalate=escalate
+        mv=mv,
+        cls_defs=cls_defs,
+        func_defs=func_defs,
+        escalate=escalate,
     )
     overwrite_path = src_p if bad_src_or_dst else dst_p
     overwrite_path.write_text("0 = 1\n")

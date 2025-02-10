@@ -98,11 +98,7 @@ class DstDiffs(Enum):
         "+    pass\n"
     )
     fooA0bar_A = (
-        "--- original/bar.py\n"
-        "+++ fixed/bar.py\n"
-        "@@ -0,0 +1,2 @@\n"
-        "+class A:\n"
-        "+    pass\n"
+        "--- original/bar.py\n+++ fixed/bar.py\n@@ -0,0 +1,2 @@\n+class A:\n+    pass\n"
     )
     fooA2bar_foo = (
         "--- original/bar.py\n"

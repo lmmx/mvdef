@@ -91,7 +91,15 @@ class _IntoAction(argparse.Action):
 
 
 def main(
-    mvdefs, into_paths, src_p, dst_p, report, dry_run, backup, copy_only, classes_only
+    mvdefs,
+    into_paths,
+    src_p,
+    dst_p,
+    report,
+    dry_run,
+    backup,
+    copy_only,
+    classes_only,
 ):
     if report:
         print("--------------RUNNING mvdef.cli⠶main()--------------", file=stderr)

@@ -54,6 +54,7 @@ class TokenisedStr:
 
     class PathSepEnum(Enum):
         "Path separator symbols (1 to 2 characters)"
+
         InnerFunc = ":"
         Method = "."
         InnerClass = "::"
@@ -64,6 +65,7 @@ class TokenisedStr:
 
     class PathPartEnum(Enum):
         "Parts to parse tokens into"
+
         Func = FuncPathPart
         InnerFunc = InnerFuncPathPart
         Class = ClassPathPart
@@ -74,6 +76,7 @@ class TokenisedStr:
 
     class DefTypeToParentTypeEnum(Enum):
         "Duplicate of the enum in ast_util.py (TODO: refactor)"
+
         Method = "Class"
         InnerClass = "Class"
         InnerFunc = "Func"
@@ -147,7 +150,7 @@ class TokenisedStr:
                 if last_seen_sep:
                     assert type(tok) is str, f"Expected string after sep (got '{tok}')"
                     part_class = self.PathPartEnum._member_map_.get(
-                        last_seen_sep.name
+                        last_seen_sep.name,
                     ).value
                     tok_parsed = part_class(tok)
                     last_seen_sep = None  # didn't look ahead, unset (only used on init)
@@ -163,7 +166,7 @@ class TokenisedStr:
                 assert type(tok) is str, "Expected final token to be a string"
                 assert last_seen_sep, "Cannot assign a type to string without separator"
                 part_class = self.PathPartEnum._member_map_.get(
-                    last_seen_sep.name
+                    last_seen_sep.name,
                 ).value
                 tok_parsed = part_class(tok)
                 last_seen_sep = None  # didn't look ahead, unset (only used on init)

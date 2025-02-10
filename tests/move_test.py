@@ -1,6 +1,7 @@
 """
 Tests for the files created by running mvdef with `dry_run=False`.
 """
+
 from pytest import mark
 
 from mvdef.core.text_diff import get_unidiff_text
@@ -38,7 +39,7 @@ def test_move(tmp_path, src, dst, mv, cls_defs, stored_diffs):
                 lines.splitlines(keepends=True)
                 for tup in [(a_str, b_str)]
                 for lines in tup
-            )
+            ),
         ]
     )
     assert (src_diff, dst_diff) == stored_diffs

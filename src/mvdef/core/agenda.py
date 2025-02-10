@@ -1,4 +1,5 @@
 """Agendas indicate the work to be done to symbols."""
+
 from __future__ import annotations
 
 from ast import AST, unparse
@@ -192,7 +193,9 @@ class Agenda:
     def no_clash(self, mv: list[str]) -> None:
         """No repetition, and * must be used on its own."""
         if clash := set(mv).intersection(self.targets):
-            raise AgendaFailure(f"{clash=} - target{'s'[:len(clash)-1]} double booked")
+            raise AgendaFailure(
+                f"{clash=} - target{'s'[: len(clash) - 1]} double booked",
+            )
         elif "*" in [*mv, *self.targets] and len([*mv, *self.targets]) > 1:
             raise AgendaFailure("Agenda clash: wildcard '*' must be used solo")
 
@@ -357,7 +360,9 @@ class Agenda:
             Departure(name=imp.name, rng=imp.rng) for imp in imports_out
         ]
         sorted_lop_imps = lopped_with_imports == sorted(
-            lopped_with_imports, key=lambda d: d.rng, reverse=True
+            lopped_with_imports,
+            key=lambda d: d.rng,
+            reverse=True,
         )
         assert sorted_lop_imps, "Unsorted lop deps after appending imports"
         cut = Cutter(input_text, lopped_with_imports, spacing=self.spacing)
@@ -373,7 +378,10 @@ class Agenda:
         return done
 
     def sew_in_imports(
-        self, imports: list[ArrivingImport], text: str, recheck: Checker = None
+        self,
+        imports: list[ArrivingImport],
+        text: str,
+        recheck: Checker = None,
     ) -> str:
         """
         Leave sep of 2 lines if definitions go first, 1 line for anything else.
@@ -421,7 +429,9 @@ class Agenda:
             # The file has definitions before any imports (effectively starts with them)
             gap = 2
         spacing = ImportSpacing(
-            gap=gap, first_import_lineno=min_imp_ln, future_offset=future_import_offset
+            gap=gap,
+            first_import_lineno=min_imp_ln,
+            future_offset=future_import_offset,
         )
         return spacing
 
@@ -482,7 +492,9 @@ class Agenda:
             unused_imports = self.compare_imports(recheck)
             if unused_imports:
                 return self.resimulate(
-                    input_text, imports_in=[], imports_out=unused_imports
+                    input_text,
+                    imports_in=[],
+                    imports_out=unused_imports,
                 )
             else:
                 return pre_sim
@@ -627,7 +639,9 @@ class Agenda:
         # and matches the message arg (expected/tested assumption)
         newly_unused_imports = [
             DepartingImport(
-                imp, lineno=imp.source.lineno, end_lineno=imp.source.end_lineno
+                imp,
+                lineno=imp.source.lineno,
+                end_lineno=imp.source.end_lineno,
             )
             for imp in original_imports
             if imp.fullName in lose_uu_names

@@ -1,11 +1,11 @@
 """Override the pyflakes `Checker` to extract info for our purposes."""
+
 from __future__ import annotations
 
 import ast
 import os
 from ast import AST
 from functools import cache
-from typing import Type
 
 import pyflakes
 from pyflakes import checker
@@ -36,8 +36,8 @@ class Checker(FailableMixIn, checker.Checker):
     funcdefs: list[AST]
     classdefs: list[AST]
     alldefs: list[AST]
-    imports: list[tuple[AST, Importation | Type[Importation]]]
-    import_uses: dict[str, list[tuple[AST, Importation | Type[Importation]]]]
+    imports: list[tuple[AST, Importation | type[Importation]]]
+    import_uses: dict[str, list[tuple[AST, Importation | type[Importation]]]]
 
     def __init__(self, *args, **kwargs):
         self.code = kwargs.pop("code")

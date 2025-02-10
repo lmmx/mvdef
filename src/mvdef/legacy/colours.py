@@ -35,7 +35,7 @@ def get_colour_codes(colour=None):
         ["yellow", "\033[1;33m"],
     ]
     ending = "\033[0m"
-    colour_dict = dict([[x[0], {"on": x[1], "off": ending}] for x in sorted(cols)])
+    colour_dict = {x[0]: {"on": x[1], "off": ending} for x in sorted(cols)}
     if colour is None:
         return colour_dict
     else:
@@ -59,7 +59,7 @@ def get_effect_codes(effect=None):
         ["crossed", "\033[9m"],
     ]
     ending = "\033[0m"
-    effect_dict = dict([[x[0], {"on": x[1], "off": ending}] for x in sorted(effects)])
+    effect_dict = {x[0]: {"on": x[1], "off": ending} for x in sorted(effects)}
     if effect is None:
         return effect_dict
     else:
@@ -76,7 +76,7 @@ def colour_str(colour, text, end=True):
     if platform().lower() not in ["linux", "darwin"]:
         return text
     colour_on, colour_off = get_colour_codes(colour).values()
-    colourful = f'{colour_on}{text}{colour_off if end else ""}'
+    colourful = f"{colour_on}{text}{colour_off if end else ''}"
     return colourful
 
 
@@ -89,7 +89,7 @@ def effect_str(effect, text, end=True):
     if platform().lower() not in ["linux", "darwin"]:
         return text
     effect_on, effect_off = get_effect_codes(effect).values()
-    effectful = f'{effect_on}{text}{effect_off if end else ""}'
+    effectful = f"{effect_on}{text}{effect_off if end else ''}"
     return effectful
 
 

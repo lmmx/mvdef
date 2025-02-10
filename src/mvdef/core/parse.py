@@ -10,7 +10,11 @@ __all__ = ["parse", "parse_file", "reparse"]
 
 
 def parse(
-    codestring, *, file: str | Path = "", verbose: bool = False, **kwargs
+    codestring,
+    *,
+    file: str | Path = "",
+    verbose: bool = False,
+    **kwargs,
 ) -> Checker | None:
     """
     kwargs::{escalate: bool = False, target_cls: bool = False, target_all: bool = False}
@@ -41,7 +45,11 @@ def parse(
 
 
 def parse_file(
-    file: Path, *, verbose=False, ensure_exists=True, **kwargs
+    file: Path,
+    *,
+    verbose=False,
+    ensure_exists=True,
+    **kwargs,
 ) -> Checker | None:
     if ensure_exists:
         if not file.exists() and file.is_file():

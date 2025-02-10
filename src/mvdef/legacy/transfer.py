@@ -206,7 +206,7 @@ class LinkedFile:
         self._lines = lines
 
     def readlines(self):
-        with open(self.path, "r") as f:
+        with open(self.path) as f:
             self.lines = f.readlines()
 
     @property
@@ -248,7 +248,7 @@ class LinkedFile:
             [
                 next(iter(a.items()))
                 for a in [*chain.from_iterable(map(self.edits.get, categories))]
-            ]
+            ],
         )
 
 
@@ -468,7 +468,7 @@ class FileLink:
                 test_func.__call__()
             except AssertionError as e:
                 raise RuntimeError(
-                    f"! '{test_func.__name__}' failed, aborting mvdef execution."
+                    f"! '{test_func.__name__}' failed, aborting mvdef execution.",
                 )
         self._test_func = test_func
 

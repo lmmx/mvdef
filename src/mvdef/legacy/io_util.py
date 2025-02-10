@@ -10,7 +10,7 @@ def terminal_whitespace(inputfile, from_file=True):
     If the file contains no newlines, returns 0.
     """
     if from_file:
-        with open(inputfile, "r") as f:
+        with open(inputfile) as f:
             lines = f.readlines()
     else:
         lines = inputfile

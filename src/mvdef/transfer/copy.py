@@ -8,11 +8,11 @@ __all__ = ["CpDef"]
 @dataclass
 class CpDef(MvDef):
     """
-      Copy function definitions from one file to another, and any necessary
-      associated import statements along with them.
+    Copy function definitions from one file to another, and any necessary
+    associated import statements along with them.
 
-      Option     Description                                Type        Default
-      —————————— —————————————————————————————————————————— ——————————— ———————
+    Option     Description                                Type        Default
+    —————————— —————————————————————————————————————————— ——————————— ———————
     • src        source file to copy definitions from       Path        -
     • dst        destination file (may not exist)           Path        -
     • mv         names to copy from the source file         list[str]   -

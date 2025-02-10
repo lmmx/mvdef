@@ -40,7 +40,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
         bname = bname_i
     assert not (fd / bname).exists()
     if not dry_run:
-        with open(filepath, "r") as o:
+        with open(filepath) as o:
             original = o.read()
         with open(fd / bname, "w") as b:
             b.write(original)

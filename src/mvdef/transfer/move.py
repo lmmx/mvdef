@@ -12,11 +12,11 @@ __all__ = ["MvDef"]
 @dataclass
 class MvDef(MvDefBase):
     """
-      Move function definitions from one file to another, moving/copying
-      any necessary associated import statements along with them.
+    Move function definitions from one file to another, moving/copying
+    any necessary associated import statements along with them.
 
-      Option     Description                                Type        Default
-      —————————— —————————————————————————————————————————— ——————————— ———————
+    Option     Description                                Type        Default
+    —————————— —————————————————————————————————————————— ——————————— ———————
     • src        source file to take definitions from       Path        -
     • dst        destination file (may not exist)           Path        -
     • mv         names to move from the source file         list[str]   -
@@ -62,7 +62,7 @@ class MvDef(MvDefBase):
                 self.dst_check = None
                 return self.fail("Failed to parse the src file")
         if absent := (set(self.mv) - {f.name for f in self.src_check.target_defs}):
-            msg = f"Definition{'s'[:len(absent)-1]} not in {self.src}: {absent}"
+            msg = f"Definition{'s'[: len(absent) - 1]} not in {self.src}: {absent}"
             self.dst_check = None
             return self.src_check.fail(msg)
         elif self.dst.exists():
@@ -80,7 +80,8 @@ class MvDef(MvDefBase):
             except Exception as exc:
                 self.dst_check = None
                 return self.fail(
-                    "Failed to parse the dst file (which was mocked)", exc_info=exc
+                    "Failed to parse the dst file (which was mocked)",
+                    exc_info=exc,
                 )
         return None
 

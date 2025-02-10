@@ -1,4 +1,5 @@
 """Diff two files (in a way that can be applied as a patch)."""
+
 from dataclasses import KW_ONLY, dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile

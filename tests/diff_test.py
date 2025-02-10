@@ -1,6 +1,7 @@
 """
 Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
+
 from pytest import mark, raises
 
 from mvdef.error_handling.exceptions import CheckFailure
@@ -37,7 +38,14 @@ def test_create_files(tmp_path, a_cat, b_cat):
 )
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
 def test_dry_mv_basic(
-    tmp_path, src, dst, mv, cls_defs, stored_diffs, func_defs, no_dst
+    tmp_path,
+    src,
+    dst,
+    mv,
+    cls_defs,
+    stored_diffs,
+    func_defs,
+    no_dst,
 ):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it
@@ -53,7 +61,9 @@ def test_dry_mv_basic(
 @mark.parametrize("cls_defs,func_defs", [(True, False), (False, True)])
 @mark.parametrize("mv", [["foo", "A"], ["A", "foo"]])
 @mark.parametrize(
-    "src,dst,stored_diffs", [("fooA", "bar", "fooA2bar_fooA")], indirect=True
+    "src,dst,stored_diffs",
+    [("fooA", "bar", "fooA2bar_fooA")],
+    indirect=True,
 )
 def test_dry_mv_multidef_not_all_defs(
     tmp_path,
@@ -90,7 +100,13 @@ def test_dry_mv_multidef_not_all_defs(
     indirect=True,
 )
 def test_dry_mv_multidef_all_defs(
-    tmp_path, src, dst, mv, no_dst, stored_diffs, defs_flag
+    tmp_path,
+    src,
+    dst,
+    mv,
+    no_dst,
+    stored_diffs,
+    defs_flag,
 ):
     """
     Test that a class 'A' and a funcdef 'foo' are moved correctly (in the
@@ -113,7 +129,14 @@ def test_dry_mv_multidef_all_defs(
 )
 @mark.parametrize("src,dst", [("baz", "solo_baz")], indirect=True)
 def test_dry_mv_no_dst(
-    tmp_path, src, dst, mv, func_defs, cls_defs, stored_diffs, no_dst
+    tmp_path,
+    src,
+    dst,
+    mv,
+    func_defs,
+    cls_defs,
+    stored_diffs,
+    no_dst,
 ):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it

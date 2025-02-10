@@ -103,7 +103,7 @@ def excise_def_from_file(def_node, py_path, return_def=True):
         if wspace_count > 2:
             # Remove whitespace: get list of indexes of lines which are blank
             prepost = [p for p in range(*pre)] + [p for p in range(*post)]
-            ws_li = [prepost[i] for (i, x) in enumerate((ws_a + ws_b)) if x]
+            ws_li = [prepost[i] for (i, x) in enumerate(ws_a + ws_b) if x]
             # Take as many as reduce the whitespace count to 2
             remove_li = [ws_li[n] for n in range(wspace_count - 2)]
             for li in remove_li:
@@ -152,7 +152,7 @@ def excise_def_lines(def_node, lines):
         # Remove whitespace: get list of indexes of lines which are blank
         # Reverse pre so as to match the index of `wspace_pre` as above
         pp = pre[::-1] + post
-        ws_li = [pp[i] for (i, x) in enumerate((wspace_pre + wspace_post)) if x]
+        ws_li = [pp[i] for (i, x) in enumerate(wspace_pre + wspace_post) if x]
         # Take as many as reduce the whitespace count to window size (2)
         remove_li = [ws_li[n] for n in range(wspace_count - window_size)]
         for li in remove_li:

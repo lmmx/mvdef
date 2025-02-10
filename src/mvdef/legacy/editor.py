@@ -68,7 +68,7 @@ def shorten_imports(self, record_removed_import_n=False):
     for rm_i in self.rm_agenda:
         if self.rm_agenda.get(rm_i).get("shorten") is not None:
             self.to_shorten.update({rm_i: self.rm_agenda.get(rm_i)})
-    self.n_to_short = set([self.to_shorten.get(x).get("n") for x in self.to_shorten])
+    self.n_to_short = {self.to_shorten.get(x).get("n") for x in self.to_shorten}
     # Group all names being shortened that are of a common import statement
     for n in self.n_to_short:
         names_to_short = [
@@ -80,7 +80,7 @@ def shorten_imports(self, record_removed_import_n=False):
         pre_imp = self.imports[n]
         shortened_alias_list = [(a.name, a.asname) for a in pre_imp.names]
         # Proceed backwards from the end to the start, permitting deletions by index
-        for (name, asname) in shortened_alias_list[::-1]:
+        for name, asname in shortened_alias_list[::-1]:
             if asname is None and name not in names_to_short:
                 continue
             elif asname is not None and asname not in names_to_short:
@@ -138,9 +138,9 @@ def receive_imports(link):
     for rc_i in link.dst.rcv_agenda:
         if link.dst.rcv_agenda.get(rc_i).get("extend") is not None:
             link.dst.to_extend.update({rc_i: link.dst.rcv_agenda.get(rc_i)})
-    link.dst.n_to_extend = set(
-        [link.dst.to_extend.get(x).get("n") for x in link.dst.to_extend]
-    )
+    link.dst.n_to_extend = {
+        link.dst.to_extend.get(x).get("n") for x in link.dst.to_extend
+    }
     # Group all names being added as extensions that are of a common import statement
     for n in link.dst.n_to_extend:
         names_to_extend = [
@@ -311,7 +311,9 @@ def remove_copied_defs(src):
     """
     # print("Step 4: Remove function definitions {mvdefs} from src")
     for mvdef in sorted(
-        src.defs_to_move, key=lambda d: d.last_token.end[0], reverse=True
+        src.defs_to_move,
+        key=lambda d: d.last_token.end[0],
+        reverse=True,
     ):
         # Remove mvdef (function def. marked "mvdef") from the source file
         excise_def_lines(mvdef, src.lines)

@@ -1,6 +1,7 @@
 """
 Tests for the parsing module (file and codestring parsing).
 """
+
 from pytest import mark, raises
 
 from mvdef.core.parse import parse, parse_file
@@ -45,7 +46,13 @@ def test_parse_successfully(tmp_path, src, dst):
 @mark.parametrize("stored_error", ["REJECT_0_EQ_1"], indirect=["stored_error"])
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
 def test_parse_syntax_error(
-    capsys, tmp_path, escalate, bad_content, stored_error, src, dst
+    capsys,
+    tmp_path,
+    escalate,
+    bad_content,
+    stored_error,
+    src,
+    dst,
 ):
     """
     Test that a simple program with invalid syntax cannot be parsed, and that it
@@ -72,7 +79,13 @@ def test_parse_syntax_error(
 @mark.parametrize("stored_error", ["PROBLEM_DECODING"], indirect=["stored_error"])
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
 def test_parse_type_error(
-    capsys, tmp_path, escalate, bad_content, stored_error, src, dst
+    capsys,
+    tmp_path,
+    escalate,
+    bad_content,
+    stored_error,
+    src,
+    dst,
 ):
     """
     Test that passing an invalid type to `ast.parse` fails appropriately, and
@@ -96,7 +109,13 @@ def test_parse_type_error(
 @mark.parametrize("stored_error", ["REJECT_0_EQ_1"], indirect=["stored_error"])
 @mark.parametrize("src,dst", [("fooA", "bar")], indirect=True)
 def test_parse_file_error(
-    capsys, tmp_path, escalate, bad_content, stored_error, src, dst
+    capsys,
+    tmp_path,
+    escalate,
+    bad_content,
+    stored_error,
+    src,
+    dst,
 ):
     """
     Test that a simple program with invalid syntax cannot be parsed, and that it

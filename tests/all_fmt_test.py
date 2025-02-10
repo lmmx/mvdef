@@ -2,6 +2,7 @@
 Tests for the dry run diff of `__all__` assignments created in 'dry run' mode by
 :func:`format_all()`.
 """
+
 from pytest import mark
 
 from mvdef.core.manifest.all_fmt import format_all

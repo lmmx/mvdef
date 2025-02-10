@@ -22,7 +22,12 @@ def mvcls(cp: bool, ls: bool) -> MvClsT:
 
 
 def run_cmd(
-    a: Path, b: Path | None, *, cp_: bool = False, ls_: bool = False, **cli_args
+    a: Path,
+    b: Path | None,
+    *,
+    cp_: bool = False,
+    ls_: bool = False,
+    **cli_args,
 ) -> MvClsT:
     kwargs = {"return_state": True, "escalate": True, "dry_run": False, **cli_args}
     if b is None:
@@ -32,13 +37,21 @@ def run_cmd(
 
 
 def dry_run_cmd(
-    a: Path, b: Path | None, *, cp_: bool = False, ls_: bool = False, **cli_args
+    a: Path,
+    b: Path | None,
+    *,
+    cp_: bool = False,
+    ls_: bool = False,
+    **cli_args,
 ) -> CLIResult:
     return run_cmd(a, b, cp_=cp_, ls_=ls_, **{"dry_run": True, **cli_args})
 
 
 def get_cmd_diffs(
-    a: Path, b: Path, cp_: bool = False, **cmd_cli_args
+    a: Path,
+    b: Path,
+    cp_: bool = False,
+    **cmd_cli_args,
 ) -> tuple[str, str] | str:
     run_result = dry_run_cmd(a=a, b=b, **cmd_cli_args)
     return run_result.diffs

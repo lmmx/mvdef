@@ -1,4 +1,5 @@
 """Command line interface components."""
+
 from dataclasses import KW_ONLY, dataclass
 from typing import NamedTuple
 

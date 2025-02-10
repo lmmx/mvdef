@@ -1,6 +1,7 @@
 """
 Tests for definitions that require imports to be moved/copied.
 """
+
 from pytest import mark, raises
 
 from .helpers.cli_util import dry_run_cmd, get_cmd_diffs

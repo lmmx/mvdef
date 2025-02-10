@@ -4,6 +4,7 @@ from functools import partial
 
 __all__ = ["_find_node", "_find_def", "_find_cls"]
 
+
 ### Helper functions used for finding the node given a path within `set_defs_to_move`
 def _name_check(node, name):
     "Check whether an AST `node`’s `.name` attribute is `name`"

@@ -1,6 +1,7 @@
 """
 Tests for the diffs created in 'dry run' mode by :meth:`Agenda.simulate()`.
 """
+
 from pytest import mark, raises
 
 from .helpers.cli_util import get_manif
@@ -29,7 +30,15 @@ __all__ = ["test_ls_all"]
     indirect=["src"],
 )
 def test_ls_all(
-    tmp_path, def_ls, cls_ls, src, cls_defs, func_defs, all_names_in_order, dry_run, lst
+    tmp_path,
+    def_ls,
+    cls_ls,
+    src,
+    cls_defs,
+    func_defs,
+    all_names_in_order,
+    dry_run,
+    lst,
 ):
     """
     Test that a class 'A' or a funcdef 'foo' is moved correctly, and that repeating it

@@ -16,7 +16,7 @@ def pprint_dict(d, return_string=True):
 
 
 def print_some_url(url, return_string=True):
-    message = f"hello{pathsep*2}human"
+    message = f"hello{pathsep * 2}human"
     loc = req.urlsplit(url).netloc
     output = f"{message}, welcome to {loc}"
     print(output)

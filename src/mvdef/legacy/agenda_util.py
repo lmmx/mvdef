@@ -49,6 +49,6 @@ def describe_def_name_dict(name, name_dict):
     necessary to produce a nice readable output, calling `describe_mvdef_name_dict`.
     """
     # Extract: import index; intra-import index; line number; import source
-    n, n_i, ln, imp_src = [name_dict.get(x) for x in ["n", "n_i", "line", "import"]]
+    n, n_i, ln, imp_src = (name_dict.get(x) for x in ["n", "n_i", "line", "import"])
     desc = f"(import {n}:{n_i} on line {ln}) {name} ⇒ <{imp_src}>"
     return desc

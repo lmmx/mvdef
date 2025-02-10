@@ -1,6 +1,7 @@
 """
 Fixtures to be used in tests without importing.
 """
+
 from pytest import fixture
 
 from .helpers.def_descriptor import DefDesc

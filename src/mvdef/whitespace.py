@@ -43,10 +43,11 @@ def normalise_whitespace(lines: list[str | None], spacing: int = 2) -> str:
     first_text_idx = next((i for i in range(line_count) if i not in non_text_idx), 0)
     head_whitespace = [nl_i for nl_i in nl_idx if nl_i < first_text_idx]
     last_text_idx = next(
-        (i for i in range(line_count - 1, -1, -1) if i not in non_text_idx), last_idx
+        (i for i in range(line_count - 1, -1, -1) if i not in non_text_idx),
+        last_idx,
     )
     tail_whitespace = [nl_i for nl_i in nl_idx if nl_i > last_text_idx]
-    term_ws_idx = sorted(set([*head_whitespace, *tail_whitespace]))
+    term_ws_idx = sorted({*head_whitespace, *tail_whitespace})
     # Replace terminal newlines with None, deleting them from the result
     pruned_lines = [x if i not in term_ws_idx else None for i, x in enumerate(lines)]
     # Squeeze any remaining 'newline islands' between first_text_idx and last_text_idx

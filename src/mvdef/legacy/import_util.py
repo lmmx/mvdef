@@ -378,7 +378,7 @@ def imp_def_subsets(linkfile):
     report_VERBOSE = False  # Silencing debug print statements
     mvdef_dicts = linkfile.mvdef_names  # rename to emphasise that these are dicts
     mvdef_names = set().union(
-        *[list(mvdef_dicts[x]) for x in mvdef_dicts]
+        *[list(mvdef_dicts[x]) for x in mvdef_dicts],
     )  # funcdef names
     nonmvdef_dicts = linkfile.nonmvdef_names  # (as for mvdef_dicts)
     nonmvdef_names = set().union(*[list(nonmvdef_dicts[x]) for x in nonmvdef_dicts])
@@ -386,13 +386,13 @@ def imp_def_subsets(linkfile):
     linkfile.nonmv_imports = nonmvdef_names - mvdef_names
     linkfile.mutual_imports = mvdef_names.intersection(nonmvdef_names)
     assert linkfile.mv_imports.isdisjoint(
-        linkfile.nonmv_imports
+        linkfile.nonmv_imports,
     ), "mv/nonmv_imports intersect!"
     assert linkfile.mv_imports.isdisjoint(
-        linkfile.mutual_imports
+        linkfile.mutual_imports,
     ), "mv/mutual imports intersect!"
     assert linkfile.nonmv_imports.isdisjoint(
-        linkfile.mutual_imports
+        linkfile.mutual_imports,
     ), "nonmv/mutual imports intersect!"
     if report_VERBOSE:
         print(
@@ -404,7 +404,7 @@ def imp_def_subsets(linkfile):
         )
     all_defnames = set().union(*[mvdef_names, nonmvdef_names])
     all_def_imports = set().union(
-        *[linkfile.mv_imports, linkfile.nonmv_imports, linkfile.mutual_imports]
+        *[linkfile.mv_imports, linkfile.nonmv_imports, linkfile.mutual_imports],
     )
     assert sorted(all_defnames) == sorted(all_def_imports), "Defnames =/= import names"
     return

@@ -1,76 +1,57 @@
 [build-system]
-build-backend = "pdm.backend"
 requires = ["pdm-backend"]
-
-[tool.coverage.run]
-parallel = true
-branch = true
-source = ["mvdef"]
-
-[tool.isort]
-profile = "black"
-
-[tool.coverage.paths]
-source = ["src", ".tox/*/site-packages"]
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-
-[tool.pdm]
-version = {path = "src/mvdef/__init__.py", source = "file"}
-
-[tool.pdm.dev-dependencies]
-ci = ["tox", "tox-pdm", "tox-gh-actions"]
-# dev = tests + docs + pre-commit
-docs = [
-    "mkdocs>=1.5.3",
-    "mkdocs-material[recommended,imaging]>=9.5.2",
-    "mkdocs-section-index>=0.3.8",
-    "mkdocstrings[python]>=0.24.0",
-    "urllib3<2",  # Vercel: https://github.com/squidfunk/mkdocs-material/discussions/6470
-]
-tests = ["coverage[toml]>=5.5", "pytest", "tox"]
-
-[tool.pytest.ini_options]
-markers = [
-    "skiponci: tests that should not run on CI (e.g. related to CLI display that don't run consistently",
-]
+build-backend = "pdm.backend"
 
 [project]
-authors = [
-    {email = "louismmx@gmail.com", name = "Louis Maddox"},
-]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Natural Language :: English",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
-dependencies = [
-    "argcomplete",
-    "astor",
-    "asttokens",
-    "defopt",
-    "pyflakes",
-    "urllib3<2",
-]
-description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
-dynamic = ["version"]
-keywords = [
-    "ast",
-]
-license = {text = "MIT"}
 name = "mvdef"
+description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
+license = {text = "MIT"}
+authors = [
+  {name = "Louis Maddox", email = "louismmx@gmail.com"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11"
+]
+dependencies = [
+  "argcomplete",
+  "astor",
+  "asttokens",
+  "defopt",
+  "pyflakes",
+  "urllib3<2"
+]
+dynamic = ["version"] # If you are still pulling version dynamically from a file
 
+# Optional dependencies: these come from your old [tool.pdm.dev-dependencies] tables
+[project.optional-dependencies]
+ci = [
+  "tox",
+  "tox-pdm",
+  "tox-gh-actions"
+]
+docs = [
+  "mkdocs>=1.5.3",
+  "mkdocs-material[recommended,imaging]>=9.5.2",
+  "mkdocs-section-index>=0.3.8",
+  "mkdocstrings[python]>=0.24.0",
+  "urllib3<2"
+]
+tests = [
+  "coverage[toml]>=5.5",
+  "pytest",
+  "tox"
+]
 
 [project.scripts]
 mvdef = "mvdef.cli:cli_move"
@@ -85,3 +66,28 @@ oldcpcls = "mvdef.legacy.__main__:cpcls"
 Documentation = "https://mvdef.vercel.app/"
 Homepage = "https://github.com/lmmx/mvdef"
 Repository = "https://github.com/lmmx/mvdef.git"
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+# Everything else can remain under [tool.*] as before
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["mvdef"]
+
+[tool.isort]
+profile = "black"
+
+# If you still use PDM’s file-based version bumping:
+[tool.pdm]
+version = {path = "src/mvdef/__init__.py", source = "file"}
+
+[tool.pytest.ini_options]
+markers = [
+  "skiponci: tests that should not run on CI (e.g. CLI display issues)"
+]

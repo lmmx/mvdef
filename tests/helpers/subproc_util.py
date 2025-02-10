@@ -17,7 +17,10 @@ def pick_cmd(*, cp_: bool, ls_: bool) -> str:
 
 
 def subproc_cmd_from_argv(
-    argv: list[str], *, cp_: bool = False, ls_: bool = False
+    argv: list[str],
+    *,
+    cp_: bool = False,
+    ls_: bool = False,
 ) -> CompletedProcess:
     cmd_name = pick_cmd(cp_=cp_, ls_=ls_)
     proc = run([cmd_name, *argv], capture_output=True)

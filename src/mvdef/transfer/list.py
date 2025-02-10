@@ -10,10 +10,10 @@ from .base import MvDefBase
 @dataclass
 class LsDef(MvDefBase):
     """
-      List function definitions in a given file.
+    List function definitions in a given file.
 
-      Option     Description                                Type        Default
-      —————————— —————————————————————————————————————————— ——————————— ———————
+    Option     Description                                Type        Default
+    —————————— —————————————————————————————————————————— ——————————— ———————
     • src        source file to list definitions from       Path        -
     • match      name regex to list from the source file    list[str]   ['*']
     • dry_run    whether to print the __all__ diff          bool        False

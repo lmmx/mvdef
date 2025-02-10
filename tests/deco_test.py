@@ -1,6 +1,7 @@
 """
 Tests for definitions wrapped by one or more decorators.
 """
+
 from pytest import mark
 
 from .helpers.cli_util import get_cmd_diffs
