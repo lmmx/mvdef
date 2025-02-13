@@ -52,6 +52,9 @@ tests = [
   "pytest",
   "tox"
 ]
+dev = [
+  "pre-commit>=4.1.0"
+]
 
 [project.scripts]
 mvdef = "mvdef.cli:cli_move"
