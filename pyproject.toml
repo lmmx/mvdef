@@ -1,58 +1,58 @@
 [build-system]
 build-backend = "uv_build"
 requires = [
-    "uv_build>=0.9.26,<0.10.0",
+  "uv_build>=0.9.26,<0.10.0"
 ]
 
 [dependency-groups]
 ci = [
-    "tox",
-    "tox-gh-actions",
-    "tox-pdm",
+  "tox",
+  "tox-gh-actions",
+  "tox-pdm"
 ]
 dev = [
-    "pre-commit>=4.1.0",
+  "pre-commit>=4.1.0"
 ]
 docs = [
-    "mkdocs-material[imaging,recommended]>=9.5.2",
-    "mkdocs-section-index>=0.3.8",
-    "mkdocs>=1.5.3",
-    "mkdocstrings[python]>=0.24.0",
+  "mkdocs-material[imaging,recommended]>=9.5.2",
+  "mkdocs-section-index>=0.3.8",
+  "mkdocs>=1.5.3",
+  "mkdocstrings[python]>=0.24.0"
 ]
 tests = [
-    "coverage[toml]>=5.5",
-    "pytest",
-    "tox",
+  "coverage[toml]>=5.5",
+  "pytest",
+  "tox"
 ]
 
 [project]
 authors = [
-    {email = "louismmx@gmail.com", name = "Louis Maddox"},
+  {email = "louismmx@gmail.com", name = "Louis Maddox"}
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python"
 ]
 dependencies = [
-    "argcomplete",
-    "astor",
-    "asttokens",
-    "defopt",
-    "pyflakes",
+  "argcomplete",
+  "astor",
+  "asttokens",
+  "defopt",
+  "pyflakes"
 ]
 description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
 name = "mvdef"
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
-version = "0.0.0"  # TODO: sync with src/mvdef/__init__.py
+version = "0.0.0" # TODO: sync with src/mvdef/__init__.py
 
 [project.license]
 text = "MIT"
@@ -88,7 +88,7 @@ profile = "black"
 
 [tool.pytest.ini_options]
 markers = [
-    "skiponci: tests that should not run on CI (e.g. CLI display issues)",
+  "skiponci: tests that should not run on CI (e.g. CLI display issues)"
 ]
 
 [tool.uv]
