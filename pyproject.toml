@@ -1,69 +1,70 @@
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+build-backend = "uv_build"
+requires = [
+    "uv_build>=0.9.26,<0.10.0",
+]
 
-[project]
-name = "mvdef"
-description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
-readme = "README.md"
-requires-python = ">=3.10,<3.12"
-license = {text = "MIT"}
-authors = [
-  {name = "Louis Maddox", email = "louismmx@gmail.com"}
-]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Natural Language :: English",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11"
-]
-dependencies = [
-  "argcomplete",
-  "astor",
-  "asttokens",
-  "defopt",
-  "pyflakes",
-  "urllib3<2"
-]
-dynamic = ["version"] # If you are still pulling version dynamically from a file
-
-# Optional dependencies: these come from your old [tool.pdm.dev-dependencies] tables
-[project.optional-dependencies]
+[dependency-groups]
 ci = [
-  "tox",
-  "tox-pdm",
-  "tox-gh-actions"
-]
-docs = [
-  "mkdocs>=1.5.3",
-  "mkdocs-material[recommended,imaging]>=9.5.2",
-  "mkdocs-section-index>=0.3.8",
-  "mkdocstrings[python]>=0.24.0",
-  "urllib3<2"
-]
-tests = [
-  "coverage[toml]>=5.5",
-  "pytest",
-  "tox"
+    "tox",
+    "tox-gh-actions",
+    "tox-pdm",
 ]
 dev = [
-  "pre-commit>=4.1.0"
+    "pre-commit>=4.1.0",
+]
+docs = [
+    "mkdocs-material[imaging,recommended]>=9.5.2",
+    "mkdocs-section-index>=0.3.8",
+    "mkdocs>=1.5.3",
+    "mkdocstrings[python]>=0.24.0",
+]
+tests = [
+    "coverage[toml]>=5.5",
+    "pytest",
+    "tox",
 ]
 
+[project]
+authors = [
+    {email = "louismmx@gmail.com", name = "Louis Maddox"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python",
+]
+dependencies = [
+    "argcomplete",
+    "astor",
+    "asttokens",
+    "defopt",
+    "pyflakes",
+]
+description = "Package providing command line tools to move/copy function/classes and their associated import statements between files."
+name = "mvdef"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+version = "0.0.0"  # TODO: sync with src/mvdef/__init__.py
+
+[project.license]
+text = "MIT"
+
 [project.scripts]
-mvdef = "mvdef.cli:cli_move"
 cpdef = "mvdef.cli:cli_copy"
 lsdef = "mvdef.cli:cli_list"
-oldmvdef = "mvdef.legacy.__main__:main"
-oldmvcls = "mvdef.legacy.__main__:mvcls"
-oldcpdef = "mvdef.legacy.__main__:cpdef"
+mvdef = "mvdef.cli:cli_move"
 oldcpcls = "mvdef.legacy.__main__:cpcls"
+oldcpdef = "mvdef.legacy.__main__:cpdef"
+oldmvcls = "mvdef.legacy.__main__:mvcls"
+oldmvdef = "mvdef.legacy.__main__:main"
 
 [project.urls]
 Documentation = "https://mvdef.vercel.app/"
@@ -77,20 +78,18 @@ source = ["src", ".tox/*/site-packages"]
 show_missing = true
 skip_covered = true
 
-# Everything else can remain under [tool.*] as before
 [tool.coverage.run]
-parallel = true
 branch = true
+parallel = true
 source = ["mvdef"]
 
 [tool.isort]
 profile = "black"
 
-# If you still use PDM’s file-based version bumping:
-[tool.pdm]
-version = {path = "src/mvdef/__init__.py", source = "file"}
-
 [tool.pytest.ini_options]
 markers = [
-  "skiponci: tests that should not run on CI (e.g. CLI display issues)"
+    "skiponci: tests that should not run on CI (e.g. CLI display issues)",
 ]
+
+[tool.uv]
+default-groups = "all"
