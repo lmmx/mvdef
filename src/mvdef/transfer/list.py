@@ -36,13 +36,16 @@ class LsDef(MvDefBase):
 
     def __post_init__(self):
         super().__post_init__()
-        kwargs = {k: getattr(self, k) for k in "dry_run list escalate verbose".split()}
+        kwargs = {
+            k: getattr(self, k) for k in ["dry_run", "list", "escalate", "verbose"]
+        }
         kwargs["source_ref"] = self.src_check
         self.src_manifest = Manifest(self.src, matchers=self.match, **kwargs)
 
     def check(self) -> CheckFailure | None:
         kwargs = {
-            k: getattr(self, k) for k in "escalate verbose cls_defs func_defs".split()
+            k: getattr(self, k)
+            for k in ["escalate", "verbose", "cls_defs", "func_defs"]
         }
         try:
             self.src_check = parse_file(self.src, ensure_exists=True, **kwargs)

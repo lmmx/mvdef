@@ -1,4 +1,4 @@
-__all__ = ["MvDefException", "CheckFailure", "AgendaFailure", "SrcNotFound"]
+__all__ = ["AgendaFailure", "CheckFailure", "MvDefException", "SrcNotFound"]
 
 
 class MvDefException(Exception):

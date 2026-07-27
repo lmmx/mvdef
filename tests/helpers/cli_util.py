@@ -6,12 +6,12 @@ from mvdef.cli import CLIResult, cli
 from mvdef.transfer import CpDef, LsDef, MvDef
 
 __all__ = [
-    "mvcls",
-    "run_cmd",
+    "cmd_from_argv",
     "dry_run_cmd",
     "get_cmd_diffs",
     "get_manif",
-    "cmd_from_argv",
+    "mvcls",
+    "run_cmd",
 ]
 
 MvClsT = Union[MvDef, CpDef, LsDef]

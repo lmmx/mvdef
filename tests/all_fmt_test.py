@@ -7,7 +7,7 @@ from pytest import mark
 
 from mvdef.core.manifest.all_fmt import format_all
 
-__all__ = ["test_format_short", "test_format_long"]
+__all__ = ["test_format_long", "test_format_short"]
 
 
 @mark.parametrize(

@@ -12,8 +12,8 @@ from .helpers.io import Write
 __all__ = [
     "test_create_files",
     "test_dry_mv_basic",
-    "test_dry_mv_multidef_not_all_defs",
     "test_dry_mv_multidef_all_defs",
+    "test_dry_mv_multidef_not_all_defs",
     "test_dry_mv_no_dst",
 ]
 

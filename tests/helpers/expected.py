@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ["SrcDiffs", "DstDiffs", "StoredStdOut", "StoredStdErr"]
+__all__ = ["DstDiffs", "SrcDiffs", "StoredStdErr", "StoredStdOut"]
 
 
 class SrcDiffs(Enum):

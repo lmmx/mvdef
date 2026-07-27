@@ -25,7 +25,6 @@ class Write:
         files_in_dir = list(self.path.iterdir())
         if self.len_check:
             assert len(files_in_dir) == len(self.names)
-        return
 
     @classmethod
     def from_enums(

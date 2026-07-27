@@ -50,7 +50,8 @@ class MvDef(MvDefBase):
 
     def check(self) -> CheckFailure | None:
         kwargs = {
-            k: getattr(self, k) for k in "escalate verbose cls_defs func_defs".split()
+            k: getattr(self, k)
+            for k in ["escalate", "verbose", "cls_defs", "func_defs"]
         }
         try:
             self.src_check = parse_file(self.src, ensure_exists=True, **kwargs)
@@ -109,4 +110,3 @@ class MvDef(MvDefBase):
             if not self._copy_mode:
                 self.src_diff.execute()
             self.dst_diff.execute()
-        return

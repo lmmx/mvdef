@@ -28,7 +28,7 @@ def backup(filepath, dry_run=False, suffix=".backup", hidden=True):
         assert filepath.exists() and filepath.is_file() and filepath.suffix == ".py"
     bname = f"{hid_prefix}{filepath.name}{suffix}"
     if fd / bname in fd.iterdir():
-        for i in range(0, 12):
+        for i in range(12):
             bname_i = fd / f"{bname}{i}"
             if bname_i not in fd.iterdir():
                 break
