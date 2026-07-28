@@ -15,4 +15,3 @@ def pprint_def_names(def_names, no_funcdef_list=False):
             for m in def_names.get(n):
                 print(f"    {m}: {def_names.get(n)[m]}", file=stderr)
             print("  }", file=stderr)
-    return

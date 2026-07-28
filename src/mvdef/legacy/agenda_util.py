@@ -1,6 +1,6 @@
 from .colours import colour_str as colour
 
-__all__ = ["pprint_agenda_desc", "pprint_agenda", "describe_def_name_dict"]
+__all__ = ["describe_def_name_dict", "pprint_agenda", "pprint_agenda_desc"]
 
 
 def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):
@@ -26,7 +26,6 @@ def pprint_agenda_desc(category, entry_key, entry_dict, extra_message=""):
     else:
         raise ValueError(f"Unknown agenda category: {category}")
     print(m)
-    return
 
 
 def pprint_agenda(agenda):
@@ -34,7 +33,6 @@ def pprint_agenda(agenda):
         for entry in agenda.get(category):
             name, info_dict = list(entry.items())[0]
             pprint_agenda_desc(category, name, info_dict)
-    return
 
 
 def describe_def_name_dict(name, name_dict):

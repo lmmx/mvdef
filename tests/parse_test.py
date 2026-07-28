@@ -9,11 +9,11 @@ from mvdef.core.parse import parse, parse_file
 from .helpers.io import Write
 
 __all__ = [
+    "test_parse_file_deleted",
+    "test_parse_file_error",
     "test_parse_successfully",
     "test_parse_syntax_error",
     "test_parse_type_error",
-    "test_parse_file_error",
-    "test_parse_file_deleted",
 ]
 
 

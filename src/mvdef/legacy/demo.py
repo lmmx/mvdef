@@ -21,4 +21,3 @@ def main(mvdefs, into_paths, dry_run=True, report=True):
     )
     if report:
         print("------------------COMPLETE--------------------------")
-    return

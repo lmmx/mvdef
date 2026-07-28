@@ -10,7 +10,7 @@ from mvdef.error_handling.exceptions import CheckFailure
 from .helpers.cli_util import dry_run_cmd
 from .helpers.io import Write
 
-__all__ = ["test_no_src", "test_bad_syntax"]
+__all__ = ["test_bad_syntax", "test_no_src"]
 
 
 @mark.parametrize("del_dst_too", [True, False])

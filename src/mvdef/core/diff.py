@@ -73,4 +73,3 @@ class Differ:
             tmp_path = Path(output.name)
             tmp_path.write_text(after)
         tmp_path.rename(self.target_file)
-        return

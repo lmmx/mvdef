@@ -68,7 +68,7 @@ class Checker(FailableMixIn, checker.Checker):
         """Subclass override"""
         super().handleNode(node=node, parent=parent)
         if node is not None:
-            setattr(node, "depth", self.get_ancestors(node, count=True))
+            node.depth = self.get_ancestors(node, count=True)
 
     def CLASSDEF(self, node: AST) -> None:
         """Subclass override"""

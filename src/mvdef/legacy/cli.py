@@ -117,4 +117,3 @@ def main(
     )
     if report:
         print("------------------COMPLETE--------------------------", file=stderr)
-    return

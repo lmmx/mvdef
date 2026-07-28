@@ -1,12 +1,12 @@
 from platform import system as platform
 
 __all__ = [
-    "get_colour_codes",
-    "get_effect_codes",
+    "colour_effect_str",
     "colour_str",
     "effect_str",
+    "get_colour_codes",
+    "get_effect_codes",
     "underline",
-    "colour_effect_str",
 ]
 
 

@@ -7,7 +7,7 @@ from pytest import fixture
 from .helpers.def_descriptor import DefDesc
 from .helpers.expected import DstDiffs, SrcDiffs, StoredStdErr, StoredStdOut
 
-__all__ = ["src", "dst", "stored_diffs", "stored_output", "stored_error"]
+__all__ = ["dst", "src", "stored_diffs", "stored_error", "stored_output"]
 
 
 @fixture(scope="function")
