@@ -345,6 +345,7 @@ class Agenda:
                 if imp is not departure.bound
             ]
             if resting_imports:
+                breakpoint()
                 raise NotImplementedError("Imports staying and going on same line")
         copped = [
             Arrival(name=n.name, rng=self.def_rng(n.name)) for n in self.unique_cops
