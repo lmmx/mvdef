@@ -27,7 +27,7 @@ tests = [
 
 [project]
 authors = [
-  {email = "louismmx@gmail.com", name = "Louis Maddox"}
+  { email = "louismmx@gmail.com", name = "Louis Maddox" }
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
