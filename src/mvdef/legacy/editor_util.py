@@ -102,7 +102,7 @@ def excise_def_from_file(def_node, py_path, return_def=True):
         # wspace_added = "" # Don't think I actually need to implement this
         if wspace_count > 2:
             # Remove whitespace: get list of indexes of lines which are blank
-            prepost = [p for p in range(*pre)] + [p for p in range(*post)]
+            prepost = [*range(*pre)] + [*range(*post)]
             ws_li = [prepost[i] for (i, x) in enumerate(ws_a + ws_b) if x]
             # Take as many as reduce the whitespace count to 2
             remove_li = [ws_li[n] for n in range(wspace_count - 2)]
