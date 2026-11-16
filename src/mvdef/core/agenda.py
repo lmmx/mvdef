@@ -589,7 +589,7 @@ class Agenda:
                 sourced_uses = [
                     SourcedUse(
                         name=imp_name,
-                        imports=[imp for imp in self.ref.imports],  # (BUG) not filtered
+                        imports=[*self.ref.imports],  # (BUG) not filtered
                         target=mv_target_in_src,
                     )
                     for imp_name, tree_group in all_src_imp_name_trees.items()
